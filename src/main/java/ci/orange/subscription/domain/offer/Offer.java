@@ -9,6 +9,10 @@ import java.math.BigDecimal;
 import java.util.regex.Pattern;
 import lombok.Getter;
 
+/**
+ * An offer references its technology by code only: whether that technology exists in the
+ * catalogue is checked by the application layer.
+ */
 @Getter
 public class Offer {
 
@@ -20,12 +24,12 @@ public class Offer {
 	private final Long id;
 	private final String code;
 	private String label;
-	private final Technology technology;
+	private final String technology;
 	private BigDecimal monthlyPrice;
 	private boolean active;
 	private final AuditInfo audit;
 
-	private Offer(Long id, String code, String label, Technology technology, BigDecimal monthlyPrice, boolean active,
+	private Offer(Long id, String code, String label, String technology, BigDecimal monthlyPrice, boolean active,
 			AuditInfo audit) {
 		this.id = id;
 		this.code = code;
@@ -37,12 +41,12 @@ public class Offer {
 	}
 
 	/** A new offer is always active (rule 9). */
-	public static Offer create(String code, String label, Technology technology, BigDecimal monthlyPrice) {
-		return new Offer(null, requireCode(code), requireText(label, "label"), requireValue(technology, "technology"),
+	public static Offer create(String code, String label, String technology, BigDecimal monthlyPrice) {
+		return new Offer(null, requireCode(code), requireText(label, "label"), requireText(technology, "technology"),
 				requirePositivePrice(monthlyPrice), true, null);
 	}
 
-	public static Offer restore(Long id, String code, String label, Technology technology, BigDecimal monthlyPrice,
+	public static Offer restore(Long id, String code, String label, String technology, BigDecimal monthlyPrice,
 			boolean active, AuditInfo audit) {
 		return new Offer(id, code, label, technology, monthlyPrice, active, audit);
 	}

@@ -13,24 +13,24 @@ class OfferTest {
 
 	@Test
 	void createsAnActiveOffer() {
-		Offer offer = Offer.create("FTTH-100", "Fibre Confort 100 Mbps", Technology.FTTH, new BigDecimal("25000"));
+		Offer offer = Offer.create("FTTH-100", "Fibre Confort 100 Mbps", "FTTH", new BigDecimal("25000"));
 
 		assertThat(offer.isActive()).isTrue();
 		assertThat(offer.getCode()).isEqualTo("FTTH-100");
-		assertThat(offer.getTechnology()).isEqualTo(Technology.FTTH);
+		assertThat(offer.getTechnology()).isEqualTo("FTTH");
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = { "ftth-100", "Ftth-100", "FTTH 100", "FTTH-", "-FTTH" })
 	void rejectsCodesThatAreNotUpperCase(String code) {
-		assertThatThrownBy(() -> Offer.create(code, "Fibre", Technology.FTTH, new BigDecimal("25000")))
+		assertThatThrownBy(() -> Offer.create(code, "Fibre", "FTTH", new BigDecimal("25000")))
 				.isInstanceOf(DomainValidationException.class);
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = { "0", "-1", "-0.01" })
 	void rejectsPricesThatAreNotStrictlyPositive(String price) {
-		assertThatThrownBy(() -> Offer.create("FTTH-100", "Fibre", Technology.FTTH, new BigDecimal(price)))
+		assertThatThrownBy(() -> Offer.create("FTTH-100", "Fibre", "FTTH", new BigDecimal(price)))
 				.isInstanceOf(DomainValidationException.class);
 	}
 
@@ -43,19 +43,19 @@ class OfferTest {
 
 	@Test
 	void updatesLabelAndPriceOnly() {
-		Offer offer = Offer.create("FTTH-100", "Fibre Confort", Technology.FTTH, new BigDecimal("25000"));
+		Offer offer = Offer.create("FTTH-100", "Fibre Confort", "FTTH", new BigDecimal("25000"));
 
 		offer.update("Fibre Confort Plus", new BigDecimal("27000"));
 
 		assertThat(offer.getLabel()).isEqualTo("Fibre Confort Plus");
 		assertThat(offer.getMonthlyPrice()).isEqualByComparingTo("27000");
 		assertThat(offer.getCode()).isEqualTo("FTTH-100");
-		assertThat(offer.getTechnology()).isEqualTo(Technology.FTTH);
+		assertThat(offer.getTechnology()).isEqualTo("FTTH");
 	}
 
 	@Test
 	void deactivates() {
-		Offer offer = Offer.create("FTTH-100", "Fibre Confort", Technology.FTTH, new BigDecimal("25000"));
+		Offer offer = Offer.create("FTTH-100", "Fibre Confort", "FTTH", new BigDecimal("25000"));
 
 		offer.deactivate();
 

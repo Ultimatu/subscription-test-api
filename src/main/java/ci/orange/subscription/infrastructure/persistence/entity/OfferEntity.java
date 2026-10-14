@@ -1,8 +1,6 @@
 package ci.orange.subscription.infrastructure.persistence.entity;
 
-import ci.orange.subscription.domain.offer.Technology;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -30,9 +28,8 @@ public class OfferEntity extends AuditableEntity {
 	@Column(nullable = false)
 	private String label;
 
-	@Convert(converter = TechnologyConverter.class)
 	@Column(nullable = false, updatable = false, length = 20)
-	private Technology technology;
+	private String technology;
 
 	@Column(nullable = false, precision = 12, scale = 2)
 	private BigDecimal monthlyPrice;
