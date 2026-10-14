@@ -27,6 +27,16 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | — | Désactiver une offre déjà inactive | Sans effet : réponse 200 (opération idempotente). |
 | — | Technologie absente du catalogue | 400 `UNKNOWN_TECHNOLOGY`. Les technologies sont gérées par `/api/technologies` ([ADR-0006](adr/0006-technologies-donnees-de-reference.md)). |
 
+## Souscriptions
+
+| Règle | Question | Choix retenu |
+|---|---|---|
+| 12 | Client ou offre de la requête introuvable | 404 (`CLIENT_NOT_FOUND`, `OFFER_NOT_FOUND`), avant les règles métier. |
+| 15 | Ordre complet des vérifications à la création | Date de début (400), puis existence du client et de l'offre (404), puis client actif, offre active, absence de souscription suspendue et unicité par technologie (409), dans cet ordre ([ADR-0014](adr/0014-souscriptions-numerotation-et-concurrence.md)). |
+| 16 | Quelle année dans la référence `SUB-{ANNÉE}-…` ? | L'année de création de la souscription, et non celle de sa date de début. Le compteur repart à `000001` chaque année. |
+| 17 | Mode d'attribution du ND | Séquentiel (`2700000001`, `2700000002`…), unique et jamais réattribué, même après suppression. |
+| 19 | Que vaut « la date du jour » ? | La date à Abidjan (fuseau Africa/Abidjan), quel que soit le fuseau du serveur. Une date de début égale à aujourd'hui est acceptée. |
+
 ## Général
 
 | Question | Choix retenu |

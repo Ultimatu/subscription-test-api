@@ -1,10 +1,14 @@
 package ci.orange.subscription.infrastructure.persistence.subscription;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
+import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
+import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.persistence.PersistenceAdapterTest;
 import ci.orange.subscription.infrastructure.persistence.entity.ClientEntity;
@@ -86,6 +90,65 @@ class SubscriptionPersistenceAdapterTest {
 				.setParameter("id", clientId)
 				.getSingleResult();
 		assertThat(keptRows.longValue()).isEqualTo(2);
+	}
+
+	@Test
+	void savesANewSubscriptionWithTheTechnologyOfItsOfferAndItsHistory() {
+		Long offerId = offerId("SAT-50");
+
+		Subscription saved = subscriptionRepository.save(newSubscription(offerId, 900001));
+		entityManager.clear();
+
+		assertThat(saved.getId()).isNotNull();
+		assertThat(saved.getStatus()).isEqualTo(SubscriptionStatus.PENDING);
+		assertThat(saved.recordedStatusChanges()).isEmpty();
+		Object[] row = (Object[]) entityManager
+				.createNativeQuery("select technology, client_id, offer_id from subscription where id = :id")
+				.setParameter("id", saved.getId())
+				.getSingleResult();
+		assertThat(row).containsExactly("SATELLITE", clientId, offerId);
+		Object[] history = (Object[]) entityManager.createNativeQuery(
+				"select from_status, to_status, changed_by from subscription_status_history where subscription_id = :id")
+				.setParameter("id", saved.getId())
+				.getSingleResult();
+		assertThat(history).containsExactly(null, "PENDING", "anonymous");
+	}
+
+	@Test
+	void detectsAnOngoingSubscriptionOnATechnology() {
+		insert("FTTH-100", SubscriptionStatus.ACTIVE);
+		insert("SAT-20", SubscriptionStatus.TERMINATED);
+
+		assertThat(subscriptionRepository.existsOngoingForClientAndTechnology(clientId, "FTTH")).isTrue();
+		assertThat(subscriptionRepository.existsOngoingForClientAndTechnology(clientId, "SATELLITE")).isFalse();
+		assertThat(subscriptionRepository.existsOngoingForClientAndTechnology(clientId, "4G_BOX")).isFalse();
+	}
+
+	@Test
+	void theDatabaseRefusesASecondOngoingSubscriptionOnTheSameTechnology() {
+		insert("FTTH-30", SubscriptionStatus.PENDING);
+
+		assertThatThrownBy(() -> subscriptionRepository.save(newSubscription(offerId("FTTH-1000"), 900002)))
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_ALREADY_SUBSCRIBED);
+	}
+
+	@Test
+	void aTerminatedSubscriptionFreesTheTechnology() {
+		insert("FTTH-30", SubscriptionStatus.TERMINATED);
+
+		assertThat(subscriptionRepository.save(newSubscription(offerId("FTTH-1000"), 900003)).getId()).isNotNull();
+	}
+
+	private Subscription newSubscription(Long offerId, int number) {
+		return Subscription.create("SUB-2099-%06d".formatted(number), "27%08d".formatted(number), clientId, offerId,
+				LocalDate.now(), LocalDate.now());
+	}
+
+	private Long offerId(String code) {
+		return entityManager.createQuery("select o.id from OfferEntity o where o.code = :code", Long.class)
+				.setParameter("code", code)
+				.getSingleResult();
 	}
 
 	private void insert(String offerCode, SubscriptionStatus status) {

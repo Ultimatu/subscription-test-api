@@ -55,6 +55,11 @@ class ClientPersistenceAdapter implements ClientRepository {
 	}
 
 	@Override
+	public Optional<Client> findByIdForUpdate(Long id) {
+		return jpaRepository.findByIdForUpdate(id).map(ClientEntityMapper::toDomain);
+	}
+
+	@Override
 	public boolean existsByEmail(String email) {
 		return jpaRepository.existsByEmailIgnoreCase(email);
 	}

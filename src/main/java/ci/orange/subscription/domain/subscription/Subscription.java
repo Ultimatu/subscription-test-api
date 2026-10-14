@@ -49,10 +49,7 @@ public class Subscription {
 	/** A new subscription starts PENDING and cannot start before today (rule 19). */
 	public static Subscription create(String reference, String nd, Long clientId, Long offerId, LocalDate startDate,
 			LocalDate today) {
-		requireValue(startDate, "startDate");
-		if (startDate.isBefore(today)) {
-			throw new DomainValidationException(DomainErrorCode.START_DATE_IN_PAST, "La date de début ne peut pas être antérieure à la date du jour");
-		}
+		ensureStartDateNotInPast(startDate, today);
 		Subscription subscription = new Subscription(null, requireText(reference, "reference"), requireText(nd, "nd"),
 				requireValue(clientId, "clientId"), requireValue(offerId, "offerId"), SubscriptionStatus.PENDING,
 				startDate, null, null);
@@ -63,6 +60,15 @@ public class Subscription {
 	public static Subscription restore(Long id, String reference, String nd, Long clientId, Long offerId,
 			SubscriptionStatus status, LocalDate startDate, LocalDate endDate, AuditInfo audit) {
 		return new Subscription(id, reference, nd, clientId, offerId, status, startDate, endDate, audit);
+	}
+
+	/** Exposed so that the request can be rejected before any other check (rule 19). */
+	public static void ensureStartDateNotInPast(LocalDate startDate, LocalDate today) {
+		requireValue(startDate, "startDate");
+		if (startDate.isBefore(today)) {
+			throw new DomainValidationException(DomainErrorCode.START_DATE_IN_PAST,
+					"La date de début ne peut pas être antérieure à la date du jour (%s)".formatted(today));
+		}
 	}
 
 	public void activate() {

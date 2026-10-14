@@ -1,0 +1,72 @@
+package ci.orange.subscription.application.service;
+
+import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
+import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.OfferRepository;
+import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
+import ci.orange.subscription.application.port.out.SubscriptionRepository;
+import ci.orange.subscription.domain.client.Client;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
+import ci.orange.subscription.domain.exception.ResourceNotFoundException;
+import ci.orange.subscription.domain.offer.Offer;
+import ci.orange.subscription.domain.subscription.Subscription;
+import ci.orange.subscription.domain.subscription.SubscriptionEligibility;
+import ci.orange.subscription.domain.subscription.SubscriptionNumbering;
+import ci.orange.subscription.domain.subscription.SubscriptionStatus;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.EnumSet;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class SubscriptionService implements SubscriptionUseCases {
+
+	private final SubscriptionRepository subscriptionRepository;
+	private final ClientRepository clientRepository;
+	private final OfferRepository offerRepository;
+	private final SubscriptionNumberSequences numberSequences;
+	private final Clock clock;
+
+	public SubscriptionService(SubscriptionRepository subscriptionRepository, ClientRepository clientRepository,
+			OfferRepository offerRepository, SubscriptionNumberSequences numberSequences, Clock clock) {
+		this.subscriptionRepository = subscriptionRepository;
+		this.clientRepository = clientRepository;
+		this.offerRepository = offerRepository;
+		this.numberSequences = numberSequences;
+		this.clock = clock;
+	}
+
+	/**
+	 * Invalid data first, then unknown references, then rules 12 to 14 in the imposed order. The
+	 * client stays locked until the end of the transaction, so that a concurrent request for the same
+	 * client cannot pass the same checks at the same time. Numbers are only drawn once every check
+	 * has passed.
+	 */
+	@Override
+	public Subscription create(CreateSubscriptionCommand command) {
+		LocalDate today = LocalDate.now(clock);
+		Subscription.ensureStartDateNotInPast(command.startDate(), today);
+
+		Client client = clientRepository.findByIdForUpdate(command.clientId())
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client",
+						command.clientId()));
+		Offer offer = offerRepository.findById(command.offerId())
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.OFFER_NOT_FOUND, "Offre",
+						command.offerId()));
+
+		SubscriptionEligibility.check(client, offer,
+				subscriptionRepository.existsByClientIdAndStatusIn(client.getId(),
+						EnumSet.of(SubscriptionStatus.SUSPENDED)),
+				subscriptionRepository.existsOngoingForClientAndTechnology(client.getId(), offer.getTechnology()));
+
+		String reference = SubscriptionNumbering.reference(today.getYear(),
+				numberSequences.nextReference(today.getYear()));
+		String nd = SubscriptionNumbering.nd(numberSequences.nextNd());
+		return subscriptionRepository.save(
+				Subscription.create(reference, nd, client.getId(), offer.getId(), command.startDate(), today));
+	}
+
+}

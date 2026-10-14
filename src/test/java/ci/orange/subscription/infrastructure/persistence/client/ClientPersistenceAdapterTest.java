@@ -39,6 +39,18 @@ class ClientPersistenceAdapterTest {
 	}
 
 	@Test
+	void findsAClientForUpdateUnlessItIsDeleted() {
+		Client client = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
+
+		assertThat(clientRepository.findByIdForUpdate(client.getId())).map(Client::getEmail).contains("awa@mail.ci");
+
+		clientRepository.delete(client);
+		entityManager.clear();
+
+		assertThat(clientRepository.findByIdForUpdate(client.getId())).isEmpty();
+	}
+
+	@Test
 	void updatesAnExistingClient() {
 		Client client = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
 		client.update("Aya", "Koné", "0501020304", "Bouaké", ClientStatus.INACTIVE);

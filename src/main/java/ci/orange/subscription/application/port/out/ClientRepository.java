@@ -16,6 +16,12 @@ public interface ClientRepository {
 
 	Optional<Client> findById(Long id);
 
+	/**
+	 * Same as {@link #findById(Long)}, but locks the client until the end of the transaction: the
+	 * operations on the subscriptions of a client then run one after the other (ADR-0014).
+	 */
+	Optional<Client> findByIdForUpdate(Long id);
+
 	boolean existsByEmail(String email);
 
 	Page<Client> search(ClientSearchCriteria criteria, Pageable pageable);

@@ -13,6 +13,9 @@ interface SubscriptionJpaRepository extends JpaRepository<SubscriptionEntity, Lo
 
 	boolean existsByClientIdAndStatusIn(Long clientId, Collection<SubscriptionStatus> statuses);
 
+	boolean existsByClientIdAndTechnologyAndStatusIn(Long clientId, String technology,
+			Collection<SubscriptionStatus> statuses);
+
 	List<SubscriptionEntity> findAllByClientId(Long clientId);
 
 	@Query("""
