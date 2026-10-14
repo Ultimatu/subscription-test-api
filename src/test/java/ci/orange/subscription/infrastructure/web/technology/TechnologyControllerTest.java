@@ -17,18 +17,15 @@ import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.technology.Technology;
-import ci.orange.subscription.infrastructure.security.SecurityConfig;
+import ci.orange.subscription.infrastructure.web.WebAdapterTest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(TechnologyController.class)
-@Import(SecurityConfig.class)
+@WebAdapterTest(TechnologyController.class)
 class TechnologyControllerTest {
 
 	@Autowired
@@ -62,7 +59,9 @@ class TechnologyControllerTest {
 	void reportsAnUnknownTechnology() throws Exception {
 		when(technologyUseCases.get("5G_BOX")).thenThrow(new ResourceNotFoundException(DomainErrorCode.TECHNOLOGY_NOT_FOUND, "Technologie", "5G_BOX"));
 
-		mockMvc.perform(get("/api/technologies/5G_BOX")).andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/technologies/5G_BOX"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("TECHNOLOGY_NOT_FOUND"));
 	}
 
 	@Test
@@ -96,7 +95,8 @@ class TechnologyControllerTest {
 
 		mockMvc.perform(post("/api/technologies").contentType(MediaType.APPLICATION_JSON)
 				.content("{ \"code\": \"FTTH\", \"label\": \"Fibre\" }"))
-				.andExpect(status().isConflict());
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("TECHNOLOGY_ALREADY_EXISTS"));
 	}
 
 }

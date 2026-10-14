@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -31,7 +32,7 @@ import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
-import ci.orange.subscription.infrastructure.security.SecurityConfig;
+import ci.orange.subscription.infrastructure.web.WebAdapterTest;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -40,8 +41,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageImpl;
@@ -54,8 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(ClientController.class)
-@Import(SecurityConfig.class)
+@WebAdapterTest(ClientController.class)
 class ClientControllerTest {
 
 	private static final String VALID_CLIENT = """
@@ -122,6 +120,7 @@ class ClientControllerTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
 				.andExpect(jsonPath("$.title").value("Requête invalide"))
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
 				.andExpect(jsonPath("$.errors.length()").value(3))
 				.andExpect(jsonPath("$.errors[?(@.field == 'phoneNumberClient')].message")
 						.value("doit comporter dix chiffres et commencer par 01, 05 ou 07"))
@@ -139,6 +138,7 @@ class ClientControllerTest {
 		mockMvc.perform(post("/api/clients").contentType(MediaType.APPLICATION_JSON).content(VALID_CLIENT))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.title").value("Règle métier non respectée"))
+				.andExpect(jsonPath("$.code").value("CLIENT_EMAIL_ALREADY_USED"))
 				.andExpect(jsonPath("$.detail").value("Un client existe déjà avec l'email awa@mail.ci"));
 	}
 
@@ -146,6 +146,7 @@ class ClientControllerTest {
 	void rejectsAMalformedBody() throws Exception {
 		mockMvc.perform(post("/api/clients").contentType(MediaType.APPLICATION_JSON).content("{ not json"))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"))
 				.andExpect(jsonPath("$.detail").value("Le corps de la requête est illisible ou mal formé"));
 	}
 
@@ -184,6 +185,7 @@ class ClientControllerTest {
 	void rejectsAnUnknownStatusFilter() throws Exception {
 		mockMvc.perform(get("/api/clients").param("status", "DELETED"))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
 				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le paramètre status : DELETED"));
 	}
 
@@ -194,6 +196,7 @@ class ClientControllerTest {
 
 		mockMvc.perform(get("/api/clients").param("sort", "unknown"))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_SORT_PROPERTY"))
 				.andExpect(jsonPath("$.detail").value("Tri impossible sur la propriété inconnue : unknown"));
 	}
 
@@ -210,19 +213,24 @@ class ClientControllerTest {
 	void reportsAnUnknownClient() throws Exception {
 		when(clientUseCases.get(99L)).thenThrow(new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", 99L));
 
-		mockMvc.perform(get("/api/clients/99"))
+		mockMvc.perform(get("/api/clients/99").header("X-Request-Id", "conseiller-42"))
 				.andExpect(status().isNotFound())
 				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(header().string("X-Request-Id", "conseiller-42"))
 				.andExpect(jsonPath("$.status").value(404))
 				.andExpect(jsonPath("$.title").value("Ressource introuvable"))
 				.andExpect(jsonPath("$.detail").value("Client introuvable (id 99)"))
-				.andExpect(jsonPath("$.instance").value("/api/clients/99"));
+				.andExpect(jsonPath("$.instance").value("/api/clients/99"))
+				.andExpect(jsonPath("$.code").value("CLIENT_NOT_FOUND"))
+				.andExpect(jsonPath("$.timestamp").isNotEmpty())
+				.andExpect(jsonPath("$.requestId").value("conseiller-42"));
 	}
 
 	@Test
 	void rejectsANonNumericId() throws Exception {
 		mockMvc.perform(get("/api/clients/abc"))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
 				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le paramètre id : abc"));
 	}
 
@@ -244,6 +252,7 @@ class ClientControllerTest {
 
 		mockMvc.perform(put("/api/clients/1").contentType(MediaType.APPLICATION_JSON).content(withEmail))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
 				.andExpect(jsonPath("$.errors[0].field").value("email"))
 				.andExpect(jsonPath("$.errors[0].message").value("n'est pas modifiable après la création du client"));
 
@@ -255,6 +264,7 @@ class ClientControllerTest {
 		mockMvc.perform(put("/api/clients/1").contentType(MediaType.APPLICATION_JSON)
 				.content(VALID_UPDATE.replace("INACTIVE", "DELETED")))
 				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_FIELD_VALUE"))
 				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le champ status : DELETED"));
 	}
 
@@ -264,7 +274,8 @@ class ClientControllerTest {
 
 		mockMvc.perform(put("/api/clients/1").contentType(MediaType.APPLICATION_JSON).content(VALID_UPDATE))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.title").value("Modification concurrente"));
+				.andExpect(jsonPath("$.title").value("Modification concurrente"))
+				.andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
 	}
 
 	@Test
@@ -278,7 +289,9 @@ class ClientControllerTest {
 	void refusesToDeleteAClientWithActiveSubscriptions() throws Exception {
 		doThrow(new BusinessRuleViolationException(DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS, "souscriptions en cours")).when(clientUseCases).delete(1L);
 
-		mockMvc.perform(delete("/api/clients/1")).andExpect(status().isConflict());
+		mockMvc.perform(delete("/api/clients/1"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("CLIENT_HAS_ONGOING_SUBSCRIPTIONS"));
 	}
 
 	@Test
@@ -304,7 +317,8 @@ class ClientControllerTest {
 
 		mockMvc.perform(get("/api/clients/1"))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.title").value("Conflit de données"));
+				.andExpect(jsonPath("$.title").value("Conflit de données"))
+				.andExpect(jsonPath("$.code").value("DATA_INTEGRITY_VIOLATION"));
 	}
 
 	@Test
@@ -314,7 +328,18 @@ class ClientControllerTest {
 		mockMvc.perform(get("/api/clients/1"))
 				.andExpect(status().isInternalServerError())
 				.andExpect(jsonPath("$.detail").value("Une erreur inattendue est survenue"))
+				.andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
 				.andExpect(content().string(not(containsString("secret"))));
+	}
+
+	@Test
+	void enrichesErrorsRaisedBySpringItself() throws Exception {
+		mockMvc.perform(patch("/api/clients"))
+				.andExpect(status().isMethodNotAllowed())
+				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
+				.andExpect(jsonPath("$.timestamp").isNotEmpty())
+				.andExpect(jsonPath("$.requestId").isNotEmpty());
 	}
 
 	private static Client client(ClientStatus status) {

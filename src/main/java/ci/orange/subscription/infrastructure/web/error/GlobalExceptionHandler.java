@@ -1,13 +1,18 @@
 package ci.orange.subscription.infrastructure.web.error;
 
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainException;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.InvalidStatusTransitionException;
+import ci.orange.subscription.infrastructure.web.tracing.RequestTracingFilter;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import java.time.Clock;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -26,23 +31,27 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Turns every error into an RFC 9457 problem detail: domain exceptions are mapped to their HTTP
- * status here, so the domain never deals with HTTP.
+ * Turns every error into an RFC 9457 problem detail with a stable code, a timestamp and the id of
+ * the request. Domain exceptions are mapped to their HTTP status here, so the domain never deals
+ * with HTTP.
  */
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	private static final String INVALID_REQUEST = "Requête invalide";
 
+	private final Clock clock;
+
 	@ExceptionHandler(ResourceNotFoundException.class)
 	ProblemDetail handleNotFound(ResourceNotFoundException exception) {
-		return problem(HttpStatus.NOT_FOUND, "Ressource introuvable", exception.getMessage());
+		return problem(HttpStatus.NOT_FOUND, "Ressource introuvable", exception);
 	}
 
 	@ExceptionHandler(InvalidStatusTransitionException.class)
 	ProblemDetail handleInvalidTransition(InvalidStatusTransitionException exception) {
-		ProblemDetail problem = problem(HttpStatus.CONFLICT, "Transition de statut interdite", exception.getMessage());
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "Transition de statut interdite", exception);
 		problem.setProperty("currentStatus", exception.getCurrentStatus());
 		problem.setProperty("requiredStatuses", exception.getRequiredStatuses());
 		return problem;
@@ -50,43 +59,48 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(BusinessRuleViolationException.class)
 	ProblemDetail handleBusinessRuleViolation(BusinessRuleViolationException exception) {
-		return problem(HttpStatus.CONFLICT, "Règle métier non respectée", exception.getMessage());
+		return problem(HttpStatus.CONFLICT, "Règle métier non respectée", exception);
 	}
 
 	@ExceptionHandler(DomainValidationException.class)
 	ProblemDetail handleDomainValidation(DomainValidationException exception) {
-		return problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, exception.getMessage());
+		return problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, exception);
 	}
 
 	@ExceptionHandler(PropertyReferenceException.class)
 	ProblemDetail handleUnknownSortProperty(PropertyReferenceException exception) {
 		return problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
-				"Tri impossible sur la propriété inconnue : " + exception.getPropertyName());
+				"Tri impossible sur la propriété inconnue : " + exception.getPropertyName(),
+				TechnicalErrorCode.INVALID_SORT_PROPERTY.name());
 	}
 
 	@ExceptionHandler(OptimisticLockingFailureException.class)
 	ProblemDetail handleConcurrentModification(OptimisticLockingFailureException exception) {
 		return problem(HttpStatus.CONFLICT, "Modification concurrente",
-				"La ressource a été modifiée entre-temps, veuillez réessayer");
+				"La ressource a été modifiée entre-temps, veuillez réessayer",
+				TechnicalErrorCode.CONCURRENT_MODIFICATION.name());
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException exception) {
 		log.warn("Data integrity violation not translated into a business error", exception);
 		return problem(HttpStatus.CONFLICT, "Conflit de données",
-				"L'opération viole une contrainte d'intégrité des données");
+				"L'opération viole une contrainte d'intégrité des données",
+				TechnicalErrorCode.DATA_INTEGRITY_VIOLATION.name());
 	}
 
 	@ExceptionHandler(Exception.class)
 	ProblemDetail handleUnexpected(Exception exception) {
 		log.error("Unexpected error", exception);
-		return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur interne", "Une erreur inattendue est survenue");
+		return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur interne", "Une erreur inattendue est survenue",
+				TechnicalErrorCode.INTERNAL_ERROR.name());
 	}
 
 	@Override
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception,
 			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, "Un ou plusieurs champs sont invalides");
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, "Un ou plusieurs champs sont invalides",
+				TechnicalErrorCode.VALIDATION_ERROR.name());
 		problem.setProperty("errors", exception.getBindingResult().getFieldErrors().stream()
 				.map(error -> new InvalidField(error.getField(), error.getDefaultMessage()))
 				.toList());
@@ -96,14 +110,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@Override
 	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException exception,
 			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-		String detail = "Le corps de la requête est illisible ou mal formé";
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
+				"Le corps de la requête est illisible ou mal formé", TechnicalErrorCode.MALFORMED_REQUEST.name());
 		if (exception.getCause() instanceof JsonMappingException mapping && !mapping.getPath().isEmpty()) {
-			detail = mapping instanceof InvalidFormatException invalid
-					? "Valeur invalide pour le champ %s : %s".formatted(fieldPath(mapping), invalid.getValue())
-					: "Valeur invalide pour le champ " + fieldPath(mapping);
+			problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
+					mapping instanceof InvalidFormatException invalid
+							? "Valeur invalide pour le champ %s : %s".formatted(fieldPath(mapping), invalid.getValue())
+							: "Valeur invalide pour le champ " + fieldPath(mapping),
+					TechnicalErrorCode.INVALID_FIELD_VALUE.name());
 		}
-		return handleExceptionInternal(exception, problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, detail), headers,
-				status, request);
+		return handleExceptionInternal(exception, problem, headers, status, request);
 	}
 
 	@Override
@@ -111,15 +127,46 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpStatusCode status, WebRequest request) {
 		String name = exception instanceof MethodArgumentTypeMismatchException argument ? argument.getName()
 				: exception.getPropertyName();
-		String detail = "Valeur invalide pour le paramètre %s : %s".formatted(name, exception.getValue());
-		return handleExceptionInternal(exception, problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, detail), headers,
-				status, request);
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
+				"Valeur invalide pour le paramètre %s : %s".formatted(name, exception.getValue()),
+				TechnicalErrorCode.INVALID_PARAMETER.name());
+		return handleExceptionInternal(exception, problem, headers, status, request);
 	}
 
-	private static ProblemDetail problem(HttpStatus status, String title, String detail) {
+	/**
+	 * Every error handled by Spring itself (405, 415, unknown route...) goes through here: it gets the
+	 * same enrichment, with a code derived from its HTTP status (METHOD_NOT_ALLOWED...).
+	 */
+	@Override
+	protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body, HttpHeaders headers,
+			HttpStatusCode statusCode, WebRequest request) {
+		ResponseEntity<Object> response = super.handleExceptionInternal(exception, body, headers, statusCode, request);
+		if (response != null && response.getBody() instanceof ProblemDetail problem
+				&& (problem.getProperties() == null || !problem.getProperties().containsKey("code"))) {
+			HttpStatus status = HttpStatus.resolve(statusCode.value());
+			enrich(problem, status != null ? status.name() : "HTTP_" + statusCode.value());
+		}
+		return response;
+	}
+
+	private ProblemDetail problem(HttpStatus status, String title, DomainException exception) {
+		return problem(status, title, exception.getMessage(), exception.getErrorCode().name());
+	}
+
+	private ProblemDetail problem(HttpStatus status, String title, String detail, String code) {
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
 		problem.setTitle(title);
+		enrich(problem, code);
 		return problem;
+	}
+
+	private void enrich(ProblemDetail problem, String code) {
+		problem.setProperty("code", code);
+		problem.setProperty("timestamp", clock.instant());
+		String requestId = MDC.get(RequestTracingFilter.REQUEST_ID_MDC_KEY);
+		if (requestId != null) {
+			problem.setProperty("requestId", requestId);
+		}
 	}
 
 	private static String fieldPath(JsonMappingException exception) {
@@ -127,9 +174,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				.map(reference -> reference.getFieldName() != null ? reference.getFieldName()
 						: "[" + reference.getIndex() + "]")
 				.collect(Collectors.joining("."));
-	}
-
-	record InvalidField(String field, String message) {
 	}
 
 }
