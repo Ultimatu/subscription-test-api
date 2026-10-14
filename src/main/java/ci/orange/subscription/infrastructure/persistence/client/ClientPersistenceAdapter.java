@@ -62,7 +62,7 @@ class ClientPersistenceAdapter implements ClientRepository {
 
 	@Override
 	public boolean existsByEmail(String email) {
-		return jpaRepository.existsByEmailIgnoreCase(email);
+		return jpaRepository.emailExists(email);
 	}
 
 	@Override
