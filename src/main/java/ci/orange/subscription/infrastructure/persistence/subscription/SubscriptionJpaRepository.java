@@ -1,0 +1,41 @@
+package ci.orange.subscription.infrastructure.persistence.subscription;
+
+import ci.orange.subscription.domain.subscription.SubscriptionStatus;
+import ci.orange.subscription.infrastructure.persistence.entity.SubscriptionEntity;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+interface SubscriptionJpaRepository extends JpaRepository<SubscriptionEntity, Long> {
+
+	boolean existsByClientIdAndStatusIn(Long clientId, Collection<SubscriptionStatus> statuses);
+
+	List<SubscriptionEntity> findAllByClientId(Long clientId);
+
+	@Query("""
+			select s.status as status, count(s) as total
+			from SubscriptionEntity s
+			where s.client.id = :clientId
+			group by s.status
+			""")
+	List<StatusCount> countByStatusForClient(@Param("clientId") Long clientId);
+
+	@Query("""
+			select coalesce(sum(s.offer.monthlyPrice), 0)
+			from SubscriptionEntity s
+			where s.client.id = :clientId and s.status = :status
+			""")
+	BigDecimal sumMonthlyPriceForClient(@Param("clientId") Long clientId, @Param("status") SubscriptionStatus status);
+
+	interface StatusCount {
+
+		SubscriptionStatus getStatus();
+
+		long getTotal();
+
+	}
+
+}
