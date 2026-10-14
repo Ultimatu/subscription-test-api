@@ -43,6 +43,17 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 20 | Le motif est-il exigé côté API ? | Oui : `reason` est obligatoire et non vide pour `suspend` et `terminate` (400 sinon), puis conservé dans l'historique. |
 | — | Réponse des créations et des transitions | Le détail complet de la souscription après le changement : client, offre et historique. Une transition réussie renvoie 200. |
 
+## Statistiques
+
+| Question | Choix retenu |
+|---|---|
+| « Souscriptions actives et revenu mensuel par ville » | La ville est celle du client, regroupée sans tenir compte de la casse. Le revenu est la somme des prix mensuels des souscriptions ACTIVE ; seules les villes ayant au moins une souscription active apparaissent, revenu le plus élevé en premier. |
+| Quel prix pour le revenu ? | Le prix **actuel** de l'offre : le prix n'est pas figé au moment de la souscription. Pour de la facturation, il faudrait le conserver sur la souscription. |
+| « Répartition par technologie » | Nombre de souscriptions ACTIVE et part en pourcentage (deux décimales). Toutes les technologies du catalogue apparaissent, y compris à 0. |
+| « Par statut sur une période » : quelle date doit tomber dans la période ? | Au choix de l'appelant, par le paramètre facultatif `basedOn` : `CREATION_DATE` (par défaut : souscriptions créées dans la période, selon leur statut actuel), `START_DATE` (souscriptions qui démarrent dans la période, selon leur statut actuel) ou `STATUS_CHANGE` (souscriptions passées à chaque statut pendant la période, d'après l'historique). |
+| Bornes de la période | `from` et `to` sont facultatifs et inclus, interprétés comme des dates à Abidjan. Une période inversée donne une 400 `INVALID_DATE_RANGE`. Tous les statuts apparaissent, y compris à 0, et `total` compte des souscriptions distinctes. |
+| Souscriptions supprimées | Jamais comptées. |
+
 ## Général
 
 | Question | Choix retenu |
