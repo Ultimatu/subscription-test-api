@@ -41,6 +41,7 @@ class OpenApiDocumentationTest {
 				.andExpect(jsonPath("$.paths['/api/clients'].get.parameters[*].name")
 						.value(hasItems("city", "status", "search", "page", "size", "sort")))
 				.andExpect(jsonPath("$.paths['/api/technologies'].post.responses['201']").exists())
+				.andExpect(jsonPath("$.paths['/api/offers/{id}/deactivate'].patch.responses['200']").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.code").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.requestId").exists());
 	}
