@@ -18,6 +18,11 @@ spring:
     locale: fr
     locale-resolver: fixed
 
+logging:
+  pattern:
+    # Every log line carries the id of the request it belongs to (see RequestTracingFilter)
+    correlation: "[%X{requestId:-}] "
+
 springdoc:
   default-produces-media-type: application/json
   swagger-ui:
