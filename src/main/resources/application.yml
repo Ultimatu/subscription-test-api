@@ -9,6 +9,10 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  data:
+    web:
+      pageable:
+        max-page-size: 100
   web:
     # Bean Validation messages ("ne doit pas être vide"...) in French, whatever the client sends
     locale: fr
