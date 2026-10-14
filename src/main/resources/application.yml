@@ -18,6 +18,17 @@ spring:
     locale: fr
     locale-resolver: fixed
 
+app:
+  security:
+    # Désactivable pour tester l'API sans jeton : APP_SECURITY_ENABLED=false
+    enabled: true
+    jwt:
+      issuer: subscription-api
+      validity: 1h
+      # Clé HMAC de 256 bits (Base64), pour le développement uniquement : en production, elle est
+      # fournie par la variable d'environnement APP_SECURITY_JWT_SECRET
+      secret: 4UNwXJoVwONomSM7a6LtumqQ2mOm4Nh2FTS+GQrz1JA=
+
 logging:
   pattern:
     # Chaque ligne de log porte l'identifiant de sa requête (voir RequestTracingFilter)

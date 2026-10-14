@@ -5,13 +5,10 @@ import ci.orange.subscription.domain.exception.DomainException;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.InvalidStatusTransitionException;
-import ci.orange.subscription.infrastructure.web.tracing.RequestTracingFilter;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import java.time.Clock;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -22,6 +19,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -40,10 +39,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	private static final String INVALID_REQUEST = "Requête invalide";
 
-	private final Clock clock;
+	private final ProblemDetailFactory problems;
 
-	public GlobalExceptionHandler(Clock clock) {
-		this.clock = clock;
+	public GlobalExceptionHandler(ProblemDetailFactory problems) {
+		this.problems = problems;
 	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
@@ -67,6 +66,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(DomainValidationException.class)
 	ProblemDetail handleDomainValidation(DomainValidationException exception) {
 		return problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, exception);
+	}
+
+	/** Échec de connexion : même réponse pour un compte inconnu ou un mauvais mot de passe. */
+	@ExceptionHandler(AuthenticationException.class)
+	ProblemDetail handleFailedAuthentication(AuthenticationException exception) {
+		return problem(HttpStatus.UNAUTHORIZED, "Authentification échouée", "Identifiant ou mot de passe incorrect",
+				TechnicalErrorCode.INVALID_CREDENTIALS.name());
+	}
+
+	@ExceptionHandler(AccessDeniedException.class)
+	ProblemDetail handleAccessDenied(AccessDeniedException exception) {
+		return problem(HttpStatus.FORBIDDEN, "Accès refusé", "Votre rôle ne permet pas cette opération",
+				TechnicalErrorCode.ACCESS_DENIED.name());
 	}
 
 	@ExceptionHandler(PropertyReferenceException.class)
@@ -146,7 +158,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		if (response != null && response.getBody() instanceof ProblemDetail problem
 				&& (problem.getProperties() == null || !problem.getProperties().containsKey("code"))) {
 			HttpStatus status = HttpStatus.resolve(statusCode.value());
-			enrich(problem, status != null ? status.name() : "HTTP_" + statusCode.value());
+			problems.enrich(problem, status != null ? status.name() : "HTTP_" + statusCode.value());
 		}
 		return response;
 	}
@@ -156,19 +168,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	private ProblemDetail problem(HttpStatus status, String title, String detail, String code) {
-		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-		problem.setTitle(title);
-		enrich(problem, code);
-		return problem;
-	}
-
-	private void enrich(ProblemDetail problem, String code) {
-		problem.setProperty("code", code);
-		problem.setProperty("timestamp", clock.instant());
-		String requestId = MDC.get(RequestTracingFilter.REQUEST_ID_MDC_KEY);
-		if (requestId != null) {
-			problem.setProperty("requestId", requestId);
-		}
+		return problems.create(status, title, detail, code);
 	}
 
 	private static String fieldPath(JsonMappingException exception) {

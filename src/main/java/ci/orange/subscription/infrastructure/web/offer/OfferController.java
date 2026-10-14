@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Tag(name = "Offres", description = "Catalogue des offres")
+@ApiErrors.Unauthorized
+@ApiErrors.Forbidden
 @RestController
 @RequestMapping("/offers")
 class OfferController {

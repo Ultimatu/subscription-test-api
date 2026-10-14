@@ -23,6 +23,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * sans modifier le code.
  */
 @Tag(name = "Technologies", description = "Catalogue des technologies d'accès (hors énoncé)")
+@ApiErrors.Unauthorized
+@ApiErrors.Forbidden
 @RestController
 @RequestMapping("/technologies")
 class TechnologyController {

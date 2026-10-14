@@ -50,6 +50,10 @@ class OpenApiDocumentationTest {
 				.andExpect(jsonPath("$.paths['/api/stats/subscriptions-by-technology'].get.responses['200']").exists())
 				.andExpect(jsonPath("$.paths['/api/stats/subscriptions-by-status'].get.parameters[*].name")
 						.value(hasItems("from", "to", "basedOn")))
+				.andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+				.andExpect(jsonPath("$.paths['/api/auth/login'].post.security").isEmpty())
+				.andExpect(jsonPath("$.paths['/api/clients'].get.responses['401']").exists())
+				.andExpect(jsonPath("$.paths['/api/stats/subscriptions-by-city'].get.responses['403']").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.code").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.requestId").exists());
 	}

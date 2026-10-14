@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
  * souscription.
  */
 @Tag(name = "Souscriptions")
+@ApiErrors.Unauthorized
+@ApiErrors.Forbidden
 @RestController
 @RequestMapping("/clients/{clientId}/subscriptions")
 class ClientSubscriptionController {

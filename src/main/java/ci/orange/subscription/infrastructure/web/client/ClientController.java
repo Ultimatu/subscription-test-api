@@ -32,6 +32,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * règle métier ici.
  */
 @Tag(name = "Clients", description = "Gestion des clients")
+@ApiErrors.Unauthorized
+@ApiErrors.Forbidden
 @RestController
 @RequestMapping("/clients")
 class ClientController {

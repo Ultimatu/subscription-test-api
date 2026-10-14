@@ -34,6 +34,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * après la modification.
  */
 @Tag(name = "Souscriptions", description = "Souscriptions et cycle de vie")
+@ApiErrors.Unauthorized
+@ApiErrors.Forbidden
 @RestController
 @RequestMapping("/subscriptions")
 class SubscriptionController {

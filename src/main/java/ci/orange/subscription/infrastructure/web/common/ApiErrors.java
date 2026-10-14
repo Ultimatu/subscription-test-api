@@ -27,6 +27,21 @@ public final class ApiErrors {
 
 	@Target({ ElementType.METHOD, ElementType.TYPE })
 	@Retention(RetentionPolicy.RUNTIME)
+	@ApiResponse(responseCode = "401",
+			description = "Jeton absent, invalide ou expiré (ou identifiants incorrects à la connexion)",
+			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblem.class)))
+	public @interface Unauthorized {
+	}
+
+	@Target({ ElementType.METHOD, ElementType.TYPE })
+	@Retention(RetentionPolicy.RUNTIME)
+	@ApiResponse(responseCode = "403", description = "Rôle insuffisant pour cette opération",
+			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblem.class)))
+	public @interface Forbidden {
+	}
+
+	@Target({ ElementType.METHOD, ElementType.TYPE })
+	@Retention(RetentionPolicy.RUNTIME)
 	@ApiResponse(responseCode = "404", description = "Ressource introuvable",
 			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblem.class)))
 	public @interface NotFound {
