@@ -5,11 +5,29 @@ import ci.orange.subscription.infrastructure.persistence.entity.SubscriptionEnti
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-interface SubscriptionJpaRepository extends JpaRepository<SubscriptionEntity, Long> {
+interface SubscriptionJpaRepository
+		extends JpaRepository<SubscriptionEntity, Long>, JpaSpecificationExecutor<SubscriptionEntity> {
+
+	/** Read side: the client and the offer are fetched in the same query (no N+1). */
+	@EntityGraph(attributePaths = { "client", "offer" })
+	Optional<SubscriptionEntity> findWithClientAndOfferById(Long id);
+
+	@EntityGraph(attributePaths = { "client", "offer" })
+	Optional<SubscriptionEntity> findWithClientAndOfferByNd(String nd);
+
+	@Override
+	@EntityGraph(attributePaths = { "client", "offer" })
+	Page<SubscriptionEntity> findAll(Specification<SubscriptionEntity> specification, Pageable pageable);
 
 	boolean existsByClientIdAndStatusIn(Long clientId, Collection<SubscriptionStatus> statuses);
 

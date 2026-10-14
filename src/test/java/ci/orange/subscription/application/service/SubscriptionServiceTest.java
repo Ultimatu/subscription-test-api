@@ -10,9 +10,14 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
+import ci.orange.subscription.application.port.in.subscription.StatusHistoryEntry;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
+import ci.orange.subscription.application.port.out.SubscriptionQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
@@ -30,6 +35,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -38,6 +44,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionServiceTest {
@@ -57,13 +66,16 @@ class SubscriptionServiceTest {
 	@Mock
 	private SubscriptionNumberSequences numberSequences;
 
+	@Mock
+	private SubscriptionQueries subscriptionQueries;
+
 	private SubscriptionService subscriptionService;
 
 	@BeforeEach
 	void createService() {
 		Clock clock = Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant().plusSeconds(3600), ABIDJAN);
-		subscriptionService = new SubscriptionService(subscriptionRepository, clientRepository, offerRepository,
-				numberSequences, clock);
+		subscriptionService = new SubscriptionService(subscriptionRepository, subscriptionQueries, clientRepository,
+				offerRepository, numberSequences, clock);
 	}
 
 	@Nested
@@ -262,6 +274,81 @@ class SubscriptionServiceTest {
 					TODAY, null, null);
 			when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(subscription));
 			return subscription;
+		}
+
+	}
+
+	@Nested
+	class Reads {
+
+		private final SubscriptionView view = new SubscriptionView(10L, "SUB-2026-000001", "2700000001",
+				SubscriptionStatus.ACTIVE, "FTTH", TODAY, null, null, null, null);
+
+		@Test
+		void getsASubscriptionWithItsHistory() {
+			List<StatusHistoryEntry> history = List
+					.of(new StatusHistoryEntry(null, SubscriptionStatus.PENDING, null, null, "conseiller"));
+			when(subscriptionQueries.findById(10L)).thenReturn(Optional.of(view));
+			when(subscriptionQueries.findHistory(10L)).thenReturn(history);
+
+			assertThat(subscriptionService.get(10L)).isEqualTo(new SubscriptionDetails(view, history));
+		}
+
+		@Test
+		void findsASubscriptionByItsNd() {
+			when(subscriptionQueries.findByNd("2700000001")).thenReturn(Optional.of(view));
+			when(subscriptionQueries.findHistory(10L)).thenReturn(List.of());
+
+			assertThat(subscriptionService.getByNd("2700000001").subscription()).isEqualTo(view);
+		}
+
+		@Test
+		void reportsAnUnknownNdWithTheNdInTheMessage() {
+			when(subscriptionQueries.findByNd("2799999999")).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> subscriptionService.getByNd("2799999999"))
+					.isInstanceOf(ResourceNotFoundException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_FOUND)
+					.hasMessage("Souscription introuvable (ND 2799999999)");
+		}
+
+		@Test
+		void searchesWithTheCriteria() {
+			SubscriptionSearchCriteria criteria = new SubscriptionSearchCriteria(SubscriptionStatus.ACTIVE, "FTTH",
+					"Abidjan", null, TODAY.minusDays(30), TODAY);
+			Page<SubscriptionView> page = new PageImpl<>(List.of(view));
+			when(subscriptionQueries.search(criteria, PageRequest.of(0, 20))).thenReturn(page);
+
+			assertThat(subscriptionService.search(criteria, PageRequest.of(0, 20))).isSameAs(page);
+		}
+
+		@Test
+		void refusesAnInvertedDateRange() {
+			SubscriptionSearchCriteria criteria = new SubscriptionSearchCriteria(null, null, null, null, TODAY,
+					TODAY.minusDays(1));
+
+			assertThatThrownBy(() -> subscriptionService.search(criteria, PageRequest.of(0, 20)))
+					.isInstanceOf(DomainValidationException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_DATE_RANGE);
+			verifyNoInteractions(subscriptionQueries);
+		}
+
+		@Test
+		void listsTheSubscriptionsOfAClient() {
+			when(clientRepository.findById(1L)).thenReturn(Optional.of(
+					Client.restore(1L, "Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE, null)));
+			Page<SubscriptionView> page = new PageImpl<>(List.of(view));
+			when(subscriptionQueries.findByClient(1L, PageRequest.of(0, 20))).thenReturn(page);
+
+			assertThat(subscriptionService.listByClient(1L, PageRequest.of(0, 20))).isSameAs(page);
+		}
+
+		@Test
+		void reportsAnUnknownClientWhenListingItsSubscriptions() {
+			when(clientRepository.findById(99L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> subscriptionService.listByClient(99L, PageRequest.of(0, 20)))
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_NOT_FOUND);
 		}
 
 	}

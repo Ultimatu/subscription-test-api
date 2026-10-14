@@ -36,6 +36,9 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 16 | Quelle année dans la référence `SUB-{ANNÉE}-…` ? | L'année de création de la souscription, et non celle de sa date de début. Le compteur repart à `000001` chaque année. |
 | 17 | Mode d'attribution du ND | Séquentiel (`2700000001`, `2700000002`…), unique et jamais réattribué, même après suppression. |
 | 19 | Que vaut « la date du jour » ? | La date à Abidjan (fuseau Africa/Abidjan), quel que soit le fuseau du serveur. Une date de début égale à aujourd'hui est acceptée. |
+| — | Recherche globale : sens des filtres | `city` porte sur la ville du client (égalité insensible à la casse), `technology` sur la technologie de l'offre souscrite, `nd` sur un ND exact. `startDateFrom` et `startDateTo` sont inclus ; une borne inversée donne une 400 `INVALID_DATE_RANGE`. |
+| — | Contenu du détail d'une souscription | Un aperçu du client et de l'offre, plus l'historique complet des statuts avec motifs, auteurs et dates ([ADR-0015](adr/0015-modele-de-lecture-des-souscriptions.md)). |
+| — | Souscriptions d'un client inconnu | 404 `CLIENT_NOT_FOUND` plutôt qu'une liste vide. |
 
 ## Général
 

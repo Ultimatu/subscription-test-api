@@ -1,6 +1,8 @@
 package ci.orange.subscription.application.port.in.subscription;
 
 import ci.orange.subscription.domain.subscription.Subscription;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface SubscriptionUseCases {
 
@@ -20,5 +22,14 @@ public interface SubscriptionUseCases {
 
 	/** Only a PENDING subscription can be deleted (rule 22). */
 	void delete(Long id);
+
+	/** With an overview of the client and the offer, and the status history. */
+	SubscriptionDetails get(Long id);
+
+	SubscriptionDetails getByNd(String nd);
+
+	Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable);
+
+	Page<SubscriptionView> listByClient(Long clientId, Pageable pageable);
 
 }

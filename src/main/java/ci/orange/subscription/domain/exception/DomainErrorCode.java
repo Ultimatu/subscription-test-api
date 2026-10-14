@@ -14,6 +14,7 @@ public enum DomainErrorCode {
 	INVALID_TECHNOLOGY_CODE,
 	UNKNOWN_TECHNOLOGY,
 	START_DATE_IN_PAST,
+	INVALID_DATE_RANGE,
 
 	// Unknown resources
 	CLIENT_NOT_FOUND,

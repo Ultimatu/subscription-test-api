@@ -1,13 +1,18 @@
 package ci.orange.subscription.application.service;
 
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
+import ci.orange.subscription.application.port.out.SubscriptionQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
+import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.offer.Offer;
 import ci.orange.subscription.domain.subscription.Subscription;
@@ -18,6 +23,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.function.Consumer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +33,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriptionService implements SubscriptionUseCases {
 
 	private final SubscriptionRepository subscriptionRepository;
+	private final SubscriptionQueries subscriptionQueries;
 	private final ClientRepository clientRepository;
 	private final OfferRepository offerRepository;
 	private final SubscriptionNumberSequences numberSequences;
 	private final Clock clock;
 
-	public SubscriptionService(SubscriptionRepository subscriptionRepository, ClientRepository clientRepository,
-			OfferRepository offerRepository, SubscriptionNumberSequences numberSequences, Clock clock) {
+	public SubscriptionService(SubscriptionRepository subscriptionRepository, SubscriptionQueries subscriptionQueries,
+			ClientRepository clientRepository, OfferRepository offerRepository,
+			SubscriptionNumberSequences numberSequences, Clock clock) {
 		this.subscriptionRepository = subscriptionRepository;
+		this.subscriptionQueries = subscriptionQueries;
 		this.clientRepository = clientRepository;
 		this.offerRepository = offerRepository;
 		this.numberSequences = numberSequences;
@@ -95,6 +105,45 @@ public class SubscriptionService implements SubscriptionUseCases {
 		Subscription subscription = findSubscription(id);
 		subscription.ensureDeletable();
 		subscriptionRepository.delete(subscription);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public SubscriptionDetails get(Long id) {
+		SubscriptionView subscription = subscriptionQueries.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
+						id));
+		return new SubscriptionDetails(subscription, subscriptionQueries.findHistory(id));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public SubscriptionDetails getByNd(String nd) {
+		SubscriptionView subscription = subscriptionQueries.findByNd(nd)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
+						"ND", nd));
+		return new SubscriptionDetails(subscription, subscriptionQueries.findHistory(subscription.id()));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable) {
+		if (criteria.startDateFrom() != null && criteria.startDateTo() != null
+				&& criteria.startDateFrom().isAfter(criteria.startDateTo())) {
+			throw new DomainValidationException(DomainErrorCode.INVALID_DATE_RANGE,
+					"startDateFrom (%s) doit être antérieure ou égale à startDateTo (%s)"
+							.formatted(criteria.startDateFrom(), criteria.startDateTo()));
+		}
+		return subscriptionQueries.search(criteria, pageable);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<SubscriptionView> listByClient(Long clientId, Pageable pageable) {
+		if (clientRepository.findById(clientId).isEmpty()) {
+			throw new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", clientId);
+		}
+		return subscriptionQueries.findByClient(clientId, pageable);
 	}
 
 	/**
