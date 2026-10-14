@@ -39,6 +39,9 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | — | Recherche globale : sens des filtres | `city` porte sur la ville du client (égalité insensible à la casse), `technology` sur la technologie de l'offre souscrite, `nd` sur un ND exact. `startDateFrom` et `startDateTo` sont inclus ; une borne inversée donne une 400 `INVALID_DATE_RANGE`. |
 | — | Contenu du détail d'une souscription | Un aperçu du client et de l'offre, plus l'historique complet des statuts avec motifs, auteurs et dates ([ADR-0015](adr/0015-modele-de-lecture-des-souscriptions.md)). |
 | — | Souscriptions d'un client inconnu | 404 `CLIENT_NOT_FOUND` plutôt qu'une liste vide. |
+| 18 | Qu'est-ce qu'une « tentative de modification » du ND ? | Aucun endpoint ne modifie une souscription : la présence d'un champ `nd` dans n'importe quel corps (création ou transition) donne une 400. Il en va de même pour `reference`, également attribuée par le serveur. |
+| 20 | Le motif est-il exigé côté API ? | Oui : `reason` est obligatoire et non vide pour `suspend` et `terminate` (400 sinon), puis conservé dans l'historique. |
+| — | Réponse des créations et des transitions | Le détail complet de la souscription après le changement : client, offre et historique. Une transition réussie renvoie 200. |
 
 ## Général
 

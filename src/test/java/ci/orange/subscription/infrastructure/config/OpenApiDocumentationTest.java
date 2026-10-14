@@ -42,6 +42,10 @@ class OpenApiDocumentationTest {
 						.value(hasItems("city", "status", "search", "page", "size", "sort")))
 				.andExpect(jsonPath("$.paths['/api/technologies'].post.responses['201']").exists())
 				.andExpect(jsonPath("$.paths['/api/offers/{id}/deactivate'].patch.responses['200']").exists())
+				.andExpect(jsonPath("$.paths['/api/subscriptions'].post.responses['201']").exists())
+				.andExpect(jsonPath("$.paths['/api/subscriptions/terminate'].post.responses['409']").exists())
+				.andExpect(jsonPath("$.paths['/api/subscriptions/by-nd/{nd}'].get.responses['200']").exists())
+				.andExpect(jsonPath("$.paths['/api/clients/{clientId}/subscriptions'].get.responses['200']").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.code").exists())
 				.andExpect(jsonPath("$.components.schemas.Problem.properties.requestId").exists());
 	}
