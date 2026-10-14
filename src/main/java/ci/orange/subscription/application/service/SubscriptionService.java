@@ -17,6 +17,7 @@ import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumSet;
+import java.util.function.Consumer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +68,51 @@ public class SubscriptionService implements SubscriptionUseCases {
 		String nd = SubscriptionNumbering.nd(numberSequences.nextNd());
 		return subscriptionRepository.save(
 				Subscription.create(reference, nd, client.getId(), offer.getId(), command.startDate(), today));
+	}
+
+	@Override
+	public Subscription activate(Long id) {
+		return transition(id, Subscription::activate);
+	}
+
+	@Override
+	public Subscription suspend(Long id, String reason) {
+		return transition(id, subscription -> subscription.suspend(reason));
+	}
+
+	@Override
+	public Subscription reactivate(Long id) {
+		return transition(id, Subscription::reactivate);
+	}
+
+	@Override
+	public Subscription terminate(Long id, String reason) {
+		return transition(id, subscription -> subscription.terminate(reason, LocalDate.now(clock)));
+	}
+
+	@Override
+	public void delete(Long id) {
+		Subscription subscription = findSubscription(id);
+		subscription.ensureDeletable();
+		subscriptionRepository.delete(subscription);
+	}
+
+	/**
+	 * The domain accepts or refuses the transition. Locking the client serializes it with a concurrent
+	 * creation for the same client (rule 13); two concurrent changes of the same subscription are
+	 * caught by its version.
+	 */
+	private Subscription transition(Long id, Consumer<Subscription> operation) {
+		Subscription subscription = findSubscription(id);
+		clientRepository.findByIdForUpdate(subscription.getClientId());
+		operation.accept(subscription);
+		return subscriptionRepository.save(subscription);
+	}
+
+	private Subscription findSubscription(Long id) {
+		return subscriptionRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
+						id));
 	}
 
 }

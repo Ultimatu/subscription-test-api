@@ -22,6 +22,7 @@ import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.offer.Offer;
 import ci.orange.subscription.domain.subscription.StatusChange;
+import ci.orange.subscription.domain.subscription.InvalidStatusTransitionException;
 import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
@@ -171,6 +172,96 @@ class SubscriptionServiceTest {
 			ArgumentCaptor<Integer> year = ArgumentCaptor.forClass(Integer.class);
 			verify(numberSequences).nextReference(year.capture());
 			assertThat(year.getValue()).isEqualTo(2026);
+		}
+
+	}
+
+	@Nested
+	class Transitions {
+
+		@Test
+		void activatesAPendingSubscriptionUnderTheClientLock() {
+			givenSubscription(SubscriptionStatus.PENDING);
+			when(subscriptionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+			Subscription subscription = subscriptionService.activate(10L);
+
+			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+			verify(clientRepository).findByIdForUpdate(1L);
+		}
+
+		@Test
+		void suspendsWithItsReason() {
+			givenSubscription(SubscriptionStatus.ACTIVE);
+			when(subscriptionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+			Subscription subscription = subscriptionService.suspend(10L, "Impayé");
+
+			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.SUSPENDED);
+			assertThat(subscription.recordedStatusChanges())
+					.containsExactly(new StatusChange(SubscriptionStatus.ACTIVE, SubscriptionStatus.SUSPENDED, "Impayé"));
+		}
+
+		@Test
+		void reactivatesASuspendedSubscription() {
+			givenSubscription(SubscriptionStatus.SUSPENDED);
+			when(subscriptionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+			assertThat(subscriptionService.reactivate(10L).getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+		}
+
+		@Test
+		void terminatesTodayInAbidjan() {
+			givenSubscription(SubscriptionStatus.ACTIVE);
+			when(subscriptionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+			Subscription subscription = subscriptionService.terminate(10L, "Déménagement");
+
+			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.TERMINATED);
+			assertThat(subscription.getEndDate()).isEqualTo(TODAY);
+		}
+
+		@Test
+		void refusesATransitionOutsideOfTheSchemaWithoutSavingAnything() {
+			givenSubscription(SubscriptionStatus.TERMINATED);
+
+			assertThatThrownBy(() -> subscriptionService.reactivate(10L))
+					.isInstanceOf(InvalidStatusTransitionException.class);
+			verify(subscriptionRepository, never()).save(any());
+		}
+
+		@Test
+		void reportsAnUnknownSubscription() {
+			when(subscriptionRepository.findById(99L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> subscriptionService.activate(99L))
+					.isInstanceOf(ResourceNotFoundException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_FOUND);
+		}
+
+		@Test
+		void deletesAPendingSubscription() {
+			Subscription pending = givenSubscription(SubscriptionStatus.PENDING);
+
+			subscriptionService.delete(10L);
+
+			verify(subscriptionRepository).delete(pending);
+		}
+
+		@Test
+		void refusesToDeleteASubscriptionThatWasActivated() {
+			givenSubscription(SubscriptionStatus.ACTIVE);
+
+			assertThatThrownBy(() -> subscriptionService.delete(10L))
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_DELETABLE);
+			verify(subscriptionRepository, never()).delete(any());
+		}
+
+		private Subscription givenSubscription(SubscriptionStatus status) {
+			Subscription subscription = Subscription.restore(10L, "SUB-2026-000001", "2700000001", 1L, 2L, status,
+					TODAY, null, null);
+			when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(subscription));
+			return subscription;
 		}
 
 	}

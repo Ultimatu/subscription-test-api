@@ -4,6 +4,7 @@ import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -13,6 +14,10 @@ public interface SubscriptionRepository {
 
 	/** Also stores the status changes recorded by the subscription in its history. */
 	Subscription save(Subscription subscription);
+
+	Optional<Subscription> findById(Long id);
+
+	void delete(Subscription subscription);
 
 	/** PENDING or ACTIVE subscription of the client on that technology (rule 14). */
 	boolean existsOngoingForClientAndTechnology(Long clientId, String technology);

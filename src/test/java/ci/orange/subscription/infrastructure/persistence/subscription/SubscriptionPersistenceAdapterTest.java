@@ -16,7 +16,9 @@ import ci.orange.subscription.infrastructure.persistence.entity.OfferEntity;
 import ci.orange.subscription.infrastructure.persistence.entity.SubscriptionEntity;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -138,6 +140,49 @@ class SubscriptionPersistenceAdapterTest {
 		insert("FTTH-30", SubscriptionStatus.TERMINATED);
 
 		assertThat(subscriptionRepository.save(newSubscription(offerId("FTTH-1000"), 900003)).getId()).isNotNull();
+	}
+
+	@Test
+	void appendsEveryStatusChangeToTheHistory() {
+		Subscription subscription = subscriptionRepository.save(newSubscription(offerId("FTTH-100"), 900004));
+		subscription.activate();
+		subscription = subscriptionRepository.save(subscription);
+		subscription.suspend("Impayé");
+		subscription = subscriptionRepository.save(subscription);
+		subscription.reactivate();
+		subscription = subscriptionRepository.save(subscription);
+		subscription.suspend("Demande du client");
+		subscriptionRepository.save(subscription);
+		entityManager.clear();
+
+		List<?> history = entityManager.createNativeQuery("""
+				select from_status, to_status, reason from subscription_status_history
+				where subscription_id = :id order by id
+				""").setParameter("id", subscription.getId()).getResultList();
+		assertThat(history).extracting(row -> Arrays.toString((Object[]) row)).containsExactly(
+				"[null, PENDING, null]",
+				"[PENDING, ACTIVE, null]",
+				"[ACTIVE, SUSPENDED, Impayé]",
+				"[SUSPENDED, ACTIVE, null]",
+				"[ACTIVE, SUSPENDED, Demande du client]");
+		assertThat(subscriptionRepository.findById(subscription.getId()))
+				.map(Subscription::getStatus)
+				.contains(SubscriptionStatus.SUSPENDED);
+	}
+
+	@Test
+	void aDeletedSubscriptionDisappearsButIsKeptInStorage() {
+		Subscription subscription = subscriptionRepository.save(newSubscription(offerId("SAT-20"), 900005));
+
+		subscriptionRepository.delete(subscription);
+		entityManager.clear();
+
+		assertThat(subscriptionRepository.findById(subscription.getId())).isEmpty();
+		Number keptRows = (Number) entityManager
+				.createNativeQuery("select count(*) from subscription where id = :id and deleted_by = 'anonymous'")
+				.setParameter("id", subscription.getId())
+				.getSingleResult();
+		assertThat(keptRows.longValue()).isEqualTo(1);
 	}
 
 	private Subscription newSubscription(Long offerId, int number) {

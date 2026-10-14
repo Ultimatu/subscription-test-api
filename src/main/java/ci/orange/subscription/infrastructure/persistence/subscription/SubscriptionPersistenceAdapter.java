@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -73,6 +74,18 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 			historyRepository.save(historyEntry(saved, change));
 		}
 		return SubscriptionEntityMapper.toDomain(saved);
+	}
+
+	@Override
+	public Optional<Subscription> findById(Long id) {
+		return jpaRepository.findById(id).map(SubscriptionEntityMapper::toDomain);
+	}
+
+	@Override
+	public void delete(Subscription subscription) {
+		SubscriptionEntity entity = findEntity(subscription.getId());
+		entity.markDeleted(clock.instant(), auditorAware.getCurrentAuditor().orElseThrow());
+		jpaRepository.saveAndFlush(entity);
 	}
 
 	@Override
