@@ -1,0 +1,8 @@
+# Loaded on top of src/main/resources/application.yml for every test (IDE and Maven).
+# Tests use their own schema so that data created through the running application never
+# interferes with them, without requiring a second database.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/subscription_db?currentSchema=test
+  flyway:
+    schemas: test
