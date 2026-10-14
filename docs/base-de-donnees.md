@@ -1,6 +1,6 @@
 # Base de données
 
-Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V7 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
+Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V8 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
 
 ## Tables et relations
 
@@ -59,11 +59,18 @@ erDiagram
         integer year PK
         bigint last_value
     }
+    app_user {
+        bigint id PK
+        varchar username UK
+        varchar password_hash "empreinte BCrypt, jamais le mot de passe"
+        varchar role "ADMIN, CONSEILLER"
+        boolean enabled
+    }
 ```
 
 Colonnes communes, omises du diagramme :
 
-- **Audit** ([ADR-0004](adr/0004-audit-et-historique.md)) : `created_at`, `created_by`, `updated_at`, `updated_by` sur `technology`, `offer`, `client` et `subscription` ;
+- **Audit** ([ADR-0004](adr/0004-audit-et-historique.md)) : `created_at`, `created_by`, `updated_at`, `updated_by` sur `technology`, `offer`, `client`, `subscription` et `app_user` ;
 - **Verrou optimiste** : `version` sur ces mêmes tables ;
 - **Suppression logique** ([ADR-0005](adr/0005-suppression-logique.md)) : `deleted_by` à côté de `deleted_at`, sur `client` et `subscription`.
 
@@ -71,6 +78,7 @@ Autres objets :
 
 - la **séquence `subscription_nd_seq`** (de 1 à 99 999 999), dont dérive le ND ([ADR-0014](adr/0014-souscriptions-numerotation-et-concurrence.md)) ;
 - la table **`subscription_reference_counter`**, un compteur par année pour la référence, incrémenté atomiquement ;
+- la table **`app_user`**, les comptes des utilisateurs de l'API, sans relation avec les autres tables ([ADR-0013](adr/0013-securite.md)) ;
 - l'**extension `unaccent`**, pour la recherche insensible aux accents ([ADR-0017](adr/0017-recherche-insensible-aux-accents.md)).
 
 ## Règles métier garanties par la base
@@ -90,6 +98,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `ck_*_status` | client, subscription, historique | Seuls les statuts prévus sont acceptés |
 | `fk_subscription_client`, `fk_subscription_offer`, `fk_subscription_technology` | subscription | Références existantes |
 | `fk_status_history_subscription` (`on delete cascade`) | historique | Historique rattaché à une souscription existante |
+| `uk_app_user_username`, `ck_app_user_role` | app_user | Nom d'utilisateur unique, rôle ADMIN ou CONSEILLER |
 
 ## Index et requêtes servies
 
@@ -106,6 +115,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_subscription_nd` | Recherche par ND (`GET /api/subscriptions/by-nd/{nd}`) |
 | `uk_subscription_reference` | Unicité de la référence |
 | `ix_status_history_subscription` | Historique d'une souscription |
+| `uk_app_user_username` | Recherche du compte à la connexion |
 
 Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients a été retiré (V7) : depuis la recherche insensible aux accents, le filtre compare `lower(unaccent(city))`, expression qu'un index sur la colonne brute ne peut pas servir.
 
@@ -120,6 +130,7 @@ Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients
 | V5 | Numérotation des souscriptions et garantie de la règle 14 en base |
 | V6 | Extension `unaccent` |
 | V7 | Retrait de l'index sur la ville, devenu inutile |
+| V8 | Comptes des utilisateurs de l'API et comptes de démonstration |
 
 Une migration déjà appliquée n'est jamais modifiée, même pour un commentaire : Flyway vérifie son empreinte au démarrage.
 

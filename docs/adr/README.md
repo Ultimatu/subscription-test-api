@@ -18,7 +18,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0010](0010-strategie-de-tests.md) | Stratégie de tests | Acceptée |
 | [0011](0011-montants.md) | Représentation des montants | Acceptée |
 | [0012](0012-constructeurs-explicites.md) | Constructeurs d'injection écrits explicitement, sans Lombok | Acceptée |
-| [0013](0013-securite.md) | Authentification JWT avec les rôles ADMIN et CONSEILLER | Acceptée, à implémenter |
+| [0013](0013-securite.md) | Authentification JWT avec les rôles ADMIN et CONSEILLER | Acceptée |
 | [0014](0014-souscriptions-numerotation-et-concurrence.md) | Souscriptions : numérotation et accès concurrents | Acceptée |
 | [0015](0015-modele-de-lecture-des-souscriptions.md) | Modèle de lecture distinct pour les souscriptions | Acceptée |
 | [0016](0016-couverture-de-code.md) | Mesure et seuil de couverture de code | Acceptée |
