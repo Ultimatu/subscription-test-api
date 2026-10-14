@@ -26,7 +26,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * HTTP only: validates the input, calls the use case and maps the result. No business rule here.
  */
 @RestController
-@RequestMapping("/api/clients")
+@RequestMapping("/clients")
 @RequiredArgsConstructor
 class ClientController {
 

@@ -20,7 +20,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * technology without any code change.
  */
 @RestController
-@RequestMapping("/api/technologies")
+@RequestMapping("/technologies")
 @RequiredArgsConstructor
 class TechnologyController {
 
