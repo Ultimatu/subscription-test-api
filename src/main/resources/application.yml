@@ -1,3 +1,11 @@
 spring:
   application:
     name: subscription-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/subscription_db
+    username: subscription_user
+    password: subscription_pwd
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
