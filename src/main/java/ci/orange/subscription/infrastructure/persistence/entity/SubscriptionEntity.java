@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * Keeps JPA relations to the client and the offer (unlike the domain, which only holds their ids)
@@ -24,8 +25,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction("deleted_at is null")
 @Table(name = "subscription")
-public class SubscriptionEntity extends AuditableEntity {
+public class SubscriptionEntity extends SoftDeletableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

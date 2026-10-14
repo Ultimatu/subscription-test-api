@@ -12,12 +12,14 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 @Getter
 @Setter
 @Entity
+@SQLRestriction("deleted_at is null")
 @Table(name = "client")
-public class ClientEntity extends AuditableEntity {
+public class ClientEntity extends SoftDeletableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
