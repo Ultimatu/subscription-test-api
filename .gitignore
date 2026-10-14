@@ -33,7 +33,8 @@ build/
 .vscode/
 .cursor/
 
-### Claude Code ###
+### AI assistants ###
+AGENTS.md
 CLAUDE.md
 CLAUDE.local.md
 .claude/
