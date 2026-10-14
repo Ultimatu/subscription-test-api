@@ -19,6 +19,7 @@ import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
@@ -69,6 +70,7 @@ class ClientServiceTest {
 		assertThatThrownBy(() -> clientService
 				.create(new CreateClientCommand("Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan")))
 				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_EMAIL_ALREADY_USED)
 				.hasMessageContaining("awa@mail.ci");
 		verify(clientRepository, never()).save(any());
 	}
@@ -97,6 +99,7 @@ class ClientServiceTest {
 
 		assertThatThrownBy(() -> clientService.get(99L))
 				.isInstanceOf(ResourceNotFoundException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_NOT_FOUND)
 				.hasMessageContaining("99");
 	}
 
@@ -119,7 +122,9 @@ class ClientServiceTest {
 		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
 		when(subscriptionRepository.existsByClientIdAndStatusIn(eq(1L), anySet())).thenReturn(true);
 
-		assertThatThrownBy(() -> clientService.delete(1L)).isInstanceOf(BusinessRuleViolationException.class);
+		assertThatThrownBy(() -> clientService.delete(1L))
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS);
 
 		ArgumentCaptor<java.util.Set<SubscriptionStatus>> statuses = ArgumentCaptor.forClass(java.util.Set.class);
 		verify(subscriptionRepository).existsByClientIdAndStatusIn(eq(1L), statuses.capture());

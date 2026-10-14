@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ci.orange.subscription.application.port.in.technology.CreateTechnologyCommand;
 import ci.orange.subscription.application.port.in.technology.TechnologyUseCases;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.technology.Technology;
 import ci.orange.subscription.infrastructure.security.SecurityConfig;
@@ -59,7 +60,7 @@ class TechnologyControllerTest {
 
 	@Test
 	void reportsAnUnknownTechnology() throws Exception {
-		when(technologyUseCases.get("5G_BOX")).thenThrow(new ResourceNotFoundException("Technologie", "5G_BOX"));
+		when(technologyUseCases.get("5G_BOX")).thenThrow(new ResourceNotFoundException(DomainErrorCode.TECHNOLOGY_NOT_FOUND, "Technologie", "5G_BOX"));
 
 		mockMvc.perform(get("/api/technologies/5G_BOX")).andExpect(status().isNotFound());
 	}
@@ -90,7 +91,8 @@ class TechnologyControllerTest {
 	@Test
 	void reportsAnExistingCodeAsAConflict() throws Exception {
 		when(technologyUseCases.create(any()))
-				.thenThrow(new BusinessRuleViolationException("La technologie FTTH existe déjà"));
+				.thenThrow(new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS,
+						"La technologie FTTH existe déjà"));
 
 		mockMvc.perform(post("/api/technologies").contentType(MediaType.APPLICATION_JSON)
 				.content("{ \"code\": \"FTTH\", \"label\": \"Fibre\" }"))

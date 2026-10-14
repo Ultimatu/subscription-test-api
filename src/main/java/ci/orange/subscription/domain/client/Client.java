@@ -4,6 +4,7 @@ import static ci.orange.subscription.domain.common.DomainValidation.requireText;
 import static ci.orange.subscription.domain.common.DomainValidation.requireValue;
 
 import ci.orange.subscription.domain.common.AuditInfo;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -71,7 +72,7 @@ public class Client {
 	private static String requirePhoneNumber(String phoneNumber) {
 		String value = requireText(phoneNumber, "phoneNumberClient");
 		if (!PHONE_NUMBER_PATTERN.matcher(value).matches()) {
-			throw new DomainValidationException(
+			throw new DomainValidationException(DomainErrorCode.INVALID_PHONE_NUMBER,
 					"Le numéro de téléphone doit comporter dix chiffres et commencer par 01, 05 ou 07");
 		}
 		return value;

@@ -3,6 +3,7 @@ package ci.orange.subscription.domain.technology;
 import static ci.orange.subscription.domain.common.DomainValidation.requireText;
 
 import ci.orange.subscription.domain.common.AuditInfo;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.util.regex.Pattern;
 import lombok.Getter;
@@ -42,8 +43,9 @@ public class Technology {
 	private static String requireCode(String code) {
 		String value = requireText(code, "code");
 		if (value.length() > CODE_MAX_LENGTH || !CODE_PATTERN.matcher(value).matches()) {
-			throw new DomainValidationException("Le code de la technologie doit comporter au plus %d caractères parmi majuscules, chiffres et _ (ex. 4G_BOX)"
-					.formatted(CODE_MAX_LENGTH));
+			throw new DomainValidationException(DomainErrorCode.INVALID_TECHNOLOGY_CODE,
+					"Le code de la technologie doit comporter au plus %d caractères parmi majuscules, chiffres et _ (ex. 4G_BOX)"
+							.formatted(CODE_MAX_LENGTH));
 		}
 		return value;
 	}

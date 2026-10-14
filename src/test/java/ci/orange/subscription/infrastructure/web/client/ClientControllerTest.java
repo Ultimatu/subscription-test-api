@@ -28,6 +28,7 @@ import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.security.SecurityConfig;
@@ -132,7 +133,8 @@ class ClientControllerTest {
 	@Test
 	void reportsADuplicateEmailAsAConflict() throws Exception {
 		when(clientUseCases.create(any()))
-				.thenThrow(new BusinessRuleViolationException("Un client existe déjà avec l'email awa@mail.ci"));
+				.thenThrow(new BusinessRuleViolationException(DomainErrorCode.CLIENT_EMAIL_ALREADY_USED,
+						"Un client existe déjà avec l'email awa@mail.ci"));
 
 		mockMvc.perform(post("/api/clients").contentType(MediaType.APPLICATION_JSON).content(VALID_CLIENT))
 				.andExpect(status().isConflict())
@@ -206,7 +208,7 @@ class ClientControllerTest {
 
 	@Test
 	void reportsAnUnknownClient() throws Exception {
-		when(clientUseCases.get(99L)).thenThrow(new ResourceNotFoundException("Client", 99L));
+		when(clientUseCases.get(99L)).thenThrow(new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", 99L));
 
 		mockMvc.perform(get("/api/clients/99"))
 				.andExpect(status().isNotFound())
@@ -274,7 +276,7 @@ class ClientControllerTest {
 
 	@Test
 	void refusesToDeleteAClientWithActiveSubscriptions() throws Exception {
-		doThrow(new BusinessRuleViolationException("souscriptions en cours")).when(clientUseCases).delete(1L);
+		doThrow(new BusinessRuleViolationException(DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS, "souscriptions en cours")).when(clientUseCases).delete(1L);
 
 		mockMvc.perform(delete("/api/clients/1")).andExpect(status().isConflict());
 	}

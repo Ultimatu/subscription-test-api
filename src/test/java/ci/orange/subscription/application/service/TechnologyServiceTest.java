@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import ci.orange.subscription.application.port.in.technology.CreateTechnologyCommand;
 import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.technology.Technology;
 import java.util.List;
@@ -51,6 +52,7 @@ class TechnologyServiceTest {
 
 		assertThatThrownBy(() -> technologyService.get("5G_BOX"))
 				.isInstanceOf(ResourceNotFoundException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_NOT_FOUND)
 				.hasMessageContaining("5G_BOX");
 	}
 
@@ -71,6 +73,7 @@ class TechnologyServiceTest {
 
 		assertThatThrownBy(() -> technologyService.create(new CreateTechnologyCommand("FTTH", "Fibre")))
 				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS)
 				.hasMessageContaining("FTTH");
 		verify(technologyRepository, never()).save(any());
 	}

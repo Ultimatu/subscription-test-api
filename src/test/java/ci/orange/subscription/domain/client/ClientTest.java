@@ -3,6 +3,7 @@ package ci.orange.subscription.domain.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,10 +39,17 @@ class ClientTest {
 	}
 
 	@Test
+	void identifiesAnInvalidPhoneNumber() {
+		assertThatThrownBy(() -> Client.create("Awa", "Koné", "awa@mail.ci", "0201020304", "Abidjan"))
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_PHONE_NUMBER);
+	}
+
+	@Test
 	void rejectsMissingFirstName() {
 		assertThatThrownBy(() -> Client.create(" ", "Koné", "awa@mail.ci", "0701020304", "Abidjan"))
 				.isInstanceOf(DomainValidationException.class)
-				.hasMessageContaining("firstName");
+				.hasMessageContaining("firstName")
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.REQUIRED_FIELD);
 	}
 
 	@Test

@@ -5,8 +5,8 @@ package ci.orange.subscription.domain.exception;
  */
 public class DomainValidationException extends DomainException {
 
-	public DomainValidationException(String message) {
-		super(message);
+	public DomainValidationException(DomainErrorCode errorCode, String message) {
+		super(errorCode, message);
 	}
 
 }

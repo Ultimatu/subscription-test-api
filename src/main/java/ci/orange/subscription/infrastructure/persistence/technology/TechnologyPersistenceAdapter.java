@@ -2,6 +2,7 @@ package ci.orange.subscription.infrastructure.persistence.technology;
 
 import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.technology.Technology;
 import ci.orange.subscription.infrastructure.persistence.entity.TechnologyEntity;
 import java.util.List;
@@ -42,7 +43,8 @@ class TechnologyPersistenceAdapter implements TechnologyRepository {
 		}
 		catch (DataIntegrityViolationException exception) {
 			// Two concurrent creations of the same code: the primary key decides.
-			throw new BusinessRuleViolationException("La technologie " + technology.getCode() + " existe déjà");
+			throw new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS,
+					"La technologie " + technology.getCode() + " existe déjà");
 		}
 	}
 

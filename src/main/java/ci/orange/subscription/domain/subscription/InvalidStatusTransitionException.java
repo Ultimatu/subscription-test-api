@@ -1,6 +1,7 @@
 package ci.orange.subscription.domain.subscription;
 
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -16,8 +17,8 @@ public class InvalidStatusTransitionException extends BusinessRuleViolationExcep
 	private final SubscriptionStatus currentStatus;
 
 	public InvalidStatusTransitionException(SubscriptionTransition transition, SubscriptionStatus currentStatus) {
-		super("Opération %s impossible : la souscription est au statut %s, statut requis : %s"
-				.formatted(transition, currentStatus, describe(transition.requiredStatuses())));
+		super(DomainErrorCode.INVALID_STATUS_TRANSITION,
+				"Opération %s impossible : la souscription est au statut %s, statut requis : %s".formatted(transition, currentStatus, describe(transition.requiredStatuses())));
 		this.transition = transition;
 		this.currentStatus = currentStatus;
 	}

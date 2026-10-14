@@ -4,6 +4,7 @@ import static ci.orange.subscription.domain.common.DomainValidation.requireText;
 import static ci.orange.subscription.domain.common.DomainValidation.requireValue;
 
 import ci.orange.subscription.domain.common.AuditInfo;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
@@ -65,7 +66,7 @@ public class Offer {
 	private static String requireCode(String code) {
 		String value = requireText(code, "code");
 		if (!CODE_PATTERN.matcher(value).matches()) {
-			throw new DomainValidationException(
+			throw new DomainValidationException(DomainErrorCode.INVALID_OFFER_CODE,
 					"Le code de l'offre doit être en majuscules (lettres, chiffres et tirets, ex. FTTH-100)");
 		}
 		return value;
@@ -74,7 +75,7 @@ public class Offer {
 	private static BigDecimal requirePositivePrice(BigDecimal monthlyPrice) {
 		requireValue(monthlyPrice, "monthlyPrice");
 		if (monthlyPrice.signum() <= 0) {
-			throw new DomainValidationException("Le prix mensuel doit être strictement positif");
+			throw new DomainValidationException(DomainErrorCode.INVALID_MONTHLY_PRICE, "Le prix mensuel doit être strictement positif");
 		}
 		return monthlyPrice;
 	}

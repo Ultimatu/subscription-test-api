@@ -9,6 +9,7 @@ import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
@@ -39,7 +40,8 @@ public class ClientService implements ClientUseCases {
 		Client client = Client.create(command.firstName(), command.lastName(), command.email(),
 				command.phoneNumberClient(), command.city());
 		if (clientRepository.existsByEmail(client.getEmail())) {
-			throw new BusinessRuleViolationException("Un client existe déjà avec l'email " + client.getEmail());
+			throw new BusinessRuleViolationException(DomainErrorCode.CLIENT_EMAIL_ALREADY_USED,
+					"Un client existe déjà avec l'email " + client.getEmail());
 		}
 		return clientRepository.save(client);
 	}
@@ -69,7 +71,7 @@ public class ClientService implements ClientUseCases {
 	public void delete(Long id) {
 		Client client = findClient(id);
 		if (subscriptionRepository.existsByClientIdAndStatusIn(id, DELETION_BLOCKING_STATUSES)) {
-			throw new BusinessRuleViolationException(
+			throw new BusinessRuleViolationException(DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS,
 					"Le client a des souscriptions PENDING, ACTIVE ou SUSPENDED : elles doivent être résiliées avant sa suppression");
 		}
 		subscriptionRepository.deleteAllByClientId(id);
@@ -91,7 +93,8 @@ public class ClientService implements ClientUseCases {
 	}
 
 	private Client findClient(Long id) {
-		return clientRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client", id));
+		return clientRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", id));
 	}
 
 }

@@ -6,8 +6,8 @@ package ci.orange.subscription.domain.exception;
  */
 public class BusinessRuleViolationException extends DomainException {
 
-	public BusinessRuleViolationException(String message) {
-		super(message);
+	public BusinessRuleViolationException(DomainErrorCode errorCode, String message) {
+		super(errorCode, message);
 	}
 
 }

@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -62,7 +63,8 @@ class SubscriptionTest {
 		void rejectsAStartDateBeforeToday() {
 			assertThatThrownBy(
 					() -> Subscription.create("SUB-2026-000001", "2700000001", 1L, 2L, TODAY.minusDays(1), TODAY))
-					.isInstanceOf(DomainValidationException.class);
+					.isInstanceOf(DomainValidationException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.START_DATE_IN_PAST);
 		}
 
 	}
@@ -106,6 +108,7 @@ class SubscriptionTest {
 			assertThatThrownBy(subscription::activate)
 					.isInstanceOf(InvalidStatusTransitionException.class)
 					.isInstanceOf(BusinessRuleViolationException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_STATUS_TRANSITION)
 					.hasMessageContaining("ACTIVE")
 					.hasMessageContaining("PENDING")
 					.satisfies(error -> {
@@ -175,6 +178,7 @@ class SubscriptionTest {
 		void otherSubscriptionsCannotBeDeleted(SubscriptionStatus status) {
 			assertThatThrownBy(() -> subscriptionIn(status).ensureDeletable())
 					.isInstanceOf(BusinessRuleViolationException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_DELETABLE)
 					.hasMessageContaining(status.name());
 		}
 

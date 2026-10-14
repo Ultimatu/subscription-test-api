@@ -4,6 +4,7 @@ import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.infrastructure.persistence.entity.ClientEntity;
 import java.time.Clock;
@@ -36,7 +37,8 @@ class ClientPersistenceAdapter implements ClientRepository {
 		catch (DataIntegrityViolationException exception) {
 			// Two concurrent creations can both pass the existsByEmail check: the unique index decides.
 			if (violates(exception, EMAIL_UNIQUE_CONSTRAINT)) {
-				throw new BusinessRuleViolationException("Un client existe déjà avec l'email " + client.getEmail());
+				throw new BusinessRuleViolationException(DomainErrorCode.CLIENT_EMAIL_ALREADY_USED,
+						"Un client existe déjà avec l'email " + client.getEmail());
 			}
 			throw exception;
 		}
@@ -66,7 +68,8 @@ class ClientPersistenceAdapter implements ClientRepository {
 	}
 
 	private ClientEntity findEntity(Long id) {
-		return jpaRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client", id));
+		return jpaRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", id));
 	}
 
 	private static boolean violates(DataIntegrityViolationException exception, String constraint) {

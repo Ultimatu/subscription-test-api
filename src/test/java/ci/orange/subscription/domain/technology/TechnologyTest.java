@@ -3,6 +3,7 @@ package ci.orange.subscription.domain.technology;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,6 +26,12 @@ class TechnologyTest {
 	@ValueSource(strings = { "ftth", "4G-BOX", "4G BOX", "TOO_LONG_TECHNOLOGY_CODE" })
 	void rejectsInvalidCodes(String code) {
 		assertThatThrownBy(() -> Technology.create(code, "Libellé")).isInstanceOf(DomainValidationException.class);
+	}
+
+	@Test
+	void identifiesAnInvalidCode() {
+		assertThatThrownBy(() -> Technology.create("4G-BOX", "Box 4G"))
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_TECHNOLOGY_CODE);
 	}
 
 	@Test

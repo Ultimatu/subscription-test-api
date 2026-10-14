@@ -8,6 +8,7 @@ import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.infrastructure.persistence.PersistenceAdapterTest;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -62,7 +63,8 @@ class ClientPersistenceAdapterTest {
 		clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
 
 		assertThatThrownBy(() -> clientRepository.save(newClient("Other", "Person", "awa@mail.ci", "Abidjan")))
-				.isInstanceOf(BusinessRuleViolationException.class);
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_EMAIL_ALREADY_USED);
 	}
 
 	@Test

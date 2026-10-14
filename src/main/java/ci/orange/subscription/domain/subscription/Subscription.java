@@ -5,6 +5,7 @@ import static ci.orange.subscription.domain.common.DomainValidation.requireValue
 
 import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
+import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class Subscription {
 			LocalDate today) {
 		requireValue(startDate, "startDate");
 		if (startDate.isBefore(today)) {
-			throw new DomainValidationException("La date de début ne peut pas être antérieure à la date du jour");
+			throw new DomainValidationException(DomainErrorCode.START_DATE_IN_PAST, "La date de début ne peut pas être antérieure à la date du jour");
 		}
 		Subscription subscription = new Subscription(null, requireText(reference, "reference"), requireText(nd, "nd"),
 				requireValue(clientId, "clientId"), requireValue(offerId, "offerId"), SubscriptionStatus.PENDING,
@@ -85,7 +86,7 @@ public class Subscription {
 	/** Only a subscription that has never been active can be deleted; others must be terminated (rule 22). */
 	public void ensureDeletable() {
 		if (status != SubscriptionStatus.PENDING) {
-			throw new BusinessRuleViolationException(
+			throw new BusinessRuleViolationException(DomainErrorCode.SUBSCRIPTION_NOT_DELETABLE,
 					"Seule une souscription PENDING peut être supprimée (statut courant : %s) ; une souscription ayant été active doit être résiliée"
 							.formatted(status));
 		}
