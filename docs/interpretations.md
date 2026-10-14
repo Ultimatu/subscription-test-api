@@ -1,0 +1,36 @@
+# Interprétations de l'énoncé
+
+Ce document recense les points sur lesquels l'énoncé laisse une marge d'interprétation, et le choix retenu pour chacun. Les numéros renvoient aux règles métier de la section 3 de l'énoncé.
+
+## Clients
+
+| Règle | Question | Choix retenu |
+|---|---|---|
+| 1 | L'unicité de l'email tient-elle compte de la casse ? | Non. L'email est enregistré en minuscules : `Awa@Mail.ci` et `awa@mail.ci` sont un doublon (409 `CLIENT_EMAIL_ALREADY_USED`). |
+| 1 | Qu'est-ce qu'une « tentative de modification » de l'email ? | La présence d'un champ `email` non nul dans le corps du `PUT`, même s'il est identique à l'email actuel : 400 `VALIDATION_ERROR`. |
+| 2 | Format exact du numéro de contact | Dix chiffres commençant par 01, 05 ou 07 : `^0[157][0-9]{8}$`. Ni espaces ni indicatif `+225`. |
+| 3 | Que faire d'un `status` fourni à la création ? | Il est ignoré, sans erreur, comme le demande l'énoncé. |
+| 6 | Que deviennent les souscriptions résiliées d'un client supprimé ? | Le client et ses souscriptions résiliées sont supprimés logiquement : ils disparaissent de l'API mais restent en base ([ADR-0005](adr/0005-suppression-logique.md)). |
+| 6 | Peut-on recréer un client avec l'email d'un client supprimé ? | Oui : c'est un nouveau client, avec un nouvel identifiant. |
+| — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées. Tous les statuts figurent dans le décompte, y compris à zéro. |
+| — | Filtres de la liste | `city` : égalité insensible à la casse. `search` : correspondance partielle, insensible à la casse, sur le prénom, le nom et l'email ; les caractères `%` et `_` sont recherchés littéralement. Les accents ne sont pas ignorés (`kone` ne trouve pas `Koné`). |
+
+## Offres
+
+| Règle | Question | Choix retenu |
+|---|---|---|
+| 7 | Code en minuscules : convertir ou refuser ? | Refuser (400). Le code accepte majuscules, chiffres et tirets : `^[A-Z0-9]+(-[A-Z0-9]+)*$`. |
+| 8 | Nombre de décimales du prix | Deux au plus ; une troisième est refusée plutôt qu'arrondie ([ADR-0011](adr/0011-montants.md)). |
+| 9 | `active` fourni à la création | Ignoré, comme le demande l'énoncé. |
+| 9 | `active` fourni dans le `PUT` | Refusé (400) : la désactivation passe exclusivement par `PATCH /api/offers/{id}/deactivate`. |
+| 10 | `code` ou `technology` fournis dans le `PUT` | Refusés (400), par cohérence avec la règle 1 sur l'email. |
+| — | Désactiver une offre déjà inactive | Sans effet : réponse 200 (opération idempotente). |
+| — | Technologie absente du catalogue | 400 `UNKNOWN_TECHNOLOGY`. Les technologies sont gérées par `/api/technologies` ([ADR-0006](adr/0006-technologies-donnees-de-reference.md)). |
+
+## Général
+
+| Question | Choix retenu |
+|---|---|
+| Ordre des erreurs quand plusieurs problèmes se cumulent | Les données invalides (400) sont signalées avant les conflits (409). |
+| Langue des messages | Messages d'erreur en français ; chaque erreur porte en plus un `code` stable en majuscules ([ADR-0007](adr/0007-format-des-erreurs.md)). |
+| Pagination | `page` commence à 0, `size` vaut 20 par défaut et 100 au maximum, tri par défaut sur l'identifiant. |
