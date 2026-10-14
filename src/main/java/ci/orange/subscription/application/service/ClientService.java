@@ -13,6 +13,7 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
@@ -90,8 +91,10 @@ public class ClientService implements ClientUseCases {
 			subscriptionsByStatus.put(status, 0L);
 		}
 		subscriptionsByStatus.putAll(subscriptionRepository.countByStatusForClient(id));
-		BigDecimal totalMonthlyRevenue = subscriptionRepository.sumMonthlyPriceForClient(id,
-				SubscriptionStatus.ACTIVE);
+		// Two decimals like every amount, including when there is nothing to sum
+		BigDecimal totalMonthlyRevenue = subscriptionRepository
+				.sumMonthlyPriceForClient(id, SubscriptionStatus.ACTIVE)
+				.setScale(2, RoundingMode.UNNECESSARY);
 		return new ClientSummary(id, subscriptionsByStatus, totalMonthlyRevenue);
 	}
 

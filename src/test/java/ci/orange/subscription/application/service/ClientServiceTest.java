@@ -167,6 +167,15 @@ class ClientServiceTest {
 	}
 
 	@Test
+	void expressesAZeroRevenueWithTwoDecimals() {
+		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(subscriptionRepository.countByStatusForClient(1L)).thenReturn(Map.of());
+		when(subscriptionRepository.sumMonthlyPriceForClient(1L, SubscriptionStatus.ACTIVE)).thenReturn(BigDecimal.ZERO);
+
+		assertThat(clientService.summarize(1L).totalMonthlyRevenue()).isEqualTo(new BigDecimal("0.00"));
+	}
+
+	@Test
 	void doesNotSummarizeAnUnknownClient() {
 		when(clientRepository.findById(99L)).thenReturn(Optional.empty());
 

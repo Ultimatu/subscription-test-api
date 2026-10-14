@@ -7,6 +7,7 @@ import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.regex.Pattern;
 import lombok.Getter;
 
@@ -72,12 +73,20 @@ public class Offer {
 		return value;
 	}
 
+	/** Amounts always have two decimals, as stored: a third one is refused rather than silently rounded. */
 	private static BigDecimal requirePositivePrice(BigDecimal monthlyPrice) {
 		requireValue(monthlyPrice, "monthlyPrice");
 		if (monthlyPrice.signum() <= 0) {
-			throw new DomainValidationException(DomainErrorCode.INVALID_MONTHLY_PRICE, "Le prix mensuel doit être strictement positif");
+			throw new DomainValidationException(DomainErrorCode.INVALID_MONTHLY_PRICE,
+					"Le prix mensuel doit être strictement positif");
 		}
-		return monthlyPrice;
+		try {
+			return monthlyPrice.setScale(2, RoundingMode.UNNECESSARY);
+		}
+		catch (ArithmeticException exception) {
+			throw new DomainValidationException(DomainErrorCode.INVALID_MONTHLY_PRICE,
+					"Le prix mensuel doit comporter au plus deux décimales");
+		}
 	}
 
 }

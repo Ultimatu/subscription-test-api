@@ -38,6 +38,23 @@ class OfferTest {
 	}
 
 	@Test
+	void storesPricesWithTwoDecimals() {
+		Offer offer = Offer.create("FTTH-100", "Fibre", "FTTH", new BigDecimal("25000"));
+		offer.update("Fibre", new BigDecimal("27000.5"));
+
+		assertThat(offer.getMonthlyPrice()).isEqualTo(new BigDecimal("27000.50"));
+		assertThat(Offer.create("FTTH-100", "Fibre", "FTTH", new BigDecimal("25000")).getMonthlyPrice())
+				.isEqualTo(new BigDecimal("25000.00"));
+	}
+
+	@Test
+	void refusesMoreThanTwoDecimalsRatherThanRounding() {
+		assertThatThrownBy(() -> Offer.create("FTTH-100", "Fibre", "FTTH", new BigDecimal("25000.555")))
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_MONTHLY_PRICE)
+				.hasMessageContaining("deux décimales");
+	}
+
+	@Test
 	void rejectsMissingTechnology() {
 		assertThatThrownBy(() -> Offer.create("FTTH-100", "Fibre", null, new BigDecimal("25000")))
 				.isInstanceOf(DomainValidationException.class)
