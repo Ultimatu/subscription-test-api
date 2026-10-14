@@ -1,4 +1,4 @@
-package ci.orange.subscription.config;
+package ci.orange.subscription.infrastructure.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
