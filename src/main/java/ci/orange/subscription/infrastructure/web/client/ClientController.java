@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
-import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -34,10 +33,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @Tag(name = "Clients", description = "Gestion des clients")
 @RestController
 @RequestMapping("/clients")
-@RequiredArgsConstructor
 class ClientController {
 
 	private final ClientUseCases clientUseCases;
+
+	ClientController(ClientUseCases clientUseCases) {
+		this.clientUseCases = clientUseCases;
+	}
 
 	@Operation(summary = "Créer un client",
 			description = "Le client est créé au statut ACTIVE : un statut fourni dans le corps est ignoré. "

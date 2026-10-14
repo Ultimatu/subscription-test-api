@@ -11,7 +11,6 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.offer.Offer;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,11 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class OfferService implements OfferUseCases {
 
 	private final OfferRepository offerRepository;
 	private final TechnologyRepository technologyRepository;
+
+	public OfferService(OfferRepository offerRepository, TechnologyRepository technologyRepository) {
+		this.offerRepository = offerRepository;
+		this.technologyRepository = technologyRepository;
+	}
 
 	/** Invalid data (400) is reported before conflicts (409). */
 	@Override

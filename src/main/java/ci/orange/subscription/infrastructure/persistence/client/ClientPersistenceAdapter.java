@@ -9,7 +9,6 @@ import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.infrastructure.persistence.entity.ClientEntity;
 import java.time.Clock;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.AuditorAware;
@@ -18,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 class ClientPersistenceAdapter implements ClientRepository {
 
 	private static final String EMAIL_UNIQUE_CONSTRAINT = "uk_client_email";
@@ -26,6 +24,13 @@ class ClientPersistenceAdapter implements ClientRepository {
 	private final ClientJpaRepository jpaRepository;
 	private final AuditorAware<String> auditorAware;
 	private final Clock clock;
+
+	ClientPersistenceAdapter(ClientJpaRepository jpaRepository, AuditorAware<String> auditorAware,
+			Clock clock) {
+		this.jpaRepository = jpaRepository;
+		this.auditorAware = auditorAware;
+		this.clock = clock;
+	}
 
 	@Override
 	public Client save(Client client) {

@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
-import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -30,10 +29,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @Tag(name = "Offres", description = "Catalogue des offres")
 @RestController
 @RequestMapping("/offers")
-@RequiredArgsConstructor
 class OfferController {
 
 	private final OfferUseCases offerUseCases;
+
+	OfferController(OfferUseCases offerUseCases) {
+		this.offerUseCases = offerUseCases;
+	}
 
 	@Operation(summary = "Créer une offre",
 			description = "L'offre est créée active : un champ active fourni est ignoré. Le code est unique et en "

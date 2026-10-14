@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import java.time.Clock;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
@@ -37,12 +36,15 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @Slf4j
 @RestControllerAdvice
-@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	private static final String INVALID_REQUEST = "Requête invalide";
 
 	private final Clock clock;
+
+	public GlobalExceptionHandler(Clock clock) {
+		this.clock = clock;
+	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
 	ProblemDetail handleNotFound(ResourceNotFoundException exception) {

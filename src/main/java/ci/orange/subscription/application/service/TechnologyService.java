@@ -8,16 +8,18 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.technology.Technology;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class TechnologyService implements TechnologyUseCases {
 
 	private final TechnologyRepository technologyRepository;
+
+	public TechnologyService(TechnologyRepository technologyRepository) {
+		this.technologyRepository = technologyRepository;
+	}
 
 	@Override
 	@Transactional(readOnly = true)

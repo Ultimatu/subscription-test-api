@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,10 +25,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @Tag(name = "Technologies", description = "Catalogue des technologies d'accès (hors énoncé)")
 @RestController
 @RequestMapping("/technologies")
-@RequiredArgsConstructor
 class TechnologyController {
 
 	private final TechnologyUseCases technologyUseCases;
+
+	TechnologyController(TechnologyUseCases technologyUseCases) {
+		this.technologyUseCases = technologyUseCases;
+	}
 
 	@Operation(summary = "Lister les technologies", description = "Catalogue complet, trié par code.")
 	@ApiResponse(responseCode = "200", description = "Catalogue des technologies")

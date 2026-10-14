@@ -9,17 +9,22 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 
 	private final SubscriptionJpaRepository jpaRepository;
 	private final AuditorAware<String> auditorAware;
 	private final Clock clock;
+
+	SubscriptionPersistenceAdapter(SubscriptionJpaRepository jpaRepository, AuditorAware<String> auditorAware,
+			Clock clock) {
+		this.jpaRepository = jpaRepository;
+		this.auditorAware = auditorAware;
+		this.clock = clock;
+	}
 
 	@Override
 	public boolean existsByClientIdAndStatusIn(Long clientId, Set<SubscriptionStatus> statuses) {

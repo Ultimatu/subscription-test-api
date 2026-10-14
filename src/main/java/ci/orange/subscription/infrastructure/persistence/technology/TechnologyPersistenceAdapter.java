@@ -7,16 +7,18 @@ import ci.orange.subscription.domain.technology.Technology;
 import ci.orange.subscription.infrastructure.persistence.entity.TechnologyEntity;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 class TechnologyPersistenceAdapter implements TechnologyRepository {
 
 	private final TechnologyJpaRepository jpaRepository;
+
+	TechnologyPersistenceAdapter(TechnologyJpaRepository jpaRepository) {
+		this.jpaRepository = jpaRepository;
+	}
 
 	@Override
 	public List<Technology> findAll() {

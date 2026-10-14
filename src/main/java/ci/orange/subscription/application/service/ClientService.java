@@ -17,7 +17,6 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class ClientService implements ClientUseCases {
 
 	/** A client holding a subscription in one of these statuses cannot be deleted (rule 6). */
@@ -34,6 +32,11 @@ public class ClientService implements ClientUseCases {
 
 	private final ClientRepository clientRepository;
 	private final SubscriptionRepository subscriptionRepository;
+
+	public ClientService(ClientRepository clientRepository, SubscriptionRepository subscriptionRepository) {
+		this.clientRepository = clientRepository;
+		this.subscriptionRepository = subscriptionRepository;
+	}
 
 	@Override
 	public Client create(CreateClientCommand command) {

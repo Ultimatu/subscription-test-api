@@ -8,7 +8,6 @@ import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.offer.Offer;
 import ci.orange.subscription.infrastructure.persistence.entity.OfferEntity;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -16,12 +15,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 class OfferPersistenceAdapter implements OfferRepository {
 
 	private static final String CODE_UNIQUE_CONSTRAINT = "uk_offer_code";
 
 	private final OfferJpaRepository jpaRepository;
+
+	OfferPersistenceAdapter(OfferJpaRepository jpaRepository) {
+		this.jpaRepository = jpaRepository;
+	}
 
 	@Override
 	public Offer save(Offer offer) {
