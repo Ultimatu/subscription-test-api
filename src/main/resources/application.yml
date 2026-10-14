@@ -17,3 +17,9 @@ spring:
     # Bean Validation messages ("ne doit pas être vide"...) in French, whatever the client sends
     locale: fr
     locale-resolver: fixed
+
+springdoc:
+  default-produces-media-type: application/json
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: method
