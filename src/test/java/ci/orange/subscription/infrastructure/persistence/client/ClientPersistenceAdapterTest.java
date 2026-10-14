@@ -97,6 +97,18 @@ class ClientPersistenceAdapterTest {
 	}
 
 	@Test
+	void searchesWithoutCaringAboutAccents() {
+		clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Bouaké"));
+		clientRepository.save(newClient("Moussa", "Kone", "moussa@mail.ci", "Abidjan"));
+
+		assertThat(searchEmails(new ClientSearchCriteria(null, null, "kone")))
+				.containsExactly("awa@mail.ci", "moussa@mail.ci");
+		assertThat(searchEmails(new ClientSearchCriteria(null, null, "KONÉ")))
+				.containsExactly("awa@mail.ci", "moussa@mail.ci");
+		assertThat(searchEmails(new ClientSearchCriteria("bouake", null, null))).containsExactly("awa@mail.ci");
+	}
+
+	@Test
 	void treatsLikeWildcardsLiterally() {
 		clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
 

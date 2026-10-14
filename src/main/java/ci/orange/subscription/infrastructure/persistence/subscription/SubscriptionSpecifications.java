@@ -1,11 +1,11 @@
 package ci.orange.subscription.infrastructure.persistence.subscription;
 
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
+import ci.orange.subscription.infrastructure.persistence.TextSearch;
 import ci.orange.subscription.infrastructure.persistence.entity.SubscriptionEntity;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import org.springframework.data.jpa.domain.Specification;
 
 final class SubscriptionSpecifications {
@@ -24,8 +24,7 @@ final class SubscriptionSpecifications {
 				predicates.add(builder.equal(root.get("technology"), criteria.technology().trim()));
 			}
 			if (hasText(criteria.city())) {
-				predicates.add(builder.equal(builder.lower(root.get("client").get("city")),
-						criteria.city().trim().toLowerCase(Locale.ROOT)));
+				predicates.add(TextSearch.equal(builder, root.get("client").get("city"), criteria.city()));
 			}
 			if (hasText(criteria.nd())) {
 				predicates.add(builder.equal(root.get("nd"), criteria.nd().trim()));

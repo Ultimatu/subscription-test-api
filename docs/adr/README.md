@@ -22,5 +22,6 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0014](0014-souscriptions-numerotation-et-concurrence.md) | Souscriptions : numérotation et accès concurrents | Acceptée |
 | [0015](0015-modele-de-lecture-des-souscriptions.md) | Modèle de lecture distinct pour les souscriptions | Acceptée |
 | [0016](0016-couverture-de-code.md) | Mesure et seuil de couverture de code | Acceptée |
+| [0017](0017-recherche-insensible-aux-accents.md) | Recherche insensible aux accents avec l'extension unaccent | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).

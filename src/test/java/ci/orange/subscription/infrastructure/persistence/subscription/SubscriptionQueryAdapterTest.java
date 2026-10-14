@@ -92,6 +92,8 @@ class SubscriptionQueryAdapterTest {
 				.containsExactly("SUB-2099-800001", "SUB-2099-800003");
 		assertThat(searchReferences(criteria(null, null, "BOUAKÉ", null, null, null)))
 				.containsExactly("SUB-2099-800003");
+		assertThat(searchReferences(criteria(null, null, "bouake", null, null, null)))
+				.containsExactly("SUB-2099-800003");
 		assertThat(searchReferences(criteria(null, null, null, "2780000002", null, null)))
 				.containsExactly("SUB-2099-800002");
 		assertThat(searchReferences(criteria(null, null, null, null, TODAY.plusDays(10), TODAY.plusDays(20))))

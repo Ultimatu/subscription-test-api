@@ -66,6 +66,21 @@ class StatisticsQueryAdapterTest {
 	}
 
 	@Test
+	void groupsCitiesWhateverTheirAccents() {
+		active(subscribe(client("ama@mail.ci", "Bouaké"), "BOX4G-150", TODAY));
+		active(subscribe(client("ali@mail.ci", "bouake"), "BOX4G-150", TODAY));
+		entityManager.clear();
+
+		assertThat(statistics.activeSubscriptionsByCity()).filteredOn(city -> city.city().startsWith("Bouak")
+				|| city.city().startsWith("bouak"))
+				.singleElement()
+				.satisfies(city -> {
+					assertThat(city.activeSubscriptions()).isEqualTo(2);
+					assertThat(city.monthlyRevenue()).isEqualByComparingTo("44000");
+				});
+	}
+
+	@Test
 	void countsActiveSubscriptionsByTechnology() {
 		assertThat(statistics.activeSubscriptionsByTechnology()).isEqualTo(Map.of("FTTH", 1L, "SATELLITE", 1L));
 	}

@@ -13,7 +13,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 6 | Que deviennent les souscriptions résiliées d'un client supprimé ? | Le client et ses souscriptions résiliées sont supprimés logiquement : ils disparaissent de l'API mais restent en base ([ADR-0005](adr/0005-suppression-logique.md)). |
 | 6 | Peut-on recréer un client avec l'email d'un client supprimé ? | Oui : c'est un nouveau client, avec un nouvel identifiant. |
 | — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées. Tous les statuts figurent dans le décompte, y compris à zéro. |
-| — | Filtres de la liste | `city` : égalité insensible à la casse. `search` : correspondance partielle, insensible à la casse, sur le prénom, le nom et l'email ; les caractères `%` et `_` sont recherchés littéralement. Les accents ne sont pas ignorés (`kone` ne trouve pas `Koné`). |
+| — | Filtres de la liste | `city` : égalité insensible à la casse **et aux accents**. `search` : correspondance partielle, insensible à la casse et aux accents (au-delà de l'énoncé : `kone` trouve `Koné`, [ADR-0017](adr/0017-recherche-insensible-aux-accents.md)), sur le prénom, le nom et l'email ; les caractères `%` et `_` sont recherchés littéralement. |
 
 ## Offres
 
@@ -36,7 +36,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 16 | Quelle année dans la référence `SUB-{ANNÉE}-…` ? | L'année de création de la souscription, et non celle de sa date de début. Le compteur repart à `000001` chaque année. |
 | 17 | Mode d'attribution du ND | Séquentiel (`2700000001`, `2700000002`…), unique et jamais réattribué, même après suppression. |
 | 19 | Que vaut « la date du jour » ? | La date à Abidjan (fuseau Africa/Abidjan), quel que soit le fuseau du serveur. Une date de début égale à aujourd'hui est acceptée. |
-| — | Recherche globale : sens des filtres | `city` porte sur la ville du client (égalité insensible à la casse), `technology` sur la technologie de l'offre souscrite, `nd` sur un ND exact. `startDateFrom` et `startDateTo` sont inclus ; une borne inversée donne une 400 `INVALID_DATE_RANGE`. |
+| — | Recherche globale : sens des filtres | `city` porte sur la ville du client (égalité insensible à la casse et aux accents), `technology` sur la technologie de l'offre souscrite, `nd` sur un ND exact. `startDateFrom` et `startDateTo` sont inclus ; une borne inversée donne une 400 `INVALID_DATE_RANGE`. |
 | — | Contenu du détail d'une souscription | Un aperçu du client et de l'offre, plus l'historique complet des statuts avec motifs, auteurs et dates ([ADR-0015](adr/0015-modele-de-lecture-des-souscriptions.md)). |
 | — | Souscriptions d'un client inconnu | 404 `CLIENT_NOT_FOUND` plutôt qu'une liste vide. |
 | 18 | Qu'est-ce qu'une « tentative de modification » du ND ? | Aucun endpoint ne modifie une souscription : la présence d'un champ `nd` dans n'importe quel corps (création ou transition) donne une 400. Il en va de même pour `reference`, également attribuée par le serveur. |
@@ -47,7 +47,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 
 | Question | Choix retenu |
 |---|---|
-| « Souscriptions actives et revenu mensuel par ville » | La ville est celle du client, regroupée sans tenir compte de la casse. Le revenu est la somme des prix mensuels des souscriptions ACTIVE ; seules les villes ayant au moins une souscription active apparaissent, revenu le plus élevé en premier. |
+| « Souscriptions actives et revenu mensuel par ville » | La ville est celle du client, regroupée sans tenir compte de la casse ni des accents (« Bouaké » et « bouake » forment une seule ligne). Le revenu est la somme des prix mensuels des souscriptions ACTIVE ; seules les villes ayant au moins une souscription active apparaissent, revenu le plus élevé en premier. |
 | Quel prix pour le revenu ? | Le prix **actuel** de l'offre : le prix n'est pas figé au moment de la souscription. Pour de la facturation, il faudrait le conserver sur la souscription. |
 | « Répartition par technologie » | Nombre de souscriptions ACTIVE et part en pourcentage (deux décimales). Toutes les technologies du catalogue apparaissent, y compris à 0. |
 | « Par statut sur une période » : quelle date doit tomber dans la période ? | Au choix de l'appelant, par le paramètre facultatif `basedOn` : `CREATION_DATE` (par défaut : souscriptions créées dans la période, selon leur statut actuel), `START_DATE` (souscriptions qui démarrent dans la période, selon leur statut actuel) ou `STATUS_CHANGE` (souscriptions passées à chaque statut pendant la période, d'après l'historique). |

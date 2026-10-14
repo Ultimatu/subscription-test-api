@@ -3,6 +3,7 @@
 # perturbent jamais, sans nécessiter une seconde base de données.
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/subscription_db?currentSchema=test
+    # public en second : on y trouve les fonctions de l'extension unaccent (migration V6)
+    url: jdbc:postgresql://localhost:5432/subscription_db?currentSchema=test,public
   flyway:
     schemas: test
