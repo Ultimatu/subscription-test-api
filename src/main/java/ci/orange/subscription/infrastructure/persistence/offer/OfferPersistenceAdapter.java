@@ -33,7 +33,8 @@ class OfferPersistenceAdapter implements OfferRepository {
 			return OfferEntityMapper.toDomain(jpaRepository.saveAndFlush(entity));
 		}
 		catch (DataIntegrityViolationException exception) {
-			// Two concurrent creations can both pass the existsByCode check: the unique constraint decides.
+			// Deux créations simultanées peuvent passer toutes les deux la vérification
+			// existsByCode : la contrainte d'unicité tranche.
 			if (exception.getCause() instanceof ConstraintViolationException violation
 					&& CODE_UNIQUE_CONSTRAINT.equals(violation.getConstraintName())) {
 				throw new BusinessRuleViolationException(DomainErrorCode.OFFER_CODE_ALREADY_USED,

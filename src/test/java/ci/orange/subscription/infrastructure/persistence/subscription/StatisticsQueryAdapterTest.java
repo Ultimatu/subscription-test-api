@@ -38,8 +38,8 @@ class StatisticsQueryAdapterTest {
 	private int number;
 
 	/**
-	 * Abidjan (two clients, different case): FTTH-100 active, SAT-20 active, BOX4G-50 pending.
-	 * Bouaké: FTTH-30 active then suspended, SAT-50 pending then deleted.
+	 * Abidjan (deux clients, casse différente) : FTTH-100 activée, SAT-20 activée, BOX4G-50 en
+	 * attente. Bouaké : FTTH-30 activée puis suspendue, SAT-50 en attente puis supprimée.
 	 */
 	@BeforeEach
 	void createSubscriptions() {

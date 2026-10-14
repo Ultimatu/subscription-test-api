@@ -8,14 +8,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI description served at /v3/api-docs and rendered by Swagger UI at /swagger-ui.html.
+ * Description OpenAPI servie sur /v3/api-docs et affichée par Swagger UI sur /swagger-ui.html.
  */
 @Configuration
 public class OpenApiConfig {
 
 	@Bean
 	OpenAPI openApi(ObjectProvider<BuildProperties> buildProperties) {
-		// Build information only exists when built by Maven, not when run directly from the IDE.
+		// Les informations de build n'existent qu'après un build Maven, pas lors d'un lancement
+		// direct depuis l'IDE.
 		String version = buildProperties.stream().map(BuildProperties::getVersion).findFirst().orElse("dev");
 		return new OpenAPI().info(new Info()
 				.title("Subscription API")

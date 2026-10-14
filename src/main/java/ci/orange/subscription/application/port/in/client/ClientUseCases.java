@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Input port: everything the outside world (here the REST API) can ask about clients.
+ * Port d'entrée : tout ce que l'extérieur (ici l'API REST) peut demander au sujet des clients.
  */
 public interface ClientUseCases {
 

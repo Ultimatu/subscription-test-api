@@ -1,7 +1,8 @@
 package ci.orange.subscription.domain.exception;
 
 /**
- * The data provided breaks a business invariant (missing value, wrong format, date in the past...).
+ * Les données fournies enfreignent un invariant métier (valeur manquante, format incorrect, date
+ * passée…).
  */
 public class DomainValidationException extends DomainException {
 

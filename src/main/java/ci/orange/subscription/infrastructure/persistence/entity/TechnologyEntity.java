@@ -8,7 +8,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The code is a natural key, assigned by the caller: the null version tells JPA the entity is new.
+ * Le code est une clé naturelle, fournie par l'appelant : la version nulle indique à JPA que
+ * l'entité est nouvelle.
  */
 @Getter
 @Setter

@@ -10,8 +10,8 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * The only allowed status transitions, one constant per operation of the specification. Any other
- * transition is refused. TERMINATED is final: no operation starts from it.
+ * Les seules transitions de statut autorisées, une constante par opération de l'énoncé. Toute autre
+ * transition est refusée. TERMINATED est un état final : aucune opération n'en part.
  */
 public enum SubscriptionTransition {
 

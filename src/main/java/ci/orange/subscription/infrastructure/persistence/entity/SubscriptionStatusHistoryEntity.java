@@ -22,7 +22,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
- * Append-only: rows are inserted, never updated.
+ * Table en ajout seul : les lignes sont insérées, jamais modifiées.
  */
 @Getter
 @Setter

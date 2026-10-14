@@ -5,8 +5,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Documentation only: the shape of the error bodies built by {@link GlobalExceptionHandler} from
- * Spring's ProblemDetail, whose extra properties OpenAPI cannot discover on its own.
+ * Pour la documentation uniquement : la forme des corps d'erreur construits par
+ * {@link GlobalExceptionHandler} à partir du ProblemDetail de Spring, dont OpenAPI ne peut pas
+ * découvrir seul les propriétés supplémentaires.
  */
 @Schema(name = "Problem",
 		description = "Erreur au format Problem Details (RFC 9457), enrichie d'un code, d'un horodatage et de l'identifiant de la requête")

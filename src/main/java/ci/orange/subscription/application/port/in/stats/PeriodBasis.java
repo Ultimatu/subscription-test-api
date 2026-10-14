@@ -1,17 +1,17 @@
 package ci.orange.subscription.application.port.in.stats;
 
 /**
- * Which date of a subscription must fall within the period of the status statistics.
+ * Date de la souscription qui doit tomber dans la période des statistiques par statut.
  */
 public enum PeriodBasis {
 
-	/** Subscriptions created in the period, by current status. */
+	/** Souscriptions créées dans la période, selon leur statut actuel. */
 	CREATION_DATE,
 
-	/** Subscriptions starting in the period, by current status. */
+	/** Souscriptions qui démarrent dans la période, selon leur statut actuel. */
 	START_DATE,
 
-	/** Subscriptions that entered each status in the period, read from the status history. */
+	/** Souscriptions passées à chaque statut pendant la période, d'après l'historique des statuts. */
 	STATUS_CHANGE
 
 }

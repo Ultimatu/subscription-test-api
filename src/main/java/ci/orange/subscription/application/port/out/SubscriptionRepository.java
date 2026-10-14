@@ -8,23 +8,24 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Output port for subscription storage. Deleted subscriptions are invisible through every method.
+ * Port de sortie pour le stockage des souscriptions. Les souscriptions supprimées sont invisibles
+ * par toutes les méthodes.
  */
 public interface SubscriptionRepository {
 
-	/** Also stores the status changes recorded by the subscription in its history. */
+	/** Enregistre aussi dans l'historique les changements de statut consignés par la souscription. */
 	Subscription save(Subscription subscription);
 
 	Optional<Subscription> findById(Long id);
 
 	void delete(Subscription subscription);
 
-	/** PENDING or ACTIVE subscription of the client on that technology (rule 14). */
+	/** Souscription PENDING ou ACTIVE du client sur cette technologie (règle 14). */
 	boolean existsOngoingForClientAndTechnology(Long clientId, String technology);
 
 	boolean existsByClientIdAndStatusIn(Long clientId, Set<SubscriptionStatus> statuses);
 
-	/** Statuses without any subscription are absent from the map. */
+	/** Les statuts sans aucune souscription sont absents de la map. */
 	Map<SubscriptionStatus, Long> countByStatusForClient(Long clientId);
 
 	BigDecimal sumMonthlyPriceForClient(Long clientId, SubscriptionStatus status);

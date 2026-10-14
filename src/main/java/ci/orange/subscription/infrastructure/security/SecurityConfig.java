@@ -10,7 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-	// TODO: replace permitAll with JWT authentication (roles ADMIN / CONSEILLER)
+	// TODO : remplacer permitAll par l'authentification JWT (rôles ADMIN / CONSEILLER)
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http

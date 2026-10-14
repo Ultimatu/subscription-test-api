@@ -14,7 +14,7 @@ public interface OfferUseCases {
 
 	Offer update(Long id, UpdateOfferCommand command);
 
-	/** Idempotent: deactivating an inactive offer changes nothing. */
+	/** Idempotent : désactiver une offre déjà inactive ne change rien. */
 	Offer deactivate(Long id);
 
 }

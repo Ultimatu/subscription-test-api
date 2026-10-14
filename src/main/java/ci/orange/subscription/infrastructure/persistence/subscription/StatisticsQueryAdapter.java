@@ -15,8 +15,8 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * Aggregations are computed by PostgreSQL, never by loading subscriptions in memory. Optional
- * bounds only add their condition when present.
+ * Les agrégations sont calculées par PostgreSQL, jamais en chargeant les souscriptions en mémoire.
+ * Les bornes facultatives n'ajoutent leur condition que lorsqu'elles sont présentes.
  */
 @Component
 class StatisticsQueryAdapter implements StatisticsQueries {
@@ -27,7 +27,7 @@ class StatisticsQueryAdapter implements StatisticsQueries {
 		this.entityManager = entityManager;
 	}
 
-	/** One line per city whatever its case ("Abidjan", "abidjan"), shown with one of its spellings. */
+	/** Une ligne par ville quelle que soit sa casse (« Abidjan », « abidjan »), affichée avec l'une de ses graphies. */
 	@Override
 	public List<CityStatistics> activeSubscriptionsByCity() {
 		return entityManager.createQuery("""
@@ -71,7 +71,7 @@ class StatisticsQueryAdapter implements StatisticsQueries {
 				" group by s.status", from, to);
 	}
 
-	/** The history is joined to its subscription to leave out deleted ones. */
+	/** L'historique est joint à sa souscription pour écarter les souscriptions supprimées. */
 	@Override
 	public Map<SubscriptionStatus, Long> countByStatusEnteredBetween(Instant from, Instant to) {
 		return countByStatus("""

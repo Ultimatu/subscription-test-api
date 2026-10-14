@@ -5,8 +5,8 @@ import java.util.function.Function;
 import org.springframework.data.domain.Page;
 
 /**
- * Stable pagination format of the API, rather than serializing Spring Data's Page as is.
- * {@code page} is zero-based.
+ * Format de pagination stable de l'API, plutôt que de sérialiser tel quel le Page de Spring Data.
+ * {@code page} commence à 0.
  */
 public record PageResponse<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
 

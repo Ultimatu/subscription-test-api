@@ -11,9 +11,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 
 /**
- * JPA slice running against the real PostgreSQL schema (Flyway migrations included), since the
- * adapters rely on PostgreSQL-specific constraints such as partial unique indexes. Each test is
- * rolled back.
+ * Tranche JPA exécutée sur le vrai schéma PostgreSQL (migrations Flyway comprises), car les
+ * adaptateurs s'appuient sur des contraintes propres à PostgreSQL, comme les index uniques
+ * partiels. Chaque test est annulé à la fin.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

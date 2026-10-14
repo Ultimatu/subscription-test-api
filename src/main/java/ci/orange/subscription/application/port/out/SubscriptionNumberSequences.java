@@ -1,14 +1,14 @@
 package ci.orange.subscription.application.port.out;
 
 /**
- * Unique sequence values from which the ND and the reference of a subscription are built. A value
- * is never returned twice, even to concurrent requests.
+ * Valeurs de séquence uniques à partir desquelles sont construits le ND et la référence d'une
+ * souscription. Une valeur n'est jamais renvoyée deux fois, même à des requêtes simultanées.
  */
 public interface SubscriptionNumberSequences {
 
 	long nextNd();
 
-	/** Starts at 1 for every year. */
+	/** Repart de 1 chaque année. */
 	long nextReference(int year);
 
 }

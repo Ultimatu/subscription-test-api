@@ -30,9 +30,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Turns every error into an RFC 9457 problem detail with a stable code, a timestamp and the id of
- * the request. Domain exceptions are mapped to their HTTP status here, so the domain never deals
- * with HTTP.
+ * Transforme chaque erreur en Problem Details (RFC 9457), avec un code stable, un horodatage et
+ * l'identifiant de la requête. Les exceptions du domaine sont associées ici à leur statut HTTP : le
+ * domaine ne connaît jamais HTTP.
  */
 @Slf4j
 @RestControllerAdvice
@@ -136,8 +136,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * Every error handled by Spring itself (405, 415, unknown route...) goes through here: it gets the
-	 * same enrichment, with a code derived from its HTTP status (METHOD_NOT_ALLOWED...).
+	 * Toute erreur gérée par Spring lui-même (405, 415, route inconnue…) passe par ici : elle
+	 * reçoit le même enrichissement, avec un code tiré de son statut HTTP (METHOD_NOT_ALLOWED…).
 	 */
 	@Override
 	protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body, HttpHeaders headers,

@@ -48,7 +48,7 @@ public class StatisticsService implements StatisticsUseCases {
 				.toList();
 	}
 
-	/** Shares are rounded to two decimals, so their sum may differ from 100 by a few hundredths. */
+	/** Les parts sont arrondies à deux décimales : leur somme peut donc différer de 100 de quelques centièmes. */
 	@Override
 	public List<TechnologyStatistics> activeSubscriptionsByTechnology() {
 		Map<String, Long> counts = statisticsQueries.activeSubscriptionsByTechnology();

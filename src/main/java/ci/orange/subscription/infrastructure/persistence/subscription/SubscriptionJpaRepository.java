@@ -18,7 +18,7 @@ import org.springframework.data.repository.query.Param;
 interface SubscriptionJpaRepository
 		extends JpaRepository<SubscriptionEntity, Long>, JpaSpecificationExecutor<SubscriptionEntity> {
 
-	/** Read side: the client and the offer are fetched in the same query (no N+1). */
+	/** Côté lecture : le client et l'offre sont chargés dans la même requête (pas de N+1). */
 	@EntityGraph(attributePaths = { "client", "offer" })
 	Optional<SubscriptionEntity> findWithClientAndOfferById(Long id);
 

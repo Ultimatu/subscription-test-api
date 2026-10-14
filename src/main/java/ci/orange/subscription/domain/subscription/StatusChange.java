@@ -1,7 +1,7 @@
 package ci.orange.subscription.domain.subscription;
 
 /**
- * One status change of a subscription. {@code from} is null for the creation.
+ * Un changement de statut d'une souscription. {@code from} est nul pour la création.
  */
 public record StatusChange(SubscriptionStatus from, SubscriptionStatus to, String reason) {
 }

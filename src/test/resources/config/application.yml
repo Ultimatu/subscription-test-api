@@ -1,6 +1,6 @@
-# Loaded on top of src/main/resources/application.yml for every test (IDE and Maven).
-# Tests use their own schema so that data created through the running application never
-# interferes with them, without requiring a second database.
+# Chargé en plus de src/main/resources/application.yml pour tous les tests (IDE et Maven).
+# Les tests utilisent leur propre schéma : les données créées via l'application lancée ne les
+# perturbent jamais, sans nécessiter une seconde base de données.
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/subscription_db?currentSchema=test

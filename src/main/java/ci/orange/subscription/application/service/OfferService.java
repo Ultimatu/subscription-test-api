@@ -28,7 +28,7 @@ public class OfferService implements OfferUseCases {
 		this.technologyRepository = technologyRepository;
 	}
 
-	/** Invalid data (400) is reported before conflicts (409). */
+	/** Les données invalides (400) sont signalées avant les conflits (409). */
 	@Override
 	public Offer create(CreateOfferCommand command) {
 		Offer offer = Offer.create(command.code(), command.label(), command.technology(), command.monthlyPrice());

@@ -10,8 +10,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Reusable OpenAPI error responses, all documented with the Problem Details body, so that
- * controllers only state which errors an endpoint can return.
+ * Réponses d'erreur OpenAPI réutilisables, toutes documentées avec le corps Problem Details : les
+ * controllers n'ont qu'à indiquer les erreurs qu'un endpoint peut renvoyer.
  */
 public final class ApiErrors {
 

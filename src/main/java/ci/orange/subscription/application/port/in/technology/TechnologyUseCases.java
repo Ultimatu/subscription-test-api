@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface TechnologyUseCases {
 
-	/** The whole catalogue, sorted by code: it is small enough not to be paginated. */
+	/** Tout le catalogue, trié par code : il est assez petit pour ne pas être paginé. */
 	List<Technology> list();
 
 	Technology get(String code);

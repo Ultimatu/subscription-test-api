@@ -3,8 +3,8 @@ package ci.orange.subscription.domain.exception;
 import java.util.Objects;
 
 /**
- * Base class of business errors. The domain only describes what went wrong, with a stable code;
- * the web adapter decides how it is exposed (HTTP status, error format).
+ * Classe de base des erreurs métier. Le domaine décrit seulement ce qui ne va pas, avec un code
+ * stable ; l'adaptateur web décide comment l'exposer (statut HTTP, format d'erreur).
  */
 public abstract class DomainException extends RuntimeException {
 

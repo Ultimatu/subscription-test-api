@@ -13,7 +13,10 @@ final class ClientEntityMapper {
 				entity.getPhoneNumberClient(), entity.getCity(), entity.getStatus(), entity.toAuditInfo());
 	}
 
-	/** Copies the domain state onto a new or managed entity; id, version and audit stay under JPA control. */
+	/**
+	 * Copie l'état du domaine sur une entité nouvelle ou déjà gérée ; l'identifiant, la version et
+	 * l'audit restent gérés par JPA.
+	 */
 	static void copy(Client client, ClientEntity entity) {
 		entity.setFirstName(client.getFirstName());
 		entity.setLastName(client.getLastName());

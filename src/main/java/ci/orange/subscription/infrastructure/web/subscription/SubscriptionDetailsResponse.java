@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * The subscription fields at the top level of the JSON, followed by its status history.
+ * Les champs de la souscription au premier niveau du JSON, suivis de son historique des statuts.
  */
 public record SubscriptionDetailsResponse(
 		@JsonUnwrapped SubscriptionResponse subscription,

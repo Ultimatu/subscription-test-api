@@ -24,7 +24,7 @@ class SubscriptionNumberSequencesAdapterTest {
 
 	@Test
 	void countsReferencesFromOneForEveryYear() {
-		// The counter table is rolled back after the test, so each year starts from scratch here
+		// La table des compteurs est annulée après le test : chaque année repart donc de zéro ici
 		assertThat(sequences.nextReference(2026)).isEqualTo(1);
 		assertThat(sequences.nextReference(2026)).isEqualTo(2);
 		assertThat(sequences.nextReference(2027)).isEqualTo(1);

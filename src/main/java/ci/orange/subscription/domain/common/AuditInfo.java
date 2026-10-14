@@ -3,8 +3,8 @@ package ci.orange.subscription.domain.common;
 import java.time.Instant;
 
 /**
- * Who created and last modified an object, and when. Filled by the persistence layer, read-only
- * for the domain.
+ * Qui a créé et modifié en dernier un objet, et quand. Renseigné par la couche de persistance, en
+ * lecture seule pour le domaine.
  */
 public record AuditInfo(Instant createdAt, String createdBy, Instant updatedAt, String updatedBy) {
 }

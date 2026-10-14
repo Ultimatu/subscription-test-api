@@ -13,7 +13,7 @@ final class SubscriptionSpecifications {
 	private SubscriptionSpecifications() {
 	}
 
-	/** The technology is filtered on the subscription's own copy, without joining the offer. */
+	/** La technologie est filtrée sur la copie portée par la souscription, sans jointure avec l'offre. */
 	static Specification<SubscriptionEntity> matching(SubscriptionSearchCriteria criteria) {
 		return (root, query, builder) -> {
 			List<Predicate> predicates = new ArrayList<>();

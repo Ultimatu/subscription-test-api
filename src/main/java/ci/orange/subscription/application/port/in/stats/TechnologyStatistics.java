@@ -3,7 +3,8 @@ package ci.orange.subscription.application.port.in.stats;
 import java.math.BigDecimal;
 
 /**
- * ACTIVE subscriptions on a technology, and their share of all ACTIVE subscriptions in percent.
+ * Souscriptions ACTIVE sur une technologie, et leur part en pourcentage de l'ensemble des
+ * souscriptions ACTIVE.
  */
 public record TechnologyStatistics(String technology, String label, long activeSubscriptions, BigDecimal share) {
 }

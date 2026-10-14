@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Subscriptions seen from their client: the URL starts with /clients but the resource is the
- * subscription.
+ * Les souscriptions vues depuis leur client : l'URL commence par /clients, mais la ressource est la
+ * souscription.
  */
 @Tag(name = "Souscriptions")
 @RestController

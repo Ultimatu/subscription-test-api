@@ -30,8 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * Every write returns the resulting subscription in detail (client, offer and history), read
- * after the change.
+ * Chaque écriture renvoie le détail de la souscription obtenue (client, offre et historique), relu
+ * après la modification.
  */
 @Tag(name = "Souscriptions", description = "Souscriptions et cycle de vie")
 @RestController

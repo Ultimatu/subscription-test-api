@@ -9,7 +9,7 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 /**
- * Hexagonal architecture rules, checked on every build rather than only documented.
+ * Règles de l'architecture hexagonale, vérifiées à chaque build plutôt que seulement documentées.
  */
 @AnalyzeClasses(packages = "ci.orange.subscription", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {

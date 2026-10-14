@@ -16,11 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Gives every request an identifier: the caller's X-Request-Id when it is valid, a new one
- * otherwise. It is returned in the response header, attached to every log line of the request
- * (MDC) and to error bodies, so that an error reported by a user can be found in the logs.
- * Also logs one line per API call (method, path, status, duration). The query string is left out
- * on purpose: search parameters may contain personal data.
+ * Donne un identifiant à chaque requête : le X-Request-Id de l'appelant s'il est valide, un nouveau
+ * sinon. Il est renvoyé dans l'en-tête de la réponse, ajouté à chaque ligne de log de la requête
+ * (MDC) et aux corps d'erreur, pour qu'une erreur signalée par un utilisateur se retrouve dans les
+ * logs. Écrit aussi une ligne de log par appel à l'API (méthode, chemin, statut, durée). La query
+ * string est volontairement omise : les paramètres de recherche peuvent contenir des données
+ * personnelles.
  */
 @Slf4j
 @Component
@@ -31,7 +32,10 @@ public class RequestTracingFilter extends OncePerRequestFilter {
 
 	public static final String REQUEST_ID_MDC_KEY = "requestId";
 
-	/** A caller-provided value is only trusted in this form, so it cannot forge log lines. */
+	/**
+	 * Une valeur fournie par l'appelant n'est acceptée que sous cette forme, pour qu'elle ne puisse
+	 * pas forger de lignes de log.
+	 */
 	private static final Pattern VALID_REQUEST_ID = Pattern.compile("^[A-Za-z0-9-]{1,64}$");
 
 	private static final String LOGGED_PATH_PREFIX = "/api/";

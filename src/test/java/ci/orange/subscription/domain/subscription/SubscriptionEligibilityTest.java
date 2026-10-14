@@ -28,7 +28,10 @@ class SubscriptionEligibilityTest {
 				.doesNotThrowAnyException();
 	}
 
-	/** Each case breaks every rule from the expected one onwards: only the first in the order may be reported. */
+	/**
+	 * Chaque cas enfreint toutes les règles à partir de celle attendue : seule la première dans
+	 * l'ordre doit être signalée.
+	 */
 	static Stream<Arguments> rulesInTheImposedOrder() {
 		return Stream.of(
 				Arguments.of(INACTIVE_CLIENT, INACTIVE_OFFER, true, true, DomainErrorCode.CLIENT_INACTIVE),
@@ -48,7 +51,7 @@ class SubscriptionEligibilityTest {
 
 	@Test
 	void aSuspendedClientAskingForATechnologyAlreadyHeldGetsTheSuspensionError() {
-		// The example given by rule 15
+		// L'exemple donné par la règle 15
 		assertThatThrownBy(() -> SubscriptionEligibility.check(ACTIVE_CLIENT, ACTIVE_OFFER, true, true))
 				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.CLIENT_HAS_SUSPENDED_SUBSCRIPTION);
 	}

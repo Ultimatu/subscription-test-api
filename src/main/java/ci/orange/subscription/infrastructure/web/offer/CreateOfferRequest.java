@@ -12,7 +12,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 /**
- * An "active" flag sent in the body is simply ignored: a new offer is always active (rule 9).
+ * Un indicateur « active » envoyé dans le corps est simplement ignoré : une nouvelle offre est
+ * toujours active (règle 9).
  */
 public record CreateOfferRequest(
 		@Schema(example = "FTTH-2000") @NotBlank @Size(max = 50) @Pattern(regexp = Offer.CODE_REGEX,

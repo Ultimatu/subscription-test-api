@@ -12,8 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * The OpenAPI description stays at its standard location (outside the /api prefix) and documents
- * the real status codes and error bodies.
+ * La description OpenAPI reste à son emplacement standard (hors du préfixe /api) et documente les
+ * vrais codes de statut et corps d'erreur.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

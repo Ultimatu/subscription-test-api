@@ -8,22 +8,25 @@ public interface SubscriptionUseCases {
 
 	Subscription create(CreateSubscriptionCommand command);
 
-	/** PENDING to ACTIVE. */
+	/** PENDING vers ACTIVE. */
 	Subscription activate(Long id);
 
-	/** ACTIVE to SUSPENDED, with a mandatory reason kept in the history. */
+	/** ACTIVE vers SUSPENDED, avec un motif obligatoire conservé dans l'historique. */
 	Subscription suspend(Long id, String reason);
 
-	/** SUSPENDED to ACTIVE. */
+	/** SUSPENDED vers ACTIVE. */
 	Subscription reactivate(Long id);
 
-	/** PENDING, ACTIVE or SUSPENDED to TERMINATED, with a mandatory reason; ends the subscription today. */
+	/**
+	 * PENDING, ACTIVE ou SUSPENDED vers TERMINATED, avec un motif obligatoire ; termine la
+	 * souscription aujourd'hui.
+	 */
 	Subscription terminate(Long id, String reason);
 
-	/** Only a PENDING subscription can be deleted (rule 22). */
+	/** Seule une souscription PENDING peut être supprimée (règle 22). */
 	void delete(Long id);
 
-	/** With an overview of the client and the offer, and the status history. */
+	/** Avec un aperçu du client et de l'offre, et l'historique des statuts. */
 	SubscriptionDetails get(Long id);
 
 	SubscriptionDetails getByNd(String nd);

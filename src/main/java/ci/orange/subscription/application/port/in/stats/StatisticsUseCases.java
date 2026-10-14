@@ -5,13 +5,13 @@ import java.util.List;
 
 public interface StatisticsUseCases {
 
-	/** Highest revenue first. */
+	/** Revenu le plus élevé en premier. */
 	List<CityStatistics> activeSubscriptionsByCity();
 
-	/** Every technology of the catalogue, zero included, most subscribed first. */
+	/** Toutes les technologies du catalogue, zéro compris, la plus souscrite en premier. */
 	List<TechnologyStatistics> activeSubscriptionsByTechnology();
 
-	/** Both bounds are optional and inclusive, as dates in Abidjan. */
+	/** Les deux bornes sont facultatives et incluses, en dates d'Abidjan. */
 	StatusStatistics subscriptionsByStatus(LocalDate from, LocalDate to, PeriodBasis basedOn);
 
 }

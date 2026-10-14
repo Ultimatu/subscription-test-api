@@ -13,7 +13,7 @@ interface ClientJpaRepository extends JpaRepository<ClientEntity, Long>, JpaSpec
 
 	boolean existsByEmailIgnoreCase(String email);
 
-	/** SELECT ... FOR UPDATE: the row stays locked until the end of the transaction. */
+	/** SELECT ... FOR UPDATE : la ligne reste verrouillée jusqu'à la fin de la transaction. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select c from ClientEntity c where c.id = :id")
 	Optional<ClientEntity> findByIdForUpdate(@Param("id") Long id);

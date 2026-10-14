@@ -5,8 +5,9 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 
 /**
- * Relies on PostgreSQL for uniqueness: a sequence for the ND, and an atomic upsert on a per-year
- * counter for the reference, so that concurrent requests never get the same value.
+ * S'appuie sur PostgreSQL pour l'unicité : une séquence pour le ND, et un compteur par année mis à
+ * jour atomiquement pour la référence. Deux requêtes simultanées n'obtiennent donc jamais la même
+ * valeur.
  */
 @Component
 class SubscriptionNumberSequencesAdapter implements SubscriptionNumberSequences {

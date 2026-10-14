@@ -3,7 +3,7 @@ package ci.orange.subscription.application.port.in.subscription;
 import java.time.LocalDate;
 
 /**
- * No reference nor ND: both are assigned by the server (rules 16 to 18).
+ * Ni référence ni ND : les deux sont attribués par le serveur (règles 16 à 18).
  */
 public record CreateSubscriptionCommand(Long clientId, Long offerId, LocalDate startDate) {
 }

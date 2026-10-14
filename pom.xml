@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.5.16</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/> <!-- parent récupéré depuis le dépôt Maven -->
 	</parent>
 	<groupId>ci.orange</groupId>
 	<artifactId>subscription-api</artifactId>
@@ -16,7 +16,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<archunit.version>1.5.1</archunit.version>
-		<!-- 2.8.x is the line for Spring Boot 3; 3.x targets Spring Boot 4 -->
+		<!-- La branche 2.8.x est celle de Spring Boot 3 ; la 3.x vise Spring Boot 4 -->
 		<springdoc.version>2.8.17</springdoc.version>
 		<jacoco.version>0.8.15</jacoco.version>
 	</properties>
@@ -111,7 +111,7 @@
 				<version>${jacoco.version}</version>
 				<configuration>
 					<excludes>
-						<!-- Only starts Spring: nothing to test -->
+						<!-- Se contente de démarrer Spring : rien à tester -->
 						<exclude>ci/orange/subscription/SubscriptionApiApplication.class</exclude>
 					</excludes>
 				</configuration>
@@ -123,7 +123,7 @@
 						</goals>
 					</execution>
 					<execution>
-						<!-- In the test phase so that "mvn test" produces target/site/jacoco/index.html -->
+						<!-- En phase test pour que « mvn test » produise target/site/jacoco/index.html -->
 						<id>report</id>
 						<phase>test</phase>
 						<goals>
@@ -131,7 +131,7 @@
 						</goals>
 					</execution>
 					<execution>
-						<!-- In verify rather than test, so that running a single test never fails on coverage -->
+						<!-- En phase verify plutôt que test, pour qu'exécuter un seul test n'échoue jamais pour cause de couverture -->
 						<id>check</id>
 						<goals>
 							<goal>check</goal>

@@ -5,9 +5,9 @@ import java.time.LocalDate;
 import java.util.Map;
 
 /**
- * Number of subscriptions for every status (zero included) over a period. {@code total} is the
- * number of distinct subscriptions counted: with {@link PeriodBasis#STATUS_CHANGE}, a subscription
- * can appear under several statuses but counts once in the total.
+ * Nombre de souscriptions pour chaque statut (zéro compris) sur une période. {@code total} est le
+ * nombre de souscriptions distinctes comptées : avec {@link PeriodBasis#STATUS_CHANGE}, une
+ * souscription peut apparaître sous plusieurs statuts mais ne compte qu'une fois dans le total.
  */
 public record StatusStatistics(LocalDate from, LocalDate to, PeriodBasis basedOn,
 		Map<SubscriptionStatus, Long> subscriptionsByStatus, long total) {

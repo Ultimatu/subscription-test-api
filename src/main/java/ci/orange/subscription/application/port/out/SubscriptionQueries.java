@@ -9,8 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Read side of subscription storage, separate from {@link SubscriptionRepository}: it returns read
- * models built in one query rather than domain objects. Deleted subscriptions are invisible.
+ * Côté lecture du stockage des souscriptions, séparé de {@link SubscriptionRepository} : il renvoie
+ * des modèles de lecture construits en une requête plutôt que des objets du domaine. Les
+ * souscriptions supprimées sont invisibles.
  */
 public interface SubscriptionQueries {
 
@@ -18,7 +19,7 @@ public interface SubscriptionQueries {
 
 	Optional<SubscriptionView> findByNd(String nd);
 
-	/** Oldest change first. */
+	/** Du changement le plus ancien au plus récent. */
 	List<StatusHistoryEntry> findHistory(Long subscriptionId);
 
 	Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable);

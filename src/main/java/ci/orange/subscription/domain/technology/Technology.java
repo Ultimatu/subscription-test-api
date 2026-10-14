@@ -9,13 +9,13 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 
 /**
- * An access technology of the catalogue (FTTH, SATELLITE, 4G_BOX...). Reference data: its code
- * identifies it and never changes.
+ * Une technologie d'accès du catalogue (FTTH, SATELLITE, 4G_BOX…). Donnée de référence : son code
+ * l'identifie et ne change jamais.
  */
 @Getter
 public class Technology {
 
-	/** Upper-case letters, digits and underscores, e.g. 4G_BOX. */
+	/** Majuscules, chiffres et tirets bas, par exemple 4G_BOX. */
 	public static final String CODE_REGEX = "^[A-Z0-9_]+$";
 
 	public static final int CODE_MAX_LENGTH = 20;

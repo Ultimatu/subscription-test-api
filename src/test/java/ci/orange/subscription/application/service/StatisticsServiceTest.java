@@ -146,7 +146,7 @@ class StatisticsServiceTest {
 
 		inTokyo.subscriptionsByStatus(FROM, FROM, null);
 
-		// Midnight in Tokyo (UTC+9), so a whole local day, not a UTC day
+		// Minuit à Tokyo (UTC+9) : une journée locale entière, pas une journée UTC
 		verify(statisticsQueries).countByCurrentStatusCreatedBetween(Instant.parse("2026-09-30T15:00:00Z"),
 				Instant.parse("2026-10-01T15:00:00Z"));
 	}

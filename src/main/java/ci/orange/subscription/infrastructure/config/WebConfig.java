@@ -6,9 +6,9 @@ import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Prefixes the controllers of the web adapter with the base path of the API, declared once.
- * Controllers of libraries (Swagger, Actuator) are left untouched. Versioning the API would only
- * mean changing this value.
+ * Préfixe les controllers de l'adaptateur web par le chemin de base de l'API, déclaré une seule
+ * fois. Les controllers des bibliothèques (Swagger, Actuator) ne sont pas touchés. Versionner l'API
+ * reviendrait à modifier cette seule valeur.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

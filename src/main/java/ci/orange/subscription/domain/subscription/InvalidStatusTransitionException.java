@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 
 /**
- * A transition outside of the allowed schema. The message states the current and the required
- * statuses, as the specification asks.
+ * Une transition hors du schéma autorisé. Le message précise le statut courant et le statut requis,
+ * comme le demande l'énoncé.
  */
 @Getter
 public class InvalidStatusTransitionException extends BusinessRuleViolationException {

@@ -51,10 +51,10 @@ public class SubscriptionService implements SubscriptionUseCases {
 	}
 
 	/**
-	 * Invalid data first, then unknown references, then rules 12 to 14 in the imposed order. The
-	 * client stays locked until the end of the transaction, so that a concurrent request for the same
-	 * client cannot pass the same checks at the same time. Numbers are only drawn once every check
-	 * has passed.
+	 * D'abord les données invalides, puis les références inconnues, puis les règles 12 à 14 dans
+	 * l'ordre imposé. Le client reste verrouillé jusqu'à la fin de la transaction, pour qu'une
+	 * requête simultanée sur le même client ne puisse pas passer les mêmes vérifications en même
+	 * temps. Les numéros ne sont tirés qu'une fois toutes les vérifications passées.
 	 */
 	@Override
 	public Subscription create(CreateSubscriptionCommand command) {
@@ -147,9 +147,9 @@ public class SubscriptionService implements SubscriptionUseCases {
 	}
 
 	/**
-	 * The domain accepts or refuses the transition. Locking the client serializes it with a concurrent
-	 * creation for the same client (rule 13); two concurrent changes of the same subscription are
-	 * caught by its version.
+	 * Le domaine accepte ou refuse la transition. Le verrou sur le client la fait passer après une
+	 * éventuelle création simultanée pour le même client (règle 13) ; deux modifications
+	 * simultanées de la même souscription sont détectées grâce à sa version.
 	 */
 	private Subscription transition(Long id, Consumer<Subscription> operation) {
 		Subscription subscription = findSubscription(id);

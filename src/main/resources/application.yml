@@ -14,13 +14,13 @@ spring:
       pageable:
         max-page-size: 100
   web:
-    # Bean Validation messages ("ne doit pas être vide"...) in French, whatever the client sends
+    # Messages de Bean Validation (« ne doit pas être vide »…) en français, quelle que soit la langue du client
     locale: fr
     locale-resolver: fixed
 
 logging:
   pattern:
-    # Every log line carries the id of the request it belongs to (see RequestTracingFilter)
+    # Chaque ligne de log porte l'identifiant de sa requête (voir RequestTracingFilter)
     correlation: "[%X{requestId:-}] "
 
 springdoc:

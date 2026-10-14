@@ -14,8 +14,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 
 /**
- * A subscription references its client and its offer by id only: each one is loaded and checked
- * by the application layer. The reference and the ND never change once assigned (rules 16 to 18).
+ * Une souscription ne référence son client et son offre que par leur identifiant : c'est la couche
+ * application qui les charge et les vérifie. La référence et le ND ne changent jamais une fois
+ * attribués (règles 16 à 18).
  */
 @Getter
 public class Subscription {
@@ -46,7 +47,7 @@ public class Subscription {
 		this.audit = audit;
 	}
 
-	/** A new subscription starts PENDING and cannot start before today (rule 19). */
+	/** Une nouvelle souscription commence au statut PENDING et ne peut pas démarrer avant aujourd'hui (règle 19). */
 	public static Subscription create(String reference, String nd, Long clientId, Long offerId, LocalDate startDate,
 			LocalDate today) {
 		ensureStartDateNotInPast(startDate, today);
@@ -62,7 +63,7 @@ public class Subscription {
 		return new Subscription(id, reference, nd, clientId, offerId, status, startDate, endDate, audit);
 	}
 
-	/** Exposed so that the request can be rejected before any other check (rule 19). */
+	/** Exposée pour pouvoir refuser la demande avant toute autre vérification (règle 19). */
 	public static void ensureStartDateNotInPast(LocalDate startDate, LocalDate today) {
 		requireValue(startDate, "startDate");
 		if (startDate.isBefore(today)) {
@@ -83,13 +84,16 @@ public class Subscription {
 		apply(SubscriptionTransition.REACTIVATE, null);
 	}
 
-	/** Termination is final and closes the subscription today (rule 21). */
+	/** La résiliation est définitive et clôt la souscription aujourd'hui (règle 21). */
 	public void terminate(String reason, LocalDate today) {
 		apply(SubscriptionTransition.TERMINATE, reason);
 		this.endDate = today;
 	}
 
-	/** Only a subscription that has never been active can be deleted; others must be terminated (rule 22). */
+	/**
+	 * Seule une souscription qui n'a jamais été active peut être supprimée ; les autres doivent
+	 * être résiliées (règle 22).
+	 */
 	public void ensureDeletable() {
 		if (status != SubscriptionStatus.PENDING) {
 			throw new BusinessRuleViolationException(DomainErrorCode.SUBSCRIPTION_NOT_DELETABLE,
@@ -98,7 +102,7 @@ public class Subscription {
 		}
 	}
 
-	/** PENDING or ACTIVE: the subscription holds its technology (rule 14). */
+	/** PENDING ou ACTIVE : la souscription occupe sa technologie (règle 14). */
 	public boolean isInProgress() {
 		return status == SubscriptionStatus.PENDING || status == SubscriptionStatus.ACTIVE;
 	}
@@ -107,7 +111,7 @@ public class Subscription {
 		return status == SubscriptionStatus.SUSPENDED;
 	}
 
-	/** Status changes made since this object was created or loaded, to be stored in the history. */
+	/** Changements de statut faits depuis la création ou le chargement de l'objet, à enregistrer dans l'historique. */
 	public List<StatusChange> recordedStatusChanges() {
 		return List.copyOf(recordedStatusChanges);
 	}

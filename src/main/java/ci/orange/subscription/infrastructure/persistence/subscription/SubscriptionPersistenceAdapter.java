@@ -61,7 +61,8 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 			saved = jpaRepository.saveAndFlush(entity);
 		}
 		catch (DataIntegrityViolationException exception) {
-			// Last line of defence for rule 14 if two requests ever got past the client lock
+			// Dernier rempart pour la règle 14 si deux requêtes passaient malgré le verrou sur le
+			// client
 			if (exception.getCause() instanceof ConstraintViolationException violation
 					&& ONGOING_TECHNOLOGY_UNIQUE_INDEX.equals(violation.getConstraintName())) {
 				throw new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_ALREADY_SUBSCRIBED,
@@ -120,7 +121,7 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 		jpaRepository.flush();
 	}
 
-	/** The technology is copied from the offer, which never changes it (rule 10). */
+	/** La technologie est copiée depuis l'offre, qui ne la change jamais (règle 10). */
 	private SubscriptionEntity newEntity(Subscription subscription) {
 		OfferEntity offer = entityManager.getReference(OfferEntity.class, subscription.getOfferId());
 		SubscriptionEntity entity = new SubscriptionEntity();

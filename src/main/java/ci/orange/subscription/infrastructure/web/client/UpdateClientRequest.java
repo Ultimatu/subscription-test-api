@@ -10,7 +10,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * {@code email} is only declared to reject any attempt to change it (rule 1): it must be absent.
+ * {@code email} n'est déclaré que pour refuser toute tentative de le modifier (règle 1) : il doit
+ * être absent.
  */
 public record UpdateClientRequest(
 		@NotBlank @Size(max = 100) String firstName,

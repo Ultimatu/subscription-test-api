@@ -12,8 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Kept out of the main application class so that web slice tests (@WebMvcTest) do not try to
- * bootstrap JPA auditing.
+ * Séparée de la classe principale pour que les tests de la couche web (@WebMvcTest) ne tentent pas
+ * de démarrer l'audit JPA.
  */
 @Configuration
 @EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")
@@ -30,7 +30,7 @@ public class JpaAuditingConfig {
 				.or(() -> Optional.of(ANONYMOUS_AUDITOR));
 	}
 
-	/** Audit dates come from the application clock, like every other date of the application. */
+	/** Les dates d'audit viennent de l'horloge de l'application, comme toutes les autres dates. */
 	@Bean
 	DateTimeProvider auditingDateTimeProvider(Clock clock) {
 		return () -> Optional.of(clock.instant());

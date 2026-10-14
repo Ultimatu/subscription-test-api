@@ -8,7 +8,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * A "status" sent in the body is simply ignored: a new client is always ACTIVE (rule 3).
+ * Un « status » envoyé dans le corps est simplement ignoré : un nouveau client est toujours ACTIVE
+ * (règle 3).
  */
 public record CreateClientRequest(
 		@NotBlank @Size(max = 100) String firstName,

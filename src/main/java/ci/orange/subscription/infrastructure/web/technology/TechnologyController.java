@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * Catalogue of access technologies. Not part of the specification: it lets the business add a
- * technology without any code change.
+ * Catalogue des technologies d'accès. Hors énoncé : il permet au métier d'ajouter une technologie
+ * sans modifier le code.
  */
 @Tag(name = "Technologies", description = "Catalogue des technologies d'accès (hors énoncé)")
 @RestController

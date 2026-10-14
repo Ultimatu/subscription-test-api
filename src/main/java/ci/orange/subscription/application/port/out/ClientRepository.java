@@ -7,8 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Output port: what the application needs from client storage. Deleted clients are invisible
- * through every method.
+ * Port de sortie : ce dont l'application a besoin pour stocker les clients. Les clients supprimés
+ * sont invisibles par toutes les méthodes.
  */
 public interface ClientRepository {
 
@@ -17,8 +17,9 @@ public interface ClientRepository {
 	Optional<Client> findById(Long id);
 
 	/**
-	 * Same as {@link #findById(Long)}, but locks the client until the end of the transaction: the
-	 * operations on the subscriptions of a client then run one after the other (ADR-0014).
+	 * Comme {@link #findById(Long)}, mais verrouille le client jusqu'à la fin de la transaction :
+	 * les opérations sur les souscriptions d'un même client s'exécutent alors l'une après l'autre
+	 * (ADR-0014).
 	 */
 	Optional<Client> findByIdForUpdate(Long id);
 

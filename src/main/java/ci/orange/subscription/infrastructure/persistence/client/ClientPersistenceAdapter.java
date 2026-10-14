@@ -40,7 +40,8 @@ class ClientPersistenceAdapter implements ClientRepository {
 			return ClientEntityMapper.toDomain(jpaRepository.saveAndFlush(entity));
 		}
 		catch (DataIntegrityViolationException exception) {
-			// Two concurrent creations can both pass the existsByEmail check: the unique index decides.
+			// Deux créations simultanées peuvent passer toutes les deux la vérification
+			// existsByEmail : l'index unique tranche.
 			if (violates(exception, EMAIL_UNIQUE_CONSTRAINT)) {
 				throw new BusinessRuleViolationException(DomainErrorCode.CLIENT_EMAIL_ALREADY_USED,
 						"Un client existe déjà avec l'email " + client.getEmail());

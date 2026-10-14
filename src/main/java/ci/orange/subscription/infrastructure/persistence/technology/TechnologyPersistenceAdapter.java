@@ -44,7 +44,7 @@ class TechnologyPersistenceAdapter implements TechnologyRepository {
 			return toDomain(jpaRepository.saveAndFlush(entity));
 		}
 		catch (DataIntegrityViolationException exception) {
-			// Two concurrent creations of the same code: the primary key decides.
+			// Deux créations simultanées du même code : la clé primaire tranche.
 			throw new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS,
 					"La technologie " + technology.getCode() + " existe déjà");
 		}

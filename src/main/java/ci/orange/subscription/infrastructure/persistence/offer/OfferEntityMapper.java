@@ -13,7 +13,10 @@ final class OfferEntityMapper {
 				entity.getMonthlyPrice(), entity.isActive(), entity.toAuditInfo());
 	}
 
-	/** Copies the domain state onto a new or managed entity; id, version and audit stay under JPA control. */
+	/**
+	 * Copie l'état du domaine sur une entité nouvelle ou déjà gérée ; l'identifiant, la version et
+	 * l'audit restent gérés par JPA.
+	 */
 	static void copy(Offer offer, OfferEntity entity) {
 		entity.setCode(offer.getCode());
 		entity.setLabel(offer.getLabel());

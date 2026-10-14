@@ -11,8 +11,9 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 /**
- * {@code code}, {@code technology} and {@code active} are only declared to reject any attempt to
- * change them here: the first two never change (rule 10), deactivation goes through PATCH (rule 9).
+ * {@code code}, {@code technology} et {@code active} ne sont déclarés que pour refuser toute
+ * tentative de les modifier ici : les deux premiers ne changent jamais (règle 10), la désactivation
+ * passe par PATCH (règle 9).
  */
 public record UpdateOfferRequest(
 		@Schema(example = "Fibre Confort Plus 100 Mbps") @NotBlank @Size(max = 255) String label,

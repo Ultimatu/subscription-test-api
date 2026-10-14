@@ -6,8 +6,8 @@ import java.time.Instant;
 import lombok.Getter;
 
 /**
- * Deleted rows are kept for traceability and hidden from every query by the
- * {@code @SQLRestriction("deleted_at is null")} of each subclass.
+ * Les lignes supprimées sont conservées pour la traçabilité et masquées dans toutes les requêtes
+ * par le {@code @SQLRestriction("deleted_at is null")} de chaque sous-classe.
  */
 @Getter
 @MappedSuperclass

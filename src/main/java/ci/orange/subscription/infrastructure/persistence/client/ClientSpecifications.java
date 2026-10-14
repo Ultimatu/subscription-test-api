@@ -43,7 +43,7 @@ final class ClientSpecifications {
 		return value.trim().toLowerCase(Locale.ROOT);
 	}
 
-	/** "%" and "_" typed by the user must be searched literally, not act as wildcards. */
+	/** « % » et « _ » saisis par l'utilisateur sont recherchés tels quels, sans servir de jokers. */
 	private static String escapeLikeWildcards(String value) {
 		return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}

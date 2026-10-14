@@ -7,7 +7,8 @@ import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
 /**
- * Body of suspend and terminate: the reason is mandatory and kept in the history (rule 20).
+ * Corps de suspend et terminate : le motif est obligatoire et conservé dans l'historique (règle
+ * 20).
  */
 public record ReasonedTransitionRequest(
 		@Schema(example = "1") @NotNull Long subscriptionId,

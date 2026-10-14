@@ -28,7 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * HTTP only: validates the input, calls the use case and maps the result. No business rule here.
+ * Uniquement du HTTP : valide l'entrée, appelle le cas d'usage et convertit le résultat. Aucune
+ * règle métier ici.
  */
 @Tag(name = "Clients", description = "Gestion des clients")
 @RestController

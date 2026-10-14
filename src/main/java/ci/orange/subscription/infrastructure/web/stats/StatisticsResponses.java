@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 /**
- * Response bodies of the statistics endpoints.
+ * Corps de réponse des endpoints de statistiques.
  */
 final class StatisticsResponses {
 

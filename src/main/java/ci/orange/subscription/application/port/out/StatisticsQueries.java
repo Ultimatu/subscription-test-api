@@ -8,14 +8,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Aggregations computed by the database. Deleted subscriptions are never counted. A null bound
- * means no limit; lower bounds are inclusive, upper {@link Instant} bounds exclusive and upper
- * {@link LocalDate} bounds inclusive. Statuses or technologies without any subscription are absent
- * from the maps.
+ * Agrégations calculées par la base de données. Les souscriptions supprimées ne sont jamais
+ * comptées. Une borne nulle signifie « sans limite » ; les bornes inférieures sont incluses, les
+ * bornes supérieures {@link Instant} exclues et les bornes supérieures {@link LocalDate} incluses.
+ * Les statuts ou technologies sans aucune souscription sont absents des maps.
  */
 public interface StatisticsQueries {
 
-	/** Cities are grouped regardless of case; highest revenue first. */
+	/** Villes regroupées sans tenir compte de la casse ; revenu le plus élevé en premier. */
 	List<CityStatistics> activeSubscriptionsByCity();
 
 	Map<String, Long> activeSubscriptionsByTechnology();
@@ -24,10 +24,10 @@ public interface StatisticsQueries {
 
 	Map<SubscriptionStatus, Long> countByCurrentStatusStartingBetween(LocalDate from, LocalDate to);
 
-	/** Distinct subscriptions per status they entered in the period. */
+	/** Souscriptions distinctes par statut auquel elles sont passées pendant la période. */
 	Map<SubscriptionStatus, Long> countByStatusEnteredBetween(Instant from, Instant to);
 
-	/** Distinct subscriptions with at least one status change in the period. */
+	/** Souscriptions distinctes ayant au moins un changement de statut pendant la période. */
 	long countChangedBetween(Instant from, Instant to);
 
 }

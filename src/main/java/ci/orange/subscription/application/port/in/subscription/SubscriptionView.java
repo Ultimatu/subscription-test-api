@@ -7,8 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Read model of a subscription with an overview of its client and its offer. Built in one query
- * by the persistence adapter: reads do not go through the domain model, which only knows ids.
+ * Modèle de lecture d'une souscription, avec un aperçu de son client et de son offre. Construit en
+ * une seule requête par l'adaptateur de persistance : les lectures ne passent pas par le modèle du
+ * domaine, qui ne connaît que des identifiants.
  */
 public record SubscriptionView(
 		Long id,

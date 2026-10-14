@@ -1,9 +1,9 @@
 package ci.orange.subscription.infrastructure.web.error;
 
 /**
- * Codes of the errors raised outside of the domain (malformed request, concurrency, unexpected
- * failure). Business errors use the domain's codes; together they form the {@code code} field of
- * every error body.
+ * Codes des erreurs levées hors du domaine (requête mal formée, accès concurrent, panne
+ * inattendue). Les erreurs métier utilisent les codes du domaine ; ensemble, ils forment le champ
+ * {@code code} de chaque corps d'erreur.
  */
 public enum TechnicalErrorCode {
 

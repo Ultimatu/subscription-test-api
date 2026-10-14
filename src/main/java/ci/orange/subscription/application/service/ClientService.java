@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ClientService implements ClientUseCases {
 
-	/** A client holding a subscription in one of these statuses cannot be deleted (rule 6). */
+	/** Un client qui a une souscription dans l'un de ces statuts ne peut pas être supprimé (règle 6). */
 	private static final Set<SubscriptionStatus> DELETION_BLOCKING_STATUSES = EnumSet.of(SubscriptionStatus.PENDING,
 			SubscriptionStatus.ACTIVE, SubscriptionStatus.SUSPENDED);
 
@@ -70,7 +70,7 @@ public class ClientService implements ClientUseCases {
 		return clientRepository.save(client);
 	}
 
-	/** Terminated subscriptions are deleted along with the client; both stay in storage for traceability. */
+	/** Les souscriptions résiliées sont supprimées avec le client ; tous restent en base pour la traçabilité. */
 	@Override
 	public void delete(Long id) {
 		Client client = findClient(id);
@@ -91,7 +91,7 @@ public class ClientService implements ClientUseCases {
 			subscriptionsByStatus.put(status, 0L);
 		}
 		subscriptionsByStatus.putAll(subscriptionRepository.countByStatusForClient(id));
-		// Two decimals like every amount, including when there is nothing to sum
+		// Deux décimales comme tout montant, même quand il n'y a rien à additionner
 		BigDecimal totalMonthlyRevenue = subscriptionRepository
 				.sumMonthlyPriceForClient(id, SubscriptionStatus.ACTIVE)
 				.setScale(2, RoundingMode.UNNECESSARY);

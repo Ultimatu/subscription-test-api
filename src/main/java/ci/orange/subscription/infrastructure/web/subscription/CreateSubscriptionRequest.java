@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Null;
 import java.time.LocalDate;
 
 /**
- * {@code reference} and {@code nd} are only declared to reject any attempt to choose them: the
- * server assigns them (rules 16 to 18).
+ * {@code reference} et {@code nd} ne sont déclarés que pour refuser toute tentative de les choisir
+ * : le serveur les attribue (règles 16 à 18).
  */
 public record CreateSubscriptionRequest(
 		@Schema(example = "1") @NotNull Long clientId,

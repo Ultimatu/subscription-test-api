@@ -6,9 +6,10 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.offer.Offer;
 
 /**
- * Whether a client may subscribe to an offer. The rules are checked in the order imposed by rule
- * 15, and the first broken one is reported: a client with a suspended subscription asking for a
- * technology they already hold gets the suspension error, not the duplicate one.
+ * Indique si un client peut souscrire à une offre. Les règles sont vérifiées dans l'ordre imposé
+ * par la règle 15, et seule la première enfreinte est signalée : un client ayant une souscription
+ * suspendue qui demande une technologie qu'il détient déjà reçoit l'erreur de suspension, pas celle
+ * de doublon.
  */
 public final class SubscriptionEligibility {
 

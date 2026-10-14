@@ -32,7 +32,7 @@ class SubscriptionTest {
 
 	private static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
 
-	/** The transition table of the specification, written independently from the production code. */
+	/** Le tableau des transitions de l'énoncé, réécrit indépendamment du code de production. */
 	private static final Map<SubscriptionStatus, Map<SubscriptionTransition, SubscriptionStatus>> SPECIFICATION = Map.of(
 			PENDING, Map.of(ACTIVATE, ACTIVE, TERMINATE, TERMINATED),
 			ACTIVE, Map.of(SUSPEND, SUSPENDED, TERMINATE, TERMINATED),

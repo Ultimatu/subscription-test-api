@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Web slice for one controller, with what every controller test needs: the security rules and
- * the clock used to timestamp errors. Use cases are mocked with @MockitoBean.
+ * Tranche web pour un controller, avec ce dont chaque test de controller a besoin : les règles de
+ * sécurité et l'horloge qui horodate les erreurs. Les cas d'usage sont simulés avec @MockitoBean.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

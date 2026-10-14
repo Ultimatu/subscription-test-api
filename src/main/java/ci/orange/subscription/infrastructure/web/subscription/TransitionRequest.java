@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
 /**
- * Body of activate and reactivate. The id travels in the body, as the specification imposes.
+ * Corps de activate et reactivate. L'identifiant passe dans le corps, comme l'impose l'énoncé.
  */
 public record TransitionRequest(
 		@Schema(example = "1") @NotNull Long subscriptionId,

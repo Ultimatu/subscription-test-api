@@ -13,7 +13,7 @@ import lombok.Getter;
 @Getter
 public class Client {
 
-	/** Ten digits starting with 01, 05 or 07 (rule 2). */
+	/** Dix chiffres commençant par 01, 05 ou 07 (règle 2). */
 	public static final String PHONE_NUMBER_REGEX = "^0[157][0-9]{8}$";
 
 	private static final Pattern PHONE_NUMBER_PATTERN = Pattern.compile(PHONE_NUMBER_REGEX);
@@ -40,8 +40,8 @@ public class Client {
 	}
 
 	/**
-	 * A new client is always ACTIVE, whatever the caller asks (rule 3). The email is normalized so
-	 * that uniqueness is case-insensitive.
+	 * Un nouveau client est toujours ACTIVE, quoi que demande l'appelant (règle 3). L'email est
+	 * normalisé pour que l'unicité ne tienne pas compte de la casse.
 	 */
 	public static Client create(String firstName, String lastName, String email, String phoneNumberClient,
 			String city) {
@@ -50,13 +50,13 @@ public class Client {
 				requireText(city, "city"), ClientStatus.ACTIVE, null);
 	}
 
-	/** Rebuilds a client loaded from storage, without re-running creation rules. */
+	/** Reconstitue un client chargé depuis le stockage, sans rejouer les règles de création. */
 	public static Client restore(Long id, String firstName, String lastName, String email, String phoneNumberClient,
 			String city, ClientStatus status, AuditInfo audit) {
 		return new Client(id, firstName, lastName, email, phoneNumberClient, city, status, audit);
 	}
 
-	/** The email is not part of the update: it cannot change after creation (rule 1). */
+	/** L'email ne fait pas partie de la modification : il n'est plus modifiable après la création (règle 1). */
 	public void update(String firstName, String lastName, String phoneNumberClient, String city, ClientStatus status) {
 		this.firstName = requireText(firstName, "firstName");
 		this.lastName = requireText(lastName, "lastName");

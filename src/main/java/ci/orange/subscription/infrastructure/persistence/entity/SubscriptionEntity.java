@@ -19,8 +19,9 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
- * Keeps JPA relations to the client and the offer (unlike the domain, which only holds their ids)
- * so that search and statistics queries can join on them.
+ * Garde des relations JPA vers le client et l'offre (contrairement au domaine, qui ne connaît que
+ * leurs identifiants) pour que les requêtes de recherche et de statistiques puissent faire des
+ * jointures.
  */
 @Getter
 @Setter
@@ -48,7 +49,7 @@ public class SubscriptionEntity extends SoftDeletableEntity {
 	@JoinColumn(name = "offer_id", nullable = false, updatable = false)
 	private OfferEntity offer;
 
-	/** Copy of the offer's technology, which never changes: lets the database guarantee rule 14. */
+	/** Copie de la technologie de l'offre, qui ne change jamais : permet à la base de garantir la règle 14. */
 	@Column(nullable = false, updatable = false, length = 20)
 	private String technology;
 
