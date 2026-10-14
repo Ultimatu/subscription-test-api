@@ -25,3 +25,4 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0017](0017-recherche-insensible-aux-accents.md) | Recherche insensible aux accents avec l'extension unaccent | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).
+Le schéma de la base (tables, contraintes, index et requêtes servies) est décrit dans [../base-de-donnees.md](../base-de-donnees.md).
