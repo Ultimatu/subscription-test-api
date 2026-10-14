@@ -19,6 +19,6 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0011](0011-montants.md) | Représentation des montants | Acceptée |
 | [0012](0012-constructeurs-explicites.md) | Constructeurs d'injection écrits explicitement, sans Lombok | Acceptée |
 | [0013](0013-securite.md) | Authentification JWT avec les rôles ADMIN et CONSEILLER | Acceptée, à implémenter |
-| [0014](0014-souscriptions-numerotation-et-concurrence.md) | Souscriptions : numérotation et accès concurrents | Proposée |
+| [0014](0014-souscriptions-numerotation-et-concurrence.md) | Souscriptions : numérotation et accès concurrents | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).

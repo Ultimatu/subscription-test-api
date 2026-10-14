@@ -1,6 +1,6 @@
 # ADR-0014 — Souscriptions : numérotation et accès concurrents
 
-- **Statut** : Proposée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026)
 
 ## Contexte
 
@@ -14,12 +14,12 @@
 - **ND** : une séquence PostgreSQL, préfixée par `27` et complétée à 8 chiffres (`2700000001`, `2700000002`…). Elle est unique par construction et sans conflit possible entre requêtes simultanées. Sa capacité est de 100 millions de numéros.
 - **Référence** : un compteur par année, incrémenté atomiquement en une requête (`insert … on conflict do update … returning`). La numérotation repart de `000001` chaque année, l'année étant celle de la création.
 - Les numéros ne sont tirés **qu'une fois toutes les règles vérifiées**, pour ne pas en consommer sur des demandes refusées.
-- La génération passe par un port de sortie (`SubscriptionNumberGenerator`), implémenté par l'adaptateur de persistance.
 
 **Accès concurrents**
 
 - La création d'une souscription et les changements de statut **verrouillent la ligne du client** (`SELECT … FOR UPDATE`) : les opérations portant sur un même client s'exécutent l'une après l'autre, sans ralentir les autres clients.
-- En complément, la base garantit la règle 14. La technologie de l'offre est **copiée dans la souscription**, ce qui est sans risque puisqu'elle n'est jamais modifiable (règle 10). Un **index unique partiel** interdit alors deux souscriptions en cours (PENDING ou ACTIVE) de la même technologie pour un même client.
+- En complément, la base garantit la règle 14. La technologie de l'offre est **copiée dans la souscription**, ce qui est sans risque puisqu'elle n'est jamais modifiable (règle 10). Un **index unique partiel** interdit alors deux souscriptions en cours (PENDING ou ACTIVE) de la même technologie pour un même client. Cette copie est une optimisation de stockage : c'est l'adaptateur de persistance qui la fait, le modèle du domaine ne la porte pas.
+- Le **format** du ND et de la référence est une règle métier, porté par le domaine (`SubscriptionNumbering`) ; l'obtention de numéros uniques relève de l'infrastructure (port `SubscriptionNumberSequences`).
 
 **Ordre des vérifications à la création**
 

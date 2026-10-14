@@ -94,10 +94,12 @@ class SubscriptionPersistenceAdapterTest {
 		subscription.setReference("SUB-2026-%06d".formatted(sequence));
 		subscription.setNd("27%08d".formatted(sequence));
 		subscription.setClient(entityManager.getReference(ClientEntity.class, clientId));
-		subscription.setOffer(entityManager
+		OfferEntity offer = entityManager
 				.createQuery("select o from OfferEntity o where o.code = :code", OfferEntity.class)
 				.setParameter("code", offerCode)
-				.getSingleResult());
+				.getSingleResult();
+		subscription.setOffer(offer);
+		subscription.setTechnology(offer.getTechnology());
 		subscription.setStatus(status);
 		subscription.setStartDate(LocalDate.now());
 		entityManager.persist(subscription);

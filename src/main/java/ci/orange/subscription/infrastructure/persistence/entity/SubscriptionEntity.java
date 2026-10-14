@@ -48,6 +48,10 @@ public class SubscriptionEntity extends SoftDeletableEntity {
 	@JoinColumn(name = "offer_id", nullable = false, updatable = false)
 	private OfferEntity offer;
 
+	/** Copy of the offer's technology, which never changes: lets the database guarantee rule 14. */
+	@Column(nullable = false, updatable = false, length = 20)
+	private String technology;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private SubscriptionStatus status;
