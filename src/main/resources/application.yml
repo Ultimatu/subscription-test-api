@@ -9,3 +9,7 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  web:
+    # Bean Validation messages ("ne doit pas être vide"...) in French, whatever the client sends
+    locale: fr
+    locale-resolver: fixed
