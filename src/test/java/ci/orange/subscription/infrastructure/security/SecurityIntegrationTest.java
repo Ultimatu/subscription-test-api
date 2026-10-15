@@ -147,6 +147,10 @@ class SecurityIntegrationTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(get("/api/clients/export").header(HttpHeaders.AUTHORIZATION, conseiller))
 				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/clients/deleted").header(HttpHeaders.AUTHORIZATION, conseiller))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(delete("/api/clients/1/purge").header(HttpHeaders.AUTHORIZATION, conseiller))
+				.andExpect(status().isForbidden());
 		mockMvc.perform(get("/api/subscriptions/export").header(HttpHeaders.AUTHORIZATION, conseiller))
 				.andExpect(status().isForbidden());
 	}

@@ -18,6 +18,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -87,6 +88,26 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 		SubscriptionEntity entity = findEntity(subscription.getId());
 		entity.markDeleted(clock.instant(), auditorAware.getCurrentAuditor().orElseThrow());
 		jpaRepository.saveAndFlush(entity);
+	}
+
+	@Override
+	public void deletePermanently(Subscription subscription) {
+		entityManager.flush();
+		for (String sql : List.of("delete from notification_outbox where subscription_id = :id",
+				"delete from subscription_status_history where subscription_id = :id",
+				"delete from subscription where id = :id")) {
+			entityManager.createNativeQuery(sql).setParameter("id", subscription.getId()).executeUpdate();
+		}
+		entityManager.clear();
+	}
+
+	/** En SQL natif, pour compter aussi les souscriptions supprimées logiquement. */
+	@Override
+	public boolean existsAnyForClient(Long clientId) {
+		return (Boolean) entityManager
+				.createNativeQuery("select exists (select 1 from subscription where client_id = :clientId)")
+				.setParameter("clientId", clientId)
+				.getSingleResult();
 	}
 
 	@Override

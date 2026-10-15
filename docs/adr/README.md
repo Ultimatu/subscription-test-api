@@ -10,7 +10,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0002](0002-schema-versionne-flyway.md) | Schéma versionné avec Flyway, règles métier doublées en base | Acceptée |
 | [0003](0003-configuration.md) | Configuration par `application.yml` et variables d'environnement, sans `.env` | Acceptée |
 | [0004](0004-audit-et-historique.md) | Audit des modifications et historique des statuts | Acceptée |
-| [0005](0005-suppression-logique.md) | Suppression logique des clients et des souscriptions | Acceptée |
+| [0005](0005-suppression-logique.md) | Suppression logique des clients et des souscriptions | Acceptée, complétée par 0023 |
 | [0006](0006-technologies-donnees-de-reference.md) | Les technologies sont des données de référence, pas un enum | Acceptée |
 | [0007](0007-format-des-erreurs.md) | Erreurs au format Problem Details avec un code stable | Acceptée |
 | [0008](0008-tracabilite-des-requetes.md) | Traçabilité des requêtes par `X-Request-Id` | Acceptée |
@@ -28,6 +28,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0020](0020-exports-csv.md) | Exports CSV des clients et des souscriptions | Acceptée |
 | [0021](0021-notifications-par-email.md) | Notifications par email, avec une outbox en base | Acceptée |
 | [0022](0022-statut-des-technologies.md) | Retrait d'une technologie du catalogue | Acceptée |
+| [0023](0023-suppression-et-conservation.md) | Suppression définitive et durée de conservation des données | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).
 Le schéma de la base (tables, contraintes, index et requêtes servies) est décrit dans [../base-de-donnees.md](../base-de-donnees.md).

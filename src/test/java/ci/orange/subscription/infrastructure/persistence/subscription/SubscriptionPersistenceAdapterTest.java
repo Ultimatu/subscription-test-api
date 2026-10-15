@@ -118,6 +118,29 @@ class SubscriptionPersistenceAdapterTest {
 	}
 
 	@Test
+	void countsLogicallyDeletedSubscriptionsAsAHistoryToKeep() {
+		assertThat(subscriptionRepository.existsAnyForClient(clientId)).isFalse();
+		insert("FTTH-100", SubscriptionStatus.TERMINATED);
+		subscriptionRepository.deleteAllByClientId(clientId);
+		entityManager.clear();
+
+		assertThat(subscriptionRepository.existsAnyForClient(clientId)).isTrue();
+	}
+
+	@Test
+	void deletesPermanentlyASubscriptionWithItsHistory() {
+		Subscription subscription = subscriptionRepository.save(newSubscription(offerId("SAT-20"), 900007));
+
+		subscriptionRepository.deletePermanently(subscription);
+
+		Number rows = (Number) entityManager.createNativeQuery(
+				"select (select count(*) from subscription where id = :id) + (select count(*) from subscription_status_history where subscription_id = :id)")
+				.setParameter("id", subscription.getId())
+				.getSingleResult();
+		assertThat(rows.longValue()).isZero();
+	}
+
+	@Test
 	void savesANewSubscriptionWithTheTechnologyOfItsOfferAndItsHistory() {
 		Long offerId = offerId("SAT-50");
 

@@ -38,6 +38,7 @@ import ci.orange.subscription.domain.technology.Technology;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.ArrayList;
@@ -87,7 +88,8 @@ class SubscriptionServiceTest {
 	void createService() {
 		Clock clock = Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant().plusSeconds(3600), ABIDJAN);
 		subscriptionService = new SubscriptionService(subscriptionRepository, subscriptionQueries, clientRepository,
-				offerRepository, technologyRepository, numberSequences, notificationOutbox, clock);
+				offerRepository, technologyRepository, numberSequences, notificationOutbox,
+				new DeletionPolicy(true, true, false, Period.ofYears(3)), clock);
 	}
 
 	@Nested
@@ -287,6 +289,21 @@ class SubscriptionServiceTest {
 			subscriptionService.delete(10L);
 
 			verify(subscriptionRepository).delete(pending);
+			verify(subscriptionRepository, never()).deletePermanently(any());
+		}
+
+		@Test
+		void deletesPermanentlyWhenLogicalDeletionIsDisabled() {
+			Subscription pending = givenSubscription(SubscriptionStatus.PENDING);
+			SubscriptionService hardDeleting = new SubscriptionService(subscriptionRepository, subscriptionQueries,
+					clientRepository, offerRepository, technologyRepository, numberSequences, notificationOutbox,
+					new DeletionPolicy(false, true, false, Period.ofYears(3)),
+					Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant(), ABIDJAN));
+
+			hardDeleting.delete(10L);
+
+			verify(subscriptionRepository).deletePermanently(pending);
+			verify(subscriptionRepository, never()).delete(any());
 		}
 
 		@Test

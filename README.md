@@ -39,7 +39,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 |---|---|---|
 | Authentification JWT, rôles ADMIN et CONSEILLER | Savoir qui agit, restreindre les opérations sensibles | [ADR-0013](docs/adr/0013-securite.md) |
 | Audit et historique des statuts | Chaque modification porte son auteur et sa date ; chaque changement de statut est conservé avec son motif | [ADR-0004](docs/adr/0004-audit-et-historique.md) |
-| Suppression logique | Un client ou une souscription supprimés disparaissent de l'API mais restent en base | [ADR-0005](docs/adr/0005-suppression-logique.md) |
+| Suppression logique, conservation et purge | Un client qui a un historique disparaît de l'API mais reste en base pendant le délai de conservation, puis est purgé ; un client qui n'a jamais souscrit est supprimé définitivement | [ADR-0005](docs/adr/0005-suppression-logique.md), [ADR-0023](docs/adr/0023-suppression-et-conservation.md) |
 | Catalogue des technologies | Ajouter une technologie ne demande ni code ni déploiement ; la retirer du catalogue n'affecte pas l'existant | [ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md), [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
 | Erreurs au format Problem Details (RFC 9457) | Format standard, avec un `code` stable exploitable par un client de l'API | [ADR-0007](docs/adr/0007-format-des-erreurs.md) |
 | Traçabilité par `X-Request-Id` | Retrouver dans les logs toutes les lignes d'une requête | [ADR-0008](docs/adr/0008-tracabilite-des-requetes.md) |
@@ -139,6 +139,8 @@ spring:
   | `APP_SECURITY_ENABLED` | `false` pour désactiver l'authentification |
   | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Serveur de messagerie (Mailpit en local) |
   | `APP_NOTIFICATIONS_ENABLED` | `false` pour ne plus envoyer les emails (ils sont tout de même enregistrés) |
+  | `APP_DELETION_SOFT_DELETE`, `APP_DELETION_HARD_DELETE` | Suppression logique des clients qui ont un historique ; purge par un administrateur |
+  | `APP_DELETION_RETENTION_ENABLED`, `APP_DELETION_RETENTION_PERIOD` | Délai de conservation avant la purge, et purge automatique : **à activer en production**, avec la durée fixée par l'ARTCI ([ADR-0023](docs/adr/0023-suppression-et-conservation.md)) |
   | `SERVER_PORT` | Port HTTP (8080 par défaut) |
 
 - **Tests** : ils utilisent la même base, dans un schéma séparé `test` que Flyway crée et migre automatiquement (`src/test/resources/config/application.yml`). Les données saisies via l'application ne perturbent pas les tests, et il n'y a pas de seconde base à créer.
@@ -150,7 +152,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 346 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 376 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -161,8 +163,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 346 | 97,9 % | 84,9 % |
-| Tests unitaires seuls, sans base de données | 280 | 71,3 % | 63,3 % |
+| Tous les tests (`mvn test`) | 376 | 98,1 % | 84,6 % |
+| Tests unitaires seuls, sans base de données | 305 | 70,4 % | 64,0 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
 
@@ -209,7 +211,8 @@ subscription-api/
 │       ├── persistence/            entités JPA, repositories Spring Data, implémentation des ports de sortie
 │       ├── security/               JWT, comptes utilisateurs, matrice des droits
 │       ├── document/               attestation PDF (gabarit Thymeleaf converti par openhtmltopdf)
-│       ├── notification/           envoi des emails (Spring Mail) et tâche planifiée
+│       ├── notification/           envoi des emails (Spring Mail)
+│       ├── scheduling/             tâches planifiées : envoi des notifications, purge des données expirées
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
@@ -228,7 +231,8 @@ subscription-api/
 | `infrastructure.persistence` | Implémente les ports de sortie avec JPA. Les entités JPA (`ClientEntity`…) sont distinctes des modèles du domaine, reliées par un mapping manuel. |
 | `infrastructure.security` | Émission et vérification des jetons, comptes utilisateurs, droits par rôle. |
 | `infrastructure.document` | Mise en page de l'attestation : gabarit HTML et CSS rendu en PDF. |
-| `infrastructure.notification` | Envoi des emails (SMTP) et tâche planifiée qui vide l'outbox des notifications. |
+| `infrastructure.notification` | Envoi des emails (SMTP). |
+| `infrastructure.scheduling` | Tâches planifiées : envoi des notifications de l'outbox, purge des clients dont le délai de conservation est écoulé. |
 | `infrastructure.config` | Assemblage : horloge (fuseau Africa/Abidjan), préfixe `/api`, description OpenAPI. |
 
 Les adaptateurs de `infrastructure` dépendent de `application` et de `domain`, jamais l'inverse : le métier ignore qu'il est exposé en HTTP et stocké dans PostgreSQL.
@@ -309,6 +313,8 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
 | PATCH | `/api/technologies/{code}/deactivate` | Retirer une technologie du catalogue | 200 | Admin |
 | PATCH | `/api/technologies/{code}/activate` | Remettre une technologie au catalogue | 200 | Admin |
+| GET | `/api/clients/deleted` | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être | 200 | Admin |
+| DELETE | `/api/clients/{id}/purge` | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204 | Admin |
 
 Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
 
@@ -395,7 +401,7 @@ Les points sur lesquels l'énoncé laisse une marge d'interprétation sont recen
 - un code d'offre en minuscules est refusé, pas converti ;
 - « la date du jour » est celle d'Abidjan, quel que soit le fuseau du serveur ;
 - un client ou une offre introuvables donnent une 404, avant les règles métier ;
-- la suppression d'un client supprime aussi ses souscriptions résiliées, de façon logique ;
+- un client qui n'a jamais souscrit est supprimé définitivement ; un client qui a un historique l'est logiquement, avec ses souscriptions résiliées, puis purgé à l'issue du délai de conservation ;
 - le revenu mensuel ne compte que les souscriptions ACTIVE, au prix figé au moment de la souscription.
 
 ## 10. Erreurs
@@ -441,6 +447,7 @@ L'API est un outil de back-office : ce sont des conseillers et des administrateu
 - **Connexion** : `POST /api/auth/login` renvoie un jeton JWT signé, valable une heure, à transmettre dans l'en-tête `Authorization: Bearer <jeton>`.
 - **Rôles** : CONSEILLER gère les clients et les souscriptions ; ADMIN a en plus la gestion du catalogue, les suppressions, les statistiques et les exports (matrice complète dans l'[ADR-0013](docs/adr/0013-securite.md) ; exports dans l'[ADR-0020](docs/adr/0020-exports-csv.md)).
 - **Exports** : réservés aux administrateurs, parce qu'ils contiennent des données personnelles en masse ; chaque export est tracé (auteur, nombre de lignes, filtres utilisés).
+- **Conservation et purge** : seule la purge efface définitivement un client qui a eu une ligne. Elle est réservée aux administrateurs et, en production, soumise au délai de conservation : la loi n° 2013-450 limite la conservation au nécessaire (art. 16) tout en réservant les obligations légales de conserver (art. 35), et l'ARTCI fixe les durées (art. 43).
 - **Mots de passe** : stockés sous forme d'empreinte BCrypt, jamais écrits dans les logs.
 - **Audit** : l'auteur de chaque modification est le titulaire du jeton (`createdBy`, `updatedBy`, `changedBy` dans l'historique).
 - **Désactivation** : `APP_SECURITY_ENABLED=false` ouvre toute l'API sans jeton, pour tester le contrat de l'énoncé tel quel. L'auteur enregistré est alors `anonymous`.
@@ -641,6 +648,7 @@ Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai 
 | Exports CSV des clients et des souscriptions pour Excel, lus par lots et protégés contre l'injection de formule | [ADR-0020](docs/adr/0020-exports-csv.md) |
 | Notifications par email à chaque changement de statut, fiables grâce à une outbox en base, avec l'attestation jointe | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 | Retrait d'une technologie du catalogue, réversible et sans effet sur l'existant | [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
+| Suppression définitive et durée de conservation conformes à la loi n° 2013-450 : purge par un administrateur, purge automatique, tout réglable par configuration | [ADR-0023](docs/adr/0023-suppression-et-conservation.md) |
 
 ### Pistes restantes
 
@@ -656,6 +664,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 - **Publier les changements de statut vers les autres systèmes** (facturation, provisionnement de la ligne) par un broker de messages, en réutilisant l'outbox des notifications.
 - **Figer le contenu des notifications** à leur enregistrement, pour prévenir aussi un client dont la souscription est supprimée avant l'envoi, et **purger** périodiquement les notifications envoyées.
+- **Anonymiser plutôt que purger** les clients dont le délai de conservation est écoulé, pour garder des statistiques sur des souscriptions réellement anonymes (loi n° 2013-450, art. 16).
 - **Planification** : une souscription dont la date de début est future pourrait être activée automatiquement ce jour-là.
 
 **Sécurité**
@@ -682,7 +691,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 22 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 23 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

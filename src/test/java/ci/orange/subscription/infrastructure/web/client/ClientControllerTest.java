@@ -25,6 +25,7 @@ import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientSummary;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
 import ci.orange.subscription.application.port.in.client.CreateClientCommand;
+import ci.orange.subscription.application.port.in.client.DeletedClient;
 import ci.orange.subscription.application.port.in.client.UpdateClientCommand;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
@@ -80,6 +81,37 @@ class ClientControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Test
+	void purgesAClient() throws Exception {
+		mockMvc.perform(delete("/api/clients/1/purge")).andExpect(status().isNoContent());
+
+		verify(clientUseCases).purge(1L);
+	}
+
+	@Test
+	void refusesAPurgeBeforeTheEndOfTheRetentionPeriod() throws Exception {
+		doThrow(new BusinessRuleViolationException(DomainErrorCode.RETENTION_PERIOD_NOT_ELAPSED,
+				"Délai de conservation non écoulé : le client pourra être purgé à partir du 10/01/2028"))
+				.when(clientUseCases).purge(1L);
+
+		mockMvc.perform(delete("/api/clients/1/purge"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("RETENTION_PERIOD_NOT_ELAPSED"))
+				.andExpect(jsonPath("$.detail").value(containsString("10/01/2028")));
+	}
+
+	@Test
+	void listsTheDeletedClientsAwaitingPurge() throws Exception {
+		when(clientUseCases.listDeleted(any())).thenReturn(new PageImpl<>(List.of(new DeletedClient(1L, "Awa", "Koné",
+				"awa@mail.ci", Instant.parse("2026-10-01T08:00:00Z"), "admin", Instant.parse("2029-10-01T08:00:00Z")))));
+
+		mockMvc.perform(get("/api/clients/deleted"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content[0].email").value("awa@mail.ci"))
+				.andExpect(jsonPath("$.content[0].deletedBy").value("admin"))
+				.andExpect(jsonPath("$.content[0].purgeableFrom").value("2029-10-01T08:00:00Z"));
+	}
 
 	@Test
 	void exportsTheClientsAsAnExcelFriendlyCsv() throws Exception {

@@ -18,7 +18,14 @@ public interface SubscriptionRepository {
 
 	Optional<Subscription> findById(Long id);
 
+	/** Suppression logique. */
 	void delete(Subscription subscription);
+
+	/** Suppression définitive de la souscription, de son historique et de ses notifications. */
+	void deletePermanently(Subscription subscription);
+
+	/** Le client a-t-il au moins une souscription, même supprimée logiquement : un historique à conserver ? */
+	boolean existsAnyForClient(Long clientId);
 
 	/** Souscription PENDING ou ACTIVE du client sur cette technologie (règle 14). */
 	boolean existsOngoingForClientAndTechnology(Long clientId, String technology);

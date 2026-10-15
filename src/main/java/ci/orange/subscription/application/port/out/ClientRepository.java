@@ -2,6 +2,7 @@ package ci.orange.subscription.application.port.out;
 
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.domain.client.Client;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,22 @@ public interface ClientRepository {
 	 */
 	List<Client> findBatch(ClientSearchCriteria criteria, Long afterId, int size);
 
+	/** Suppression logique : le client disparaît de l'API mais reste en base. */
 	void delete(Client client);
+
+	/** Date de la suppression logique, si le client a été supprimé logiquement. */
+	Optional<Instant> findDeletionDate(Long id);
+
+	/** Clients supprimés logiquement, du plus récent au plus ancien. */
+	Page<Deleted> findDeleted(Pageable pageable);
+
+	/** Identifiants des clients supprimés logiquement avant cette date. */
+	List<Long> findDeletedBefore(Instant instant);
+
+	/** Suppression définitive du client, de ses souscriptions, de leur historique et de leurs notifications. */
+	void deletePermanently(Long id);
+
+	record Deleted(Long id, String firstName, String lastName, String email, Instant deletedAt, String deletedBy) {
+	}
 
 }

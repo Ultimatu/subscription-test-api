@@ -134,8 +134,9 @@ class ClientController {
 	}
 
 	@Operation(summary = "Supprimer un client",
-			description = "Refusé (409) si le client a une souscription PENDING, ACTIVE ou SUSPENDED. "
-					+ "Le client et ses souscriptions résiliées sont conservés en base (suppression logique).")
+			description = "Refusé (409) si le client a une souscription PENDING, ACTIVE ou SUSPENDED. Un client qui "
+					+ "n'a jamais souscrit est supprimé définitivement ; un client qui a un historique est supprimé "
+					+ "logiquement (conservé en base) si la suppression logique est active.")
 	@ApiResponse(responseCode = "204", description = "Client supprimé")
 	@ApiErrors.NotFound
 	@ApiErrors.Conflict
@@ -143,6 +144,27 @@ class ClientController {
 	ResponseEntity<Void> delete(@PathVariable Long id) {
 		clientUseCases.delete(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@Operation(summary = "Purger un client (suppression définitive)",
+			description = "Supprime définitivement le client, ses souscriptions, leur historique et leurs "
+					+ "notifications. Avec la rétention active, seulement pour un client déjà supprimé dont le délai "
+					+ "de conservation est écoulé (409 RETENTION_PERIOD_NOT_ELAPSED). Réservé aux administrateurs.")
+	@ApiResponse(responseCode = "204", description = "Client purgé")
+	@ApiErrors.NotFound
+	@ApiErrors.Conflict
+	@DeleteMapping("/{id}/purge")
+	ResponseEntity<Void> purge(@PathVariable Long id) {
+		clientUseCases.purge(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@Operation(summary = "Clients supprimés, en attente de purge",
+			description = "Avec la date à partir de laquelle chacun peut être purgé. Réservé aux administrateurs.")
+	@ApiResponse(responseCode = "200", description = "Page de clients supprimés, du plus récent au plus ancien")
+	@GetMapping("/deleted")
+	PageResponse<DeletedClientResponse> deleted(@ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+		return PageResponse.from(clientUseCases.listDeleted(pageable), DeletedClientResponse::from);
 	}
 
 	@Operation(summary = "Synthèse d'un client",

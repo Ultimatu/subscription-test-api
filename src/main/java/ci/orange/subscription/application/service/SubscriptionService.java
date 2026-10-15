@@ -45,12 +45,13 @@ public class SubscriptionService implements SubscriptionUseCases {
 	private final TechnologyRepository technologyRepository;
 	private final SubscriptionNumberSequences numberSequences;
 	private final NotificationOutbox notificationOutbox;
+	private final DeletionPolicy deletionPolicy;
 	private final Clock clock;
 
 	public SubscriptionService(SubscriptionRepository subscriptionRepository, SubscriptionQueries subscriptionQueries,
 			ClientRepository clientRepository, OfferRepository offerRepository,
 			TechnologyRepository technologyRepository, SubscriptionNumberSequences numberSequences,
-			NotificationOutbox notificationOutbox, Clock clock) {
+			NotificationOutbox notificationOutbox, DeletionPolicy deletionPolicy, Clock clock) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.subscriptionQueries = subscriptionQueries;
 		this.clientRepository = clientRepository;
@@ -58,6 +59,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 		this.technologyRepository = technologyRepository;
 		this.numberSequences = numberSequences;
 		this.notificationOutbox = notificationOutbox;
+		this.deletionPolicy = deletionPolicy;
 		this.clock = clock;
 	}
 
@@ -120,7 +122,12 @@ public class SubscriptionService implements SubscriptionUseCases {
 	public void delete(Long id) {
 		Subscription subscription = findSubscription(id);
 		subscription.ensureDeletable();
-		subscriptionRepository.delete(subscription);
+		if (deletionPolicy.softDelete()) {
+			subscriptionRepository.delete(subscription);
+		}
+		else {
+			subscriptionRepository.deletePermanently(subscription);
+		}
 	}
 
 	@Override

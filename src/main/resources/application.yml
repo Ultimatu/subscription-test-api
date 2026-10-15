@@ -31,6 +31,23 @@ spring:
     locale-resolver: fixed
 
 app:
+  # Suppression et conservation des données (ADR-0023). Un client qui n'a jamais souscrit est toujours
+  # supprimé définitivement : il n'a rien à conserver.
+  deletion:
+    # Un client qui a un historique de souscriptions est supprimé logiquement : masqué mais conservé.
+    # false : il est supprimé définitivement dès DELETE /api/clients/{id}.
+    soft-delete: true
+    # Purge (suppression définitive) par un ADMIN : DELETE /api/clients/{id}/purge, et purge automatique.
+    hard-delete: true
+    retention:
+      # Délai de conservation avant la purge. Désactivé en développement : purge immédiate possible.
+      # En production : APP_DELETION_RETENTION_ENABLED=true. La loi n° 2013-450 limite la conservation au
+      # nécessaire (art. 16) mais réserve les obligations légales de conserver (art. 35) ; la durée est
+      # fixée par l'ARTCI pour chaque finalité (art. 43) : valeur indicative, à confirmer.
+      enabled: false
+      period: P3Y
+      # Purge automatique quotidienne des clients dont le délai est écoulé (heure d'Abidjan)
+      purge-cron: "0 0 3 * * *"
   notifications:
     # Envoi des emails aux clients (ADR-0021) ; les notifications sont enregistrées dans tous les cas
     enabled: true

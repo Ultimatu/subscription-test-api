@@ -1,17 +1,15 @@
-package ci.orange.subscription.infrastructure.notification;
+package ci.orange.subscription.infrastructure.scheduling;
 
 import ci.orange.subscription.application.port.in.notification.NotificationUseCases;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.stereotype.Component;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * Déclenche l'envoi des notifications à intervalle régulier : l'équivalent d'un cron dans
  * l'application. Désactivable par {@code app.notifications.enabled=false}.
  */
-@Configuration
-@EnableScheduling
+@Component
 @ConditionalOnProperty(prefix = "app.notifications", name = "enabled", havingValue = "true", matchIfMissing = true)
 class NotificationDispatchScheduler {
 

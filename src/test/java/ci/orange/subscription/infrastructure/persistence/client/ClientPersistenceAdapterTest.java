@@ -2,15 +2,23 @@ package ci.orange.subscription.infrastructure.persistence.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.Tuple.tuple;
 
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.NotificationOutbox;
+import ci.orange.subscription.application.port.out.OfferRepository;
+import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
+import ci.orange.subscription.domain.subscription.Subscription;
+import ci.orange.subscription.domain.subscription.SubscriptionTransition;
 import ci.orange.subscription.infrastructure.persistence.PersistenceAdapterTest;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +33,57 @@ class ClientPersistenceAdapterTest {
 
 	@Autowired
 	private EntityManager entityManager;
+
+	@Autowired
+	private SubscriptionRepository subscriptionRepository;
+
+	@Autowired
+	private OfferRepository offerRepository;
+
+	@Autowired
+	private NotificationOutbox notificationOutbox;
+
+	@Test
+	void listsAndDatesTheLogicallyDeletedClients() {
+		Client awa = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
+		Client kept = clientRepository.save(newClient("Moussa", "Traoré", "moussa@mail.ci", "Bouaké"));
+
+		clientRepository.delete(awa);
+		entityManager.clear();
+
+		Instant deletedAt = clientRepository.findDeletionDate(awa.getId()).orElseThrow();
+		assertThat(clientRepository.findDeletionDate(kept.getId())).isEmpty();
+		assertThat(clientRepository.findDeleted(PageRequest.of(0, 20)).getContent())
+				.extracting(ClientRepository.Deleted::id, ClientRepository.Deleted::email, ClientRepository.Deleted::deletedBy)
+				.contains(tuple(awa.getId(), "awa@mail.ci", "anonymous"));
+		assertThat(clientRepository.findDeletedBefore(deletedAt.plusSeconds(1))).contains(awa.getId());
+		assertThat(clientRepository.findDeletedBefore(deletedAt.minusSeconds(1))).doesNotContain(awa.getId());
+	}
+
+	@Test
+	void deletesPermanentlyAClientWithItsSubscriptionsHistoryAndNotifications() {
+		Client awa = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
+		Long offerId = entityManager.createQuery("select o.id from OfferEntity o where o.code = 'FTTH-100'", Long.class)
+				.getSingleResult();
+		Subscription subscription = subscriptionRepository.save(Subscription.create("SUB-2099-990101", "2799990101",
+				awa.getId(), offerRepository.findById(offerId).orElseThrow(), LocalDate.now(), LocalDate.now()));
+		subscription.activate();
+		subscriptionRepository.save(subscription);
+		notificationOutbox.enqueue(new NotificationOutbox.Request(subscription.getId(), SubscriptionTransition.ACTIVATE,
+				"awa@mail.ci", null));
+		subscriptionRepository.deleteAllByClientId(awa.getId());
+		clientRepository.delete(awa);
+
+		clientRepository.deletePermanently(awa.getId());
+
+		for (String table : List.of("client where id", "subscription where client_id")) {
+			assertThat(count("select count(*) from " + table + " = :id", awa.getId())).isZero();
+		}
+		assertThat(count("select count(*) from subscription_status_history where subscription_id = :id",
+				subscription.getId())).isZero();
+		assertThat(count("select count(*) from notification_outbox where subscription_id = :id",
+				subscription.getId())).isZero();
+	}
 
 	@Test
 	void savesAndReloadsAClientWithItsAuditTrail() {
@@ -163,6 +222,10 @@ class ClientPersistenceAdapterTest {
 
 	private static Client newClient(String firstName, String lastName, String email, String city) {
 		return Client.create(firstName, lastName, email, "0701020304", city);
+	}
+
+	private long count(String sql, Long id) {
+		return ((Number) entityManager.createNativeQuery(sql).setParameter("id", id).getSingleResult()).longValue();
 	}
 
 }

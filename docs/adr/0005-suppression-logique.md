@@ -1,6 +1,6 @@
 # ADR-0005 — Suppression logique des clients et des souscriptions
 
-- **Statut** : Acceptée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0023](0023-suppression-et-conservation.md) : suppression définitive, durée de conservation et purge.
 
 ## Contexte
 
