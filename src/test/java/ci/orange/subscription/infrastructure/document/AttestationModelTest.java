@@ -16,13 +16,13 @@ class AttestationModelTest {
 	@CsvSource(delimiter = '|', value = { "25000.00 | 25 000 FCFA", "150000 | 150 000 FCFA", "12000.50 | 12 000,50 FCFA",
 			"999 | 999 FCFA" })
 	void formatsPricesInFcfaWithNonBreakingSpaces(BigDecimal amount, String expected) {
-		assertThat(AttestationModel.price(amount)).isEqualTo(expected.replace(" ", NBSP));
+		assertThat(DocumentFormats.price(amount)).isEqualTo(expected.replace(" ", NBSP));
 	}
 
 	@Test
 	void groupsNumbersInPairs() {
-		assertThat(AttestationModel.inPairs("2700000001")).isEqualTo("27 00 00 00 01".replace(" ", NBSP));
-		assertThat(AttestationModel.inPairs("0701020304")).isEqualTo("07 01 02 03 04".replace(" ", NBSP));
+		assertThat(DocumentFormats.inPairs("2700000001")).isEqualTo("27 00 00 00 01".replace(" ", NBSP));
+		assertThat(DocumentFormats.inPairs("0701020304")).isEqualTo("07 01 02 03 04".replace(" ", NBSP));
 	}
 
 	@Test
@@ -69,8 +69,8 @@ class AttestationModelTest {
 
 	@Test
 	void labelsEveryStatusInFrench() {
-		assertThat(AttestationModel.statusLabel(SubscriptionStatus.PENDING)).isEqualTo("En attente");
-		assertThat(AttestationModel.statusLabel(SubscriptionStatus.SUSPENDED)).isEqualTo("Suspendue");
+		assertThat(DocumentFormats.statusLabel(SubscriptionStatus.PENDING)).isEqualTo("En attente");
+		assertThat(DocumentFormats.statusLabel(SubscriptionStatus.SUSPENDED)).isEqualTo("Suspendue");
 	}
 
 }
