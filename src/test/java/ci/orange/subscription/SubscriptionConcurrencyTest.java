@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -35,8 +36,10 @@ import org.springframework.web.client.RestClient;
  * <p>
  * Lancer deux threads au même moment ne suffit pas à faire se croiser deux requêtes : la première
  * peut se terminer avant que la seconde ne commence, et le test passerait sans rien prouver. Le test
- * tient donc lui-même le verrou du client, attend que les deux requêtes soient bloquées dessus, puis
- * le relâche : elles sont alors réellement concurrentes, à chaque exécution.
+ * tient donc lui-même le verrou du client, lance les requêtes l'une après l'autre en attendant que
+ * chacune soit bloquée dessus, puis le relâche : elles sont alors réellement concurrentes, et
+ * PostgreSQL leur accorde le verrou dans l'ordre où elles l'ont attendu. Le résultat de chaque
+ * requête est donc connu d'avance, à chaque exécution.
  * <p>
  * Les requêtes valident leurs données : le test ne peut pas s'exécuter dans une transaction annulée
  * à la fin. Il efface donc ce qu'il a créé, comme {@code NotificationFlowTest}.
@@ -93,6 +96,9 @@ class SubscriptionConcurrencyTest {
 			jdbcTemplate.update("delete from subscription where client_id = ?", clientId);
 			jdbcTemplate.update("delete from client where id = ?", clientId);
 			jdbcTemplate.update("delete from audit_event where client_id = ?", clientId);
+			// Trace anonyme laissée par une suppression définitive
+			jdbcTemplate.update("delete from audit_event where resource_type = 'CLIENT' and resource_id = ?",
+					clientId.toString());
 		}
 		int year = today().getYear();
 		if (referenceCounterBefore == null) {
@@ -112,8 +118,8 @@ class SubscriptionConcurrencyTest {
 		List<Response> responses = whileTheClientIsLocked(() -> post("/subscriptions", request),
 				() -> post("/subscriptions", request));
 
-		assertThat(responses).extracting(Response::status).containsExactlyInAnyOrder(201, 409);
-		assertThat(rejected(responses).code()).isEqualTo("TECHNOLOGY_ALREADY_SUBSCRIBED");
+		assertThat(responses).extracting(Response::status).containsExactly(201, 409);
+		assertThat(responses.get(1).code()).isEqualTo("TECHNOLOGY_ALREADY_SUBSCRIBED");
 		assertThat(jdbcTemplate.queryForObject("select count(*) from subscription where client_id = ?", Long.class,
 				clientId)).isOne();
 	}
@@ -134,8 +140,8 @@ class SubscriptionConcurrencyTest {
 		List<Response> responses = whileTheClientIsLocked(() -> post("/subscriptions/terminate", request),
 				() -> post("/subscriptions/terminate", request));
 
-		assertThat(responses).extracting(Response::status).containsExactlyInAnyOrder(200, 409);
-		Response rejected = rejected(responses);
+		assertThat(responses).extracting(Response::status).containsExactly(200, 409);
+		Response rejected = responses.get(1);
 		assertThat(rejected.code()).isEqualTo("INVALID_STATUS_TRANSITION");
 		assertThat((String) JsonPath.read(rejected.body(), "$.currentStatus")).isEqualTo("TERMINATED");
 		assertThat(jdbcTemplate.queryForObject(
@@ -144,23 +150,48 @@ class SubscriptionConcurrencyTest {
 	}
 
 	/**
-	 * Exécute les deux requêtes en parallèle pendant que le test tient le verrou du client, et ne le
-	 * relâche qu'une fois les deux requêtes bloquées dessus.
+	 * Règle 6 : la suppression vérifie l'absence de souscription en cours une fois le verrou obtenu,
+	 * donc après la création. Sans ce verrou, elle aurait fait sa vérification avant, puis échoué sur
+	 * la clé étrangère de la nouvelle souscription, au lieu d'un refus métier.
 	 */
-	private List<Response> whileTheClientIsLocked(Callable<Response> first, Callable<Response> second)
-			throws Exception {
-		ExecutorService threads = Executors.newFixedThreadPool(2);
+	@Test
+	void aClientDeletedWhileASubscriptionIsCreatedIsKeptWithItsSubscription() throws Exception {
+		List<Response> responses = whileTheClientIsLocked(
+				() -> post("/subscriptions", Map.of("clientId", clientId, "offerId", offerId, "startDate",
+						today().toString())),
+				() -> delete("/clients/" + clientId));
+
+		assertThat(responses).extracting(Response::status).containsExactly(201, 409);
+		assertThat(responses.get(1).code()).isEqualTo("CLIENT_HAS_ONGOING_SUBSCRIPTIONS");
+		assertThat(jdbcTemplate.queryForObject("select count(*) from client where id = ? and deleted_at is null",
+				Long.class, clientId)).isOne();
+	}
+
+	/**
+	 * Exécute les requêtes en parallèle pendant que le test tient le verrou du client : chacune n'est
+	 * lancée qu'une fois la précédente bloquée dessus, et le verrou n'est relâché qu'une fois toutes
+	 * bloquées. Les réponses sont rendues dans l'ordre des requêtes.
+	 */
+	@SafeVarargs
+	private List<Response> whileTheClientIsLocked(Callable<Response>... requests) throws Exception {
+		ExecutorService threads = Executors.newFixedThreadPool(requests.length);
 		try (Connection lock = dataSource.getConnection()) {
 			lock.setAutoCommit(false);
 			try (PreparedStatement select = lock.prepareStatement("select id from client where id = ? for update")) {
 				select.setLong(1, clientId);
 				select.executeQuery();
 			}
-			Future<Response> firstResponse = threads.submit(first);
-			Future<Response> secondResponse = threads.submit(second);
-			awaitRequestsWaitingForTheClient(2);
+			List<Future<Response>> pending = new ArrayList<>();
+			for (Callable<Response> request : requests) {
+				pending.add(threads.submit(request));
+				awaitRequestsWaitingForTheClient(pending.size());
+			}
 			lock.commit();
-			return List.of(firstResponse.get(10, SECONDS), secondResponse.get(10, SECONDS));
+			List<Response> responses = new ArrayList<>();
+			for (Future<Response> response : pending) {
+				responses.add(response.get(10, SECONDS));
+			}
+			return responses;
 		}
 		finally {
 			threads.shutdownNow();
@@ -171,13 +202,16 @@ class SubscriptionConcurrencyTest {
 		long deadline = System.nanoTime() + SECONDS.toNanos(10);
 		while (requestsWaitingForTheClient() < expected) {
 			if (System.nanoTime() > deadline) {
-				throw new AssertionError("Les deux requêtes n'ont pas attendu le verrou du client");
+				throw new AssertionError(expected + " requête(s) devaient attendre le verrou du client");
 			}
 			Thread.sleep(20);
 		}
 	}
 
-	/** Connexions bloquées sur un verrou pendant la lecture d'un client (le SELECT ... FOR UPDATE). */
+	/**
+	 * Connexions bloquées sur un verrou de la table client : le SELECT ... FOR UPDATE d'une écriture,
+	 * ou toute autre requête qui en a besoin.
+	 */
 	private int requestsWaitingForTheClient() {
 		return jdbcTemplate.queryForObject("""
 				select count(*) from pg_stat_activity
@@ -191,8 +225,9 @@ class SubscriptionConcurrencyTest {
 						response.bodyTo(String.class)));
 	}
 
-	private static Response rejected(List<Response> responses) {
-		return responses.stream().filter(response -> response.status() == 409).findFirst().orElseThrow();
+	private Response delete(String path) {
+		return api.delete().uri(path).exchange((request, response) -> new Response(
+				response.getStatusCode().value(), response.bodyTo(String.class)));
 	}
 
 	private LocalDate today() {

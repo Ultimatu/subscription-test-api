@@ -153,7 +153,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 392 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 393 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -164,7 +164,7 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 392 | 98,2 % | 86,1 % |
+| Tous les tests (`mvn test`) | 393 | 98,2 % | 86,1 % |
 | Tests unitaires seuls, sans base de données | 315 | 71,8 % | 63,4 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
@@ -176,7 +176,7 @@ Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls
 | Web | Slice `@WebMvcTest` | Codes HTTP, validation, format des erreurs |
 | Persistance | Intégration sur PostgreSQL, annulée en fin de test | Index uniques partiels, recherche, statistiques |
 | Sécurité | Contexte complet, vrais jetons | Matrice des droits, jetons expirés ou falsifiés |
-| Concurrence | Application démarrée, deux requêtes HTTP en parallèle | Deux souscriptions FTTH simultanées : 201 et 409 ; deux résiliations simultanées : 200 et 409 `INVALID_STATUS_TRANSITION` |
+| Concurrence | Application démarrée, deux requêtes HTTP en parallèle | Deux souscriptions FTTH simultanées : 201 et 409 ; deux résiliations simultanées : 200 et 409 `INVALID_STATUS_TRANSITION` ; suppression d'un client pendant une souscription : 201 et 409 |
 | Documents et emails | Rendu réel, relu par PDFBox ; serveur SMTP en mémoire (GreenMail) | Contenu du PDF ; email HTML et texte avec l'attestation jointe ; parcours complet du changement de statut à l'email reçu |
 | Architecture | ArchUnit | Le domaine ne dépend d'aucun framework |
 
