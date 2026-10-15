@@ -671,7 +671,8 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 - **Publier les changements de statut vers les autres systèmes** (facturation, provisionnement de la ligne) par un broker de messages, en réutilisant l'outbox des notifications.
 - **Figer le contenu des notifications** à leur enregistrement, pour prévenir aussi un client dont la souscription est supprimée avant l'envoi, et **purger** périodiquement les notifications envoyées.
 - **Anonymiser plutôt que purger** les clients dont le délai de conservation est écoulé, pour garder des statistiques sur des souscriptions réellement anonymes (loi n° 2013-450, art. 16).
-- **Planification** : une souscription dont la date de début est future pourrait être activée automatiquement ce jour-là.
+- **Expiration des souscriptions oubliées** : aucune vérification automatique ne porte aujourd'hui sur les souscriptions. Une souscription PENDING jamais activée occupe sa technologie (règle 14), et une souscription SUSPENDED jamais régularisée bloque toute nouvelle souscription du client (règle 13), sans limite de temps. Une tâche quotidienne, sur le modèle de la purge, résilierait automatiquement une souscription PENDING non activée 30 jours après sa date de début et une souscription suspendue depuis plus de 90 jours (délais réglables). Elle passerait par le domaine comme une résiliation manuelle : transitions autorisées par l'énoncé, historique avec motif, email au client avec son attestation, journal d'audit signé « system ».
+- **Contrats à durée déterminée** (engagement de 12 mois, renouvellement tacite) : il faudrait une durée sur l'offre et une date de fin prévue sur la souscription. L'activation, elle, resterait manuelle : pour une ligne fibre ou satellite, elle suit une installation technique, pas une date du calendrier.
 
 **Sécurité**
 
