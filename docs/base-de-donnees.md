@@ -1,6 +1,6 @@
 # Base de données
 
-Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V8 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
+Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V9 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
 
 ## Tables et relations
 
@@ -41,6 +41,7 @@ erDiagram
         bigint client_id FK
         bigint offer_id FK
         varchar technology FK "copie de celle de l'offre"
+        numeric monthly_price "figé à la souscription"
         varchar status "PENDING, ACTIVE, SUSPENDED, TERMINATED"
         date start_date
         date end_date
@@ -95,6 +96,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_subscription_client_technology_in_progress` (index unique partiel) | subscription | Une seule souscription PENDING ou ACTIVE par technologie et par client (règle 14) |
 | `uk_subscription_reference`, `ck_subscription_reference` | subscription | Référence unique au format `SUB-AAAA-NNNNNN` (règle 16) |
 | `uk_subscription_nd`, `ck_subscription_nd` | subscription | ND unique au format `27XXXXXXXX` (règle 17) |
+| `ck_subscription_monthly_price` | subscription | Prix souscrit strictement positif ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)) |
 | `ck_*_status` | client, subscription, historique | Seuls les statuts prévus sont acceptés |
 | `fk_subscription_client`, `fk_subscription_offer`, `fk_subscription_technology` | subscription | Références existantes |
 | `fk_status_history_subscription` (`on delete cascade`) | historique | Historique rattaché à une souscription existante |
@@ -131,6 +133,7 @@ Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients
 | V6 | Extension `unaccent` |
 | V7 | Retrait de l'index sur la ville, devenu inutile |
 | V8 | Comptes des utilisateurs de l'API et comptes de démonstration |
+| V9 | Prix mensuel figé sur chaque souscription |
 
 Une migration déjà appliquée n'est jamais modifiée, même pour un commentaire : Flyway vérifie son empreinte au démarrage.
 

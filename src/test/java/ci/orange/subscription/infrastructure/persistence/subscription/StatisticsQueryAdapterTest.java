@@ -3,6 +3,7 @@ package ci.orange.subscription.infrastructure.persistence.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.StatisticsQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
@@ -31,6 +32,9 @@ class StatisticsQueryAdapterTest {
 
 	@Autowired
 	private ClientRepository clientRepository;
+
+	@Autowired
+	private OfferRepository offerRepository;
 
 	@Autowired
 	private EntityManager entityManager;
@@ -127,7 +131,8 @@ class StatisticsQueryAdapterTest {
 				.setParameter("code", offerCode)
 				.getSingleResult();
 		return subscriptionRepository.save(Subscription.create("SUB-2099-%06d".formatted(700000 + number),
-				"27%08d".formatted(70000000 + number), clientId, offerId, startDate, TODAY));
+				"27%08d".formatted(70000000 + number), clientId, offerRepository.findById(offerId).orElseThrow(), startDate,
+				TODAY));
 	}
 
 	private Subscription active(Subscription subscription) {

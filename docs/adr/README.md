@@ -23,6 +23,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0015](0015-modele-de-lecture-des-souscriptions.md) | Modèle de lecture distinct pour les souscriptions | Acceptée |
 | [0016](0016-couverture-de-code.md) | Mesure et seuil de couverture de code | Acceptée |
 | [0017](0017-recherche-insensible-aux-accents.md) | Recherche insensible aux accents avec l'extension unaccent | Acceptée |
+| [0018](0018-prix-fige-a-la-souscription.md) | Prix mensuel figé à la souscription | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).
 Le schéma de la base (tables, contraintes, index et requêtes servies) est décrit dans [../base-de-donnees.md](../base-de-donnees.md).

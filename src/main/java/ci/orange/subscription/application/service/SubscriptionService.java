@@ -77,7 +77,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 				numberSequences.nextReference(today.getYear()));
 		String nd = SubscriptionNumbering.nd(numberSequences.nextNd());
 		return subscriptionRepository.save(
-				Subscription.create(reference, nd, client.getId(), offer.getId(), command.startDate(), today));
+				Subscription.create(reference, nd, client.getId(), offer, command.startDate(), today));
 	}
 
 	@Override

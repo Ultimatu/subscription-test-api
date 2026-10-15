@@ -7,6 +7,8 @@ import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
+import ci.orange.subscription.domain.offer.Offer;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,8 @@ import lombok.Getter;
 /**
  * Une souscription ne référence son client et son offre que par leur identifiant : c'est la couche
  * application qui les charge et les vérifie. La référence et le ND ne changent jamais une fois
- * attribués (règles 16 à 18).
+ * attribués (règles 16 à 18). Le prix mensuel est celui de l'offre au moment de la souscription :
+ * une modification ultérieure du prix de l'offre ne le change pas (ADR-0018).
  */
 @Getter
 public class Subscription {
@@ -26,6 +29,7 @@ public class Subscription {
 	private final String nd;
 	private final Long clientId;
 	private final Long offerId;
+	private final BigDecimal monthlyPrice;
 	private SubscriptionStatus status;
 	private final LocalDate startDate;
 	private LocalDate endDate;
@@ -34,13 +38,14 @@ public class Subscription {
 	@Getter(AccessLevel.NONE)
 	private final List<StatusChange> recordedStatusChanges = new ArrayList<>();
 
-	private Subscription(Long id, String reference, String nd, Long clientId, Long offerId, SubscriptionStatus status,
-			LocalDate startDate, LocalDate endDate, AuditInfo audit) {
+	private Subscription(Long id, String reference, String nd, Long clientId, Long offerId, BigDecimal monthlyPrice,
+			SubscriptionStatus status, LocalDate startDate, LocalDate endDate, AuditInfo audit) {
 		this.id = id;
 		this.reference = reference;
 		this.nd = nd;
 		this.clientId = clientId;
 		this.offerId = offerId;
+		this.monthlyPrice = monthlyPrice;
 		this.status = status;
 		this.startDate = startDate;
 		this.endDate = endDate;
@@ -48,19 +53,21 @@ public class Subscription {
 	}
 
 	/** Une nouvelle souscription commence au statut PENDING et ne peut pas démarrer avant aujourd'hui (règle 19). */
-	public static Subscription create(String reference, String nd, Long clientId, Long offerId, LocalDate startDate,
+	public static Subscription create(String reference, String nd, Long clientId, Offer offer, LocalDate startDate,
 			LocalDate today) {
 		ensureStartDateNotInPast(startDate, today);
+		requireValue(offer, "offer");
 		Subscription subscription = new Subscription(null, requireText(reference, "reference"), requireText(nd, "nd"),
-				requireValue(clientId, "clientId"), requireValue(offerId, "offerId"), SubscriptionStatus.PENDING,
-				startDate, null, null);
+				requireValue(clientId, "clientId"), requireValue(offer.getId(), "offerId"), offer.getMonthlyPrice(),
+				SubscriptionStatus.PENDING, startDate, null, null);
 		subscription.recordedStatusChanges.add(new StatusChange(null, SubscriptionStatus.PENDING, null));
 		return subscription;
 	}
 
 	public static Subscription restore(Long id, String reference, String nd, Long clientId, Long offerId,
-			SubscriptionStatus status, LocalDate startDate, LocalDate endDate, AuditInfo audit) {
-		return new Subscription(id, reference, nd, clientId, offerId, status, startDate, endDate, audit);
+			BigDecimal monthlyPrice, SubscriptionStatus status, LocalDate startDate, LocalDate endDate,
+			AuditInfo audit) {
+		return new Subscription(id, reference, nd, clientId, offerId, monthlyPrice, status, startDate, endDate, audit);
 	}
 
 	/** Exposée pour pouvoir refuser la demande avant toute autre vérification (règle 19). */

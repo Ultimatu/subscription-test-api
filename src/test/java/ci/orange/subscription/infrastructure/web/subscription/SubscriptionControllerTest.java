@@ -65,7 +65,7 @@ class SubscriptionControllerTest {
 	@Test
 	void createsASubscriptionAndReturnsItsDetails() throws Exception {
 		when(subscriptionUseCases.create(any())).thenReturn(Subscription.restore(10L, "SUB-2026-000001",
-				"2700000001", 1L, 2L, SubscriptionStatus.PENDING, START, null, null));
+				"2700000001", 1L, 2L, new BigDecimal("25000.00"), SubscriptionStatus.PENDING, START, null, null));
 		when(subscriptionUseCases.get(10L)).thenReturn(details(SubscriptionStatus.PENDING));
 
 		mockMvc.perform(post("/api/subscriptions").contentType(MediaType.APPLICATION_JSON).content(VALID_CREATION))
@@ -74,6 +74,7 @@ class SubscriptionControllerTest {
 				.andExpect(jsonPath("$.reference").value("SUB-2026-000001"))
 				.andExpect(jsonPath("$.nd").value("2700000001"))
 				.andExpect(jsonPath("$.status").value("PENDING"))
+				.andExpect(jsonPath("$.monthlyPrice").value(25000.00))
 				.andExpect(jsonPath("$.startDate").value("2026-10-20"))
 				.andExpect(jsonPath("$.client.lastName").value("Koné"))
 				.andExpect(jsonPath("$.offer.code").value("FTTH-100"))
@@ -288,7 +289,8 @@ class SubscriptionControllerTest {
 	}
 
 	private static SubscriptionView view(SubscriptionStatus status) {
-		return new SubscriptionView(10L, "SUB-2026-000001", "2700000001", status, "FTTH", START, null,
+		return new SubscriptionView(10L, "SUB-2026-000001", "2700000001", status, "FTTH",
+				new BigDecimal("25000.00"), START, null,
 				new ClientOverview(1L, "Awa", "Koné", "Abidjan", ClientStatus.ACTIVE),
 				new OfferOverview(2L, "FTTH-100", "Fibre Confort 100 Mbps", new BigDecimal("25000.00")), null);
 	}

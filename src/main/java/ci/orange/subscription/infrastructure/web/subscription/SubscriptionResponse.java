@@ -4,6 +4,7 @@ import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public record SubscriptionResponse(
 		String nd,
 		SubscriptionStatus status,
 		String technology,
+		@Schema(description = "Prix mensuel figé au moment de la souscription", example = "25000.00") BigDecimal monthlyPrice,
 		LocalDate startDate,
 		LocalDate endDate,
 		ClientOverview client,
@@ -26,7 +28,8 @@ public record SubscriptionResponse(
 	public record ClientOverview(Long id, String firstName, String lastName, String city, ClientStatus status) {
 	}
 
-	public record OfferOverview(Long id, String code, String label, BigDecimal monthlyPrice) {
+	public record OfferOverview(Long id, String code, String label,
+			@Schema(description = "Prix actuel de l'offre au catalogue", example = "27000.00") BigDecimal monthlyPrice) {
 	}
 
 	static SubscriptionResponse from(SubscriptionView view) {
@@ -38,8 +41,8 @@ public record SubscriptionResponse(
 				: new OfferOverview(view.offer().id(), view.offer().code(), view.offer().label(),
 						view.offer().monthlyPrice());
 		return new SubscriptionResponse(view.id(), view.reference(), view.nd(), view.status(), view.technology(),
-				view.startDate(), view.endDate(), client, offer, audit.createdAt(), audit.createdBy(),
-				audit.updatedAt(), audit.updatedBy());
+				view.monthlyPrice(), view.startDate(), view.endDate(), client, offer, audit.createdAt(),
+				audit.createdBy(), audit.updatedAt(), audit.updatedBy());
 	}
 
 }

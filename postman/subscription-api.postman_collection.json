@@ -303,7 +303,7 @@
 							}
 						],
 						"url": "{{baseUrl}}/api/subscriptions",
-						"description": "La souscription est créée PENDING ; le serveur attribue la référence et le ND (règles 16 et 17).",
+						"description": "La souscription est créée PENDING ; le serveur attribue la référence et le ND (règles 16 et 17) et fige le prix de l'offre.",
 						"body": {
 							"mode": "raw",
 							"raw": "{\n  \"clientId\": {{scenarioClientId}},\n  \"offerId\": {{scenarioOfferId}},\n  \"startDate\": \"{{today}}\"\n}",
@@ -335,6 +335,7 @@
 									"pm.collectionVariables.set('scenarioSubscriptionId', body.id);",
 									"pm.collectionVariables.set('scenarioNd', body.nd);",
 									"pm.test('souscription PENDING', () => pm.expect(body.status).to.eql('PENDING'));",
+									"pm.test('prix de l\\'offre figé sur la souscription', () => pm.expect(body.monthlyPrice).to.eql(30000));",
 									"pm.test('référence SUB-AAAA-NNNNNN', () => pm.expect(body.reference).to.match(/^SUB-\\d{4}-\\d{6}$/));",
 									"pm.test('ND 27XXXXXXXX', () => pm.expect(body.nd).to.match(/^27\\d{8}$/));"
 								]

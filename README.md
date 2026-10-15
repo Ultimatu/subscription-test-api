@@ -44,6 +44,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Erreurs au format Problem Details (RFC 9457) | Format standard, avec un `code` stable exploitable par un client de l'API | [ADR-0007](docs/adr/0007-format-des-erreurs.md) |
 | Traçabilité par `X-Request-Id` | Retrouver dans les logs toutes les lignes d'une requête | [ADR-0008](docs/adr/0008-tracabilite-des-requetes.md) |
 | Recherche insensible aux accents | `kone` trouve `Koné`, `bouake` trouve `Bouaké` | [ADR-0017](docs/adr/0017-recherche-insensible-aux-accents.md) |
+| Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Accès concurrents maîtrisés | Deux souscriptions simultanées ne peuvent pas contourner la règle 14 | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
 | Schéma versionné (Flyway), contraintes doublées en base | Les règles tiennent même en cas d'accès concurrent ou d'écriture directe en base | [ADR-0002](docs/adr/0002-schema-versionne-flyway.md) |
@@ -123,7 +124,7 @@ spring:
     open-in-view: false
 ```
 
-- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V8). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
+- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V9). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
 - **Droits nécessaires** : l'utilisateur doit être propriétaire de la base, pour que Flyway puisse créer les tables, le schéma des tests et l'extension `unaccent` (extension de confiance, qui ne demande pas de droits de super-utilisateur).
 - **Autre environnement** : les valeurs se remplacent par variables d'environnement, sans modifier le fichier ([ADR-0003](docs/adr/0003-configuration.md)) :
 
@@ -203,7 +204,7 @@ subscription-api/
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   └── db/migration/               migrations Flyway V1 à V8
+│   └── db/migration/               migrations Flyway V1 à V9
 └── src/test/java/                  tests, dans la même arborescence
 ```
 
@@ -376,7 +377,7 @@ Les points sur lesquels l'énoncé laisse une marge d'interprétation sont recen
 - « la date du jour » est celle d'Abidjan, quel que soit le fuseau du serveur ;
 - un client ou une offre introuvables donnent une 404, avant les règles métier ;
 - la suppression d'un client supprime aussi ses souscriptions résiliées, de façon logique ;
-- le revenu mensuel ne compte que les souscriptions ACTIVE, au prix actuel de l'offre.
+- le revenu mensuel ne compte que les souscriptions ACTIVE, au prix figé au moment de la souscription.
 
 ## 10. Erreurs
 
@@ -432,7 +433,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 59 requêtes s'exécutent dans l'ordre et vérifient 111 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 59 requêtes s'exécutent dans l'ordre et vérifient 112 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -539,6 +540,7 @@ Content-Type: application/json
   "nd": "2700000001",
   "status": "PENDING",
   "technology": "FTTH",
+  "monthlyPrice": 200000.00,
   "startDate": "2026-10-15",
   "endDate": null,
   "client": { "id": 14, "firstName": "Awa", "lastName": "Koné", "city": "Abidjan", "status": "ACTIVE" },
@@ -600,6 +602,16 @@ Le dossier « 2 · Règles métier » de la collection démontre ensuite les cas
 
 ## 13. Limites et améliorations
 
+### Extensions réalisées
+
+Les améliorations suivantes figuraient dans cette liste. Le délai laissé pour le test étant largement suffisant, elles ont été réalisées, au-delà de l'énoncé et sans modifier son contrat d'API :
+
+| Extension | Détail |
+|---|---|
+| Prix mensuel figé à la souscription : une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
+
+### Pistes restantes
+
 Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 **API**
@@ -610,7 +622,6 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 **Métier**
 
-- **Figer le prix à la souscription** : le revenu est calculé avec le prix actuel de l'offre. Pour de la facturation, la souscription devrait conserver le prix en vigueur au moment où elle a été conclue.
 - **Événements métier** à chaque changement de statut (activation, suspension, résiliation), publiés de façon fiable (*transactional outbox*) pour prévenir la facturation ou le provisionnement de la ligne.
 - **Planification** : une souscription dont la date de début est future pourrait être activée automatiquement ce jour-là.
 
@@ -637,7 +648,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 17 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 18 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

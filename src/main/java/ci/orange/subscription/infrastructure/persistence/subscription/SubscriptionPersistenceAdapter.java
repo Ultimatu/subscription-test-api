@@ -130,6 +130,7 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 		entity.setClient(entityManager.getReference(ClientEntity.class, subscription.getClientId()));
 		entity.setOffer(offer);
 		entity.setTechnology(offer.getTechnology());
+		entity.setMonthlyPrice(subscription.getMonthlyPrice());
 		entity.setStartDate(subscription.getStartDate());
 		return entity;
 	}

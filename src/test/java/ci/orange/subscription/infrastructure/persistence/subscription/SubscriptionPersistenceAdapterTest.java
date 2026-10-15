@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
+import ci.orange.subscription.domain.offer.Offer;
 import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.persistence.PersistenceAdapterTest;
@@ -15,6 +17,7 @@ import ci.orange.subscription.infrastructure.persistence.entity.ClientEntity;
 import ci.orange.subscription.infrastructure.persistence.entity.OfferEntity;
 import ci.orange.subscription.infrastructure.persistence.entity.SubscriptionEntity;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -32,6 +35,9 @@ class SubscriptionPersistenceAdapterTest {
 
 	@Autowired
 	private ClientRepository clientRepository;
+
+	@Autowired
+	private OfferRepository offerRepository;
 
 	@Autowired
 	private EntityManager entityManager;
@@ -66,6 +72,23 @@ class SubscriptionPersistenceAdapterTest {
 				.isEqualByComparingTo("37000");
 		assertThat(subscriptionRepository.sumMonthlyPriceForClient(clientId, SubscriptionStatus.PENDING))
 				.isEqualByComparingTo("0");
+	}
+
+	@Test
+	void keepsThePriceAgreedAtSubscriptionWhenTheOfferPriceChanges() {
+		Offer offer = offerRepository.findById(offerId("FTTH-100")).orElseThrow();
+		Subscription subscription = subscriptionRepository.save(newSubscription(offer.getId(), 900006));
+		subscription.activate();
+		subscriptionRepository.save(subscription);
+
+		offer.update(offer.getLabel(), new BigDecimal("27000"));
+		offerRepository.save(offer);
+		entityManager.clear();
+
+		assertThat(subscriptionRepository.findById(subscription.getId()).orElseThrow().getMonthlyPrice())
+				.isEqualByComparingTo("25000");
+		assertThat(subscriptionRepository.sumMonthlyPriceForClient(clientId, SubscriptionStatus.ACTIVE))
+				.isEqualByComparingTo("25000");
 	}
 
 	@Test
@@ -186,8 +209,8 @@ class SubscriptionPersistenceAdapterTest {
 	}
 
 	private Subscription newSubscription(Long offerId, int number) {
-		return Subscription.create("SUB-2099-%06d".formatted(number), "27%08d".formatted(number), clientId, offerId,
-				LocalDate.now(), LocalDate.now());
+		return Subscription.create("SUB-2099-%06d".formatted(number), "27%08d".formatted(number), clientId,
+				offerRepository.findById(offerId).orElseThrow(), LocalDate.now(), LocalDate.now());
 	}
 
 	private Long offerId(String code) {
@@ -208,6 +231,7 @@ class SubscriptionPersistenceAdapterTest {
 				.getSingleResult();
 		subscription.setOffer(offer);
 		subscription.setTechnology(offer.getTechnology());
+		subscription.setMonthlyPrice(offer.getMonthlyPrice());
 		subscription.setStatus(status);
 		subscription.setStartDate(LocalDate.now());
 		entityManager.persist(subscription);

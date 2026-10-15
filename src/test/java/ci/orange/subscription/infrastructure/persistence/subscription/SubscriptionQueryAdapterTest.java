@@ -7,6 +7,7 @@ import ci.orange.subscription.application.port.in.subscription.StatusHistoryEntr
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
@@ -35,6 +36,9 @@ class SubscriptionQueryAdapterTest {
 
 	@Autowired
 	private ClientRepository clientRepository;
+
+	@Autowired
+	private OfferRepository offerRepository;
 
 	@Autowired
 	private EntityManager entityManager;
@@ -133,7 +137,7 @@ class SubscriptionQueryAdapterTest {
 				.setParameter("code", offerCode)
 				.getSingleResult();
 		return Subscription.create("SUB-2099-%06d".formatted(800000 + number), "27%08d".formatted(80000000 + number),
-				clientId, offerId, startDate, TODAY);
+				clientId, offerRepository.findById(offerId).orElseThrow(), startDate, TODAY);
 	}
 
 }

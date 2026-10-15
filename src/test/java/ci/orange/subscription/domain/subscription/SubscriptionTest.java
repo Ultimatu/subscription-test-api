@@ -15,6 +15,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
+import ci.orange.subscription.domain.offer.Offer;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Map;
@@ -32,6 +34,8 @@ class SubscriptionTest {
 
 	private static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
 
+	private static final BigDecimal PRICE = new BigDecimal("25000.00");
+
 	/** Le tableau des transitions de l'énoncé, réécrit indépendamment du code de production. */
 	private static final Map<SubscriptionStatus, Map<SubscriptionTransition, SubscriptionStatus>> SPECIFICATION = Map.of(
 			PENDING, Map.of(ACTIVATE, ACTIVE, TERMINATE, TERMINATED),
@@ -44,7 +48,7 @@ class SubscriptionTest {
 
 		@Test
 		void startsPendingAndRecordsTheCreation() {
-			Subscription subscription = Subscription.create("SUB-2026-000001", "2700000001", 1L, 2L, TODAY, TODAY);
+			Subscription subscription = Subscription.create("SUB-2026-000001", "2700000001", 1L, offer(), TODAY, TODAY);
 
 			assertThat(subscription.getStatus()).isEqualTo(PENDING);
 			assertThat(subscription.getEndDate()).isNull();
@@ -52,8 +56,19 @@ class SubscriptionTest {
 		}
 
 		@Test
+		void keepsThePriceOfTheOfferAtTheTimeOfSubscription() {
+			Offer offer = offer();
+			Subscription subscription = Subscription.create("SUB-2026-000001", "2700000001", 1L, offer, TODAY, TODAY);
+
+			offer.update(offer.getLabel(), new BigDecimal("27000"));
+
+			assertThat(subscription.getOfferId()).isEqualTo(2L);
+			assertThat(subscription.getMonthlyPrice()).isEqualTo(PRICE);
+		}
+
+		@Test
 		void acceptsAFutureStartDate() {
-			Subscription subscription = Subscription.create("SUB-2026-000001", "2700000001", 1L, 2L,
+			Subscription subscription = Subscription.create("SUB-2026-000001", "2700000001", 1L, offer(),
 					TODAY.plusDays(10), TODAY);
 
 			assertThat(subscription.getStartDate()).isEqualTo(TODAY.plusDays(10));
@@ -62,7 +77,7 @@ class SubscriptionTest {
 		@Test
 		void rejectsAStartDateBeforeToday() {
 			assertThatThrownBy(
-					() -> Subscription.create("SUB-2026-000001", "2700000001", 1L, 2L, TODAY.minusDays(1), TODAY))
+					() -> Subscription.create("SUB-2026-000001", "2700000001", 1L, offer(), TODAY.minusDays(1), TODAY))
 					.isInstanceOf(DomainValidationException.class)
 					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.START_DATE_IN_PAST);
 		}
@@ -191,7 +206,11 @@ class SubscriptionTest {
 	}
 
 	private static Subscription subscriptionIn(SubscriptionStatus status) {
-		return Subscription.restore(1L, "SUB-2026-000001", "2700000001", 1L, 2L, status, TODAY, null, null);
+		return Subscription.restore(1L, "SUB-2026-000001", "2700000001", 1L, 2L, PRICE, status, TODAY, null, null);
+	}
+
+	private static Offer offer() {
+		return Offer.restore(2L, "FTTH-100", "Fibre Confort 100 Mbps", "FTTH", PRICE, true, null);
 	}
 
 	private static void apply(Subscription subscription, SubscriptionTransition transition) {

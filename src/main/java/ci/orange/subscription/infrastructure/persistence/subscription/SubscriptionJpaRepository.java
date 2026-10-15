@@ -45,7 +45,7 @@ interface SubscriptionJpaRepository
 	List<StatusCount> countByStatusForClient(@Param("clientId") Long clientId);
 
 	@Query("""
-			select coalesce(sum(s.offer.monthlyPrice), 0)
+			select coalesce(sum(s.monthlyPrice), 0)
 			from SubscriptionEntity s
 			where s.client.id = :clientId and s.status = :status
 			""")

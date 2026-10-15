@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -52,6 +53,10 @@ public class SubscriptionEntity extends SoftDeletableEntity {
 	/** Copie de la technologie de l'offre, qui ne change jamais : permet à la base de garantir la règle 14. */
 	@Column(nullable = false, updatable = false, length = 20)
 	private String technology;
+
+	/** Prix de l'offre au moment de la souscription (ADR-0018). */
+	@Column(nullable = false, updatable = false, precision = 12, scale = 2)
+	private BigDecimal monthlyPrice;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)

@@ -17,6 +17,7 @@ public record SubscriptionView(
 		String nd,
 		SubscriptionStatus status,
 		String technology,
+		BigDecimal monthlyPrice,
 		LocalDate startDate,
 		LocalDate endDate,
 		ClientOverview client,

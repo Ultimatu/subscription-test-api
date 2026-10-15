@@ -270,8 +270,8 @@ class SubscriptionServiceTest {
 		}
 
 		private Subscription givenSubscription(SubscriptionStatus status) {
-			Subscription subscription = Subscription.restore(10L, "SUB-2026-000001", "2700000001", 1L, 2L, status,
-					TODAY, null, null);
+			Subscription subscription = Subscription.restore(10L, "SUB-2026-000001", "2700000001", 1L, 2L,
+					new BigDecimal("25000.00"), status, TODAY, null, null);
 			when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(subscription));
 			return subscription;
 		}
@@ -282,7 +282,7 @@ class SubscriptionServiceTest {
 	class Reads {
 
 		private final SubscriptionView view = new SubscriptionView(10L, "SUB-2026-000001", "2700000001",
-				SubscriptionStatus.ACTIVE, "FTTH", TODAY, null, null, null, null);
+				SubscriptionStatus.ACTIVE, "FTTH", new BigDecimal("25000.00"), TODAY, null, null, null, null);
 
 		@Test
 		void getsASubscriptionWithItsHistory() {

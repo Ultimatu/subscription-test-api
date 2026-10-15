@@ -34,11 +34,11 @@ class StatisticsQueryAdapter implements StatisticsQueries {
 	@Override
 	public List<CityStatistics> activeSubscriptionsByCity() {
 		return entityManager.createQuery("""
-				select min(c.city), count(s), sum(o.monthlyPrice)
-				from SubscriptionEntity s join s.client c join s.offer o
+				select min(c.city), count(s), sum(s.monthlyPrice)
+				from SubscriptionEntity s join s.client c
 				where s.status = :active
 				group by lower(function('unaccent', c.city))
-				order by sum(o.monthlyPrice) desc, min(c.city)
+				order by sum(s.monthlyPrice) desc, min(c.city)
 				""", Object[].class)
 				.setParameter("active", SubscriptionStatus.ACTIVE)
 				.getResultList().stream()

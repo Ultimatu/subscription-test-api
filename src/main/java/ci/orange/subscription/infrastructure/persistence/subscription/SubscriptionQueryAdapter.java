@@ -61,7 +61,7 @@ class SubscriptionQueryAdapter implements SubscriptionQueries {
 		ClientEntity client = entity.getClient();
 		OfferEntity offer = entity.getOffer();
 		return new SubscriptionView(entity.getId(), entity.getReference(), entity.getNd(), entity.getStatus(),
-				entity.getTechnology(), entity.getStartDate(), entity.getEndDate(),
+				entity.getTechnology(), entity.getMonthlyPrice(), entity.getStartDate(), entity.getEndDate(),
 				new ClientOverview(client.getId(), client.getFirstName(), client.getLastName(), client.getCity(),
 						client.getStatus()),
 				new OfferOverview(offer.getId(), offer.getCode(), offer.getLabel(), offer.getMonthlyPrice()),

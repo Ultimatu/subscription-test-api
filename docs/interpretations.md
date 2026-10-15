@@ -12,7 +12,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 3 | Que faire d'un `status` fourni à la création ? | Il est ignoré, sans erreur, comme le demande l'énoncé. |
 | 6 | Que deviennent les souscriptions résiliées d'un client supprimé ? | Le client et ses souscriptions résiliées sont supprimés logiquement : ils disparaissent de l'API mais restent en base ([ADR-0005](adr/0005-suppression-logique.md)). |
 | 6 | Peut-on recréer un client avec l'email d'un client supprimé ? | Oui : c'est un nouveau client, avec un nouvel identifiant. |
-| — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées. Tous les statuts figurent dans le décompte, y compris à zéro. |
+| — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées, au prix figé à la souscription ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)). Tous les statuts figurent dans le décompte, y compris à zéro. |
 | — | Filtres de la liste | `city` : égalité insensible à la casse **et aux accents**. `search` : correspondance partielle, insensible à la casse et aux accents (au-delà de l'énoncé : `kone` trouve `Koné`, [ADR-0017](adr/0017-recherche-insensible-aux-accents.md)), sur le prénom, le nom et l'email ; les caractères `%` et `_` sont recherchés littéralement. |
 
 ## Offres
@@ -48,7 +48,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | Question | Choix retenu |
 |---|---|
 | « Souscriptions actives et revenu mensuel par ville » | La ville est celle du client, regroupée sans tenir compte de la casse ni des accents (« Bouaké » et « bouake » forment une seule ligne). Le revenu est la somme des prix mensuels des souscriptions ACTIVE ; seules les villes ayant au moins une souscription active apparaissent, revenu le plus élevé en premier. |
-| Quel prix pour le revenu ? | Le prix **actuel** de l'offre : le prix n'est pas figé au moment de la souscription. Pour de la facturation, il faudrait le conserver sur la souscription. |
+| Quel prix pour le revenu ? | Le prix **figé à la souscription** : une hausse du catalogue ne change pas le revenu des souscriptions existantes ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)). Ce choix remplace le précédent, qui utilisait le prix actuel de l'offre. |
 | « Répartition par technologie » | Nombre de souscriptions ACTIVE et part en pourcentage (deux décimales). Toutes les technologies du catalogue apparaissent, y compris à 0. |
 | « Par statut sur une période » : quelle date doit tomber dans la période ? | Au choix de l'appelant, par le paramètre facultatif `basedOn` : `CREATION_DATE` (par défaut : souscriptions créées dans la période, selon leur statut actuel), `START_DATE` (souscriptions qui démarrent dans la période, selon leur statut actuel) ou `STATUS_CHANGE` (souscriptions passées à chaque statut pendant la période, d'après l'historique). |
 | Bornes de la période | `from` et `to` sont facultatifs et inclus, interprétés comme des dates à Abidjan. Une période inversée donne une 400 `INVALID_DATE_RANGE`. Tous les statuts apparaissent, y compris à 0, et `total` compte des souscriptions distinctes. |
