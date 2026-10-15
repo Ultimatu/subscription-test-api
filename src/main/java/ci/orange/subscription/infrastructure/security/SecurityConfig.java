@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.util.Base64;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * Authentification par jeton JWT et droits par rôle (ADR-0013). L'API est sans état : aucune session,
  * chaque requête porte son jeton. Avec {@code app.security.enabled=false}, toute l'API est ouverte.
  */
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(SecurityProperties.class)
 public class SecurityConfig {
@@ -45,6 +47,9 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(handling -> handling.authenticationEntryPoint(errors).accessDeniedHandler(errors));
 		if (!properties.enabled()) {
+			// Signalé à chaque démarrage : une désactivation oubliée en production ne doit pas passer inaperçue
+			log.warn("Security is DISABLED (app.security.enabled=false): the whole API is open without "
+					+ "authentication. Never use this setting outside of local testing.");
 			return http.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll()).build();
 		}
 		return http

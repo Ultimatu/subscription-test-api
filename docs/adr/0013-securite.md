@@ -32,7 +32,7 @@ L'énoncé ne demande pas d'authentification, mais l'audit ([ADR-0004](0004-audi
 
 - **Erreurs** : 401 (`AUTHENTICATION_REQUIRED` sans jeton, `INVALID_TOKEN` pour un jeton invalide ou expiré) et 403 (`ACCESS_DENIED`), au format Problem Details comme toutes les autres erreurs.
 - **Audit** : l'auteur enregistré (`created_by`, `updated_by`, `changed_by`) est le nom de l'utilisateur du jeton ; `anonymous` quand la sécurité est désactivée.
-- **Désactivation** : `app.security.enabled=false` (ou `APP_SECURITY_ENABLED=false`) ouvre toute l'API sans jeton.
+- **Désactivation** : `app.security.enabled=false` (ou `APP_SECURITY_ENABLED=false`) ouvre toute l'API sans jeton. Un avertissement est alors écrit à chaque démarrage, pour qu'une désactivation oubliée en production ne passe pas inaperçue.
 - **Documentation** : Swagger UI propose un bouton « Authorize » pour saisir le jeton ; les réponses 401 et 403 sont documentées sur chaque endpoint protégé.
 
 ## Limites
