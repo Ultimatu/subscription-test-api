@@ -1,9 +1,13 @@
-# Facultatif : fournit PostgreSQL à qui ne l'a pas installé.
+# Facultatif : fournit PostgreSQL à qui ne l'a pas installé, et Mailpit, qui reçoit les emails de
+# notification sans les envoyer (interface web : http://localhost:8025).
 #   docker compose up -d      puis      mvn spring-boot:run
 # Base, utilisateur et mot de passe sont ceux de src/main/resources/application.yml.
 # L'image officielle contient le module contrib (extension unaccent).
 # Si un PostgreSQL local occupe déjà le port 5432 : POSTGRES_PORT=5433 docker compose up -d,
-# puis lancer l'application avec SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db
+# puis lancer l'application avec SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db.
+# De même pour Mailpit : MAILPIT_SMTP_PORT=2025 docker compose up -d, puis SPRING_MAIL_PORT=2025.
+# Le SMTP par défaut est 1026 : sur macOS, FinderSync occupe souvent 127.0.0.1:1025/1026
+# (IPv4) ; l'application se connecte donc à [::1] (voir application.yml).
 services:
   postgres:
     image: postgres:16-alpine
@@ -20,6 +24,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    environment:
+      # Sans cela, Mailpit cherche le nom de chaque client par DNS inverse avant de répondre, ce qui
+      # peut bloquer l'accueil SMTP dans Docker Desktop
+      MP_SMTP_DISABLE_RDNS: "true"
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1026}:1025"   # SMTP, utilisé par l'application (spring.mail.port)
+      - "8025:8025"   # interface web
 
 volumes:
   postgres-data:

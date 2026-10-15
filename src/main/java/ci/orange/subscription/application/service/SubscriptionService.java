@@ -7,6 +7,7 @@ import ci.orange.subscription.application.port.in.subscription.SubscriptionSearc
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.NotificationOutbox;
 import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
 import ci.orange.subscription.application.port.out.SubscriptionQueries;
@@ -20,6 +21,7 @@ import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionEligibility;
 import ci.orange.subscription.domain.subscription.SubscriptionNumbering;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
+import ci.orange.subscription.domain.subscription.SubscriptionTransition;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumSet;
@@ -39,16 +41,18 @@ public class SubscriptionService implements SubscriptionUseCases {
 	private final ClientRepository clientRepository;
 	private final OfferRepository offerRepository;
 	private final SubscriptionNumberSequences numberSequences;
+	private final NotificationOutbox notificationOutbox;
 	private final Clock clock;
 
 	public SubscriptionService(SubscriptionRepository subscriptionRepository, SubscriptionQueries subscriptionQueries,
 			ClientRepository clientRepository, OfferRepository offerRepository,
-			SubscriptionNumberSequences numberSequences, Clock clock) {
+			SubscriptionNumberSequences numberSequences, NotificationOutbox notificationOutbox, Clock clock) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.subscriptionQueries = subscriptionQueries;
 		this.clientRepository = clientRepository;
 		this.offerRepository = offerRepository;
 		this.numberSequences = numberSequences;
+		this.notificationOutbox = notificationOutbox;
 		this.clock = clock;
 	}
 
@@ -84,22 +88,23 @@ public class SubscriptionService implements SubscriptionUseCases {
 
 	@Override
 	public Subscription activate(Long id) {
-		return transition(id, Subscription::activate);
+		return transition(id, SubscriptionTransition.ACTIVATE, null, Subscription::activate);
 	}
 
 	@Override
 	public Subscription suspend(Long id, String reason) {
-		return transition(id, subscription -> subscription.suspend(reason));
+		return transition(id, SubscriptionTransition.SUSPEND, reason, subscription -> subscription.suspend(reason));
 	}
 
 	@Override
 	public Subscription reactivate(Long id) {
-		return transition(id, Subscription::reactivate);
+		return transition(id, SubscriptionTransition.REACTIVATE, null, Subscription::reactivate);
 	}
 
 	@Override
 	public Subscription terminate(Long id, String reason) {
-		return transition(id, subscription -> subscription.terminate(reason, LocalDate.now(clock)));
+		return transition(id, SubscriptionTransition.TERMINATE, reason,
+				subscription -> subscription.terminate(reason, LocalDate.now(clock)));
 	}
 
 	@Override
@@ -166,11 +171,21 @@ public class SubscriptionService implements SubscriptionUseCases {
 	 * éventuelle création simultanée pour le même client (règle 13) ; deux modifications
 	 * simultanées de la même souscription sont détectées grâce à sa version.
 	 */
-	private Subscription transition(Long id, Consumer<Subscription> operation) {
+	/**
+	 * Le client est prévenu par email : la notification est enregistrée dans la même transaction que le
+	 * changement de statut, et n'existe donc que s'il est validé (ADR-0021).
+	 */
+	private Subscription transition(Long id, SubscriptionTransition transition, String reason,
+			Consumer<Subscription> operation) {
 		Subscription subscription = findSubscription(id);
-		clientRepository.findByIdForUpdate(subscription.getClientId());
+		Client client = clientRepository.findByIdForUpdate(subscription.getClientId())
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client",
+						subscription.getClientId()));
 		operation.accept(subscription);
-		return subscriptionRepository.save(subscription);
+		Subscription saved = subscriptionRepository.save(subscription);
+		notificationOutbox.enqueue(new NotificationOutbox.Request(saved.getId(), transition, client.getEmail(),
+				transition.isReasonRequired() ? reason.trim() : null));
+		return saved;
 	}
 
 	private Subscription findSubscription(Long id) {

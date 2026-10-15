@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  Email de notification au client. Les messageries ignorent la plupart du CSS (feuilles de style,
+  flexbox) : mise en page en tableaux, styles en ligne, largeur de 600 px. Charte orange et noir,
+  sans logo ni marque d'un opérateur réel.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title th:text="${email.subject}">Votre ligne 27 00 00 00 01 est active</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F4F4F4; font-family: Helvetica, Arial, sans-serif; color: #000000;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F4F4F4;">
+	<tr>
+		<td align="center" style="padding: 24px 12px;">
+			<table role="presentation" width="600" cellpadding="0" cellspacing="0"
+				style="width: 100%; max-width: 600px; background-color: #FFFFFF;">
+
+				<!-- Bandeau et en-tête -->
+				<tr><td style="height: 6px; background-color: #FF7900; font-size: 0; line-height: 0;">&#160;</td></tr>
+				<tr>
+					<td style="background-color: #000000; padding: 20px 32px;">
+						<span style="color: #FFFFFF; font-size: 18px; font-weight: bold;">Subscription API</span>
+					</td>
+				</tr>
+
+				<!-- Message -->
+				<tr>
+					<td style="padding: 32px 32px 8px 32px;">
+						<h1 style="margin: 0 0 20px 0; font-size: 24px; line-height: 30px;"
+							th:text="${email.title}">Votre ligne est active</h1>
+						<p style="margin: 0 0 12px 0; font-size: 15px; line-height: 22px;"
+							th:text="${email.greeting}">Bonjour Awa,</p>
+						<p style="margin: 0; font-size: 15px; line-height: 22px;"
+							th:text="${email.message}">Votre souscription à l'offre Fibre Confort 100 Mbps est active.</p>
+					</td>
+				</tr>
+
+				<!-- Détails de la ligne -->
+				<tr>
+					<td style="padding: 20px 32px;">
+						<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+							style="border: 1px solid #DDDDDD; border-top: 4px solid #FF7900;">
+							<tr>
+								<td style="padding: 18px 20px 6px 20px; font-size: 12px; color: #595959;">NUMÉRO DE LIGNE</td>
+							</tr>
+							<tr>
+								<td style="padding: 0 20px 14px 20px; font-size: 26px; font-weight: bold; color: #FF7900;"
+									th:text="${email.nd}">27 00 00 00 01</td>
+							</tr>
+							<tr>
+								<td style="padding: 0 20px 18px 20px;">
+									<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+										style="font-size: 14px; line-height: 20px;">
+										<tr>
+											<td style="padding: 4px 0; color: #595959; width: 40%;">Offre</td>
+											<td style="padding: 4px 0; font-weight: bold;" th:text="${email.offerLabel}">Fibre Confort 100 Mbps</td>
+										</tr>
+										<tr>
+											<td style="padding: 4px 0; color: #595959;">Prix mensuel</td>
+											<td style="padding: 4px 0; font-weight: bold;" th:text="${email.monthlyPrice}">25 000 FCFA</td>
+										</tr>
+										<tr>
+											<td style="padding: 4px 0; color: #595959;">Statut</td>
+											<td style="padding: 4px 0; font-weight: bold;" th:text="${email.statusLabel}">Active</td>
+										</tr>
+										<tr>
+											<td style="padding: 4px 0; color: #595959;" th:text="${email.dateLabel}">Date de début</td>
+											<td style="padding: 4px 0; font-weight: bold;" th:text="${email.date}">15 octobre 2026</td>
+										</tr>
+										<tr th:if="${email.reason}">
+											<td style="padding: 4px 0; color: #595959;">Motif</td>
+											<td style="padding: 4px 0; font-weight: bold;" th:text="${email.reason}">Impayé</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+
+				<!-- Pièce jointe et suite à donner -->
+				<tr th:if="${email.attachmentNote}">
+					<td style="padding: 0 32px 12px 32px; font-size: 14px; line-height: 20px;">
+						<span style="color: #FF7900; font-weight: bold;">&#8250;</span>
+						<span th:text="${email.attachmentNote}">Votre attestation de souscription est jointe à ce message.</span>
+					</td>
+				</tr>
+				<tr th:if="${email.nextStep}">
+					<td style="padding: 0 32px 12px 32px; font-size: 14px; line-height: 20px;">
+						<span style="color: #FF7900; font-weight: bold;">&#8250;</span>
+						<span th:text="${email.nextStep}">Contactez votre conseiller pour réactiver votre ligne.</span>
+					</td>
+				</tr>
+
+				<!-- Pied de page -->
+				<tr>
+					<td style="padding: 24px 32px; border-top: 1px solid #EEEEEE; font-size: 12px; line-height: 18px; color: #595959;">
+						Subscription API. Message de démonstration envoyé automatiquement, merci de ne pas y répondre.
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+</body>
+</html>

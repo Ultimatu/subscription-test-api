@@ -28,4 +28,4 @@ L'énoncé exige « 60 % de couverture de tests unitaires ». Les tests du proje
 
 - La couverture fait partie des critères de réussite du build, et non d'un simple rapport.
 - Tout nouveau code sans test fait baisser la couverture et peut faire échouer `mvn verify` : c'est voulu.
-- Pour remesurer les seuls tests unitaires : `mvn test -Dtest='!**/persistence/**/*Test,!SubscriptionApiApplicationTests,!OpenApiDocumentationTest,!SecurityIntegrationTest,!SecurityDisabledTest' -Dsurefire.failIfNoSpecifiedTests=false`, après avoir supprimé `target/jacoco.exec`, car JaCoCo cumule les mesures d'une exécution à l'autre. Les mesures à jour figurent dans le README.
+- Pour remesurer les seuls tests unitaires : `mvn test -Dtest='!**/persistence/**/*Test,!SubscriptionApiApplicationTests,!OpenApiDocumentationTest,!SecurityIntegrationTest,!SecurityDisabledTest,!NotificationFlowTest' -Dsurefire.failIfNoSpecifiedTests=false`, après avoir supprimé `target/jacoco.exec`, car JaCoCo cumule les mesures d'une exécution à l'autre. Les mesures à jour figurent dans le README.

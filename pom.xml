@@ -21,6 +21,7 @@
 		<jacoco.version>0.8.15</jacoco.version>
 		<!-- HTML vers PDF, sur PDFBox ; compatible Java 17 (Flying Saucer 10 exige Java 21) -->
 		<openhtmltopdf.version>1.1.97</openhtmltopdf.version>
+		<greenmail.version>2.1.14</greenmail.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -55,6 +56,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.github.openhtmltopdf</groupId>
@@ -94,6 +99,13 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- Serveur SMTP en mémoire, pour vérifier les emails envoyés sans Docker -->
+			<groupId>com.icegreen</groupId>
+			<artifactId>greenmail-junit5</artifactId>
+			<version>${greenmail.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

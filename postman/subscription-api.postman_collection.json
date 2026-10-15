@@ -596,6 +596,41 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "10. Notifications envoyées au client",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{scenarioSubscriptionId}}/notifications",
+						"description": "Un email par changement de statut, enregistré avec le changement lui-même puis envoyé par une tâche planifiée (statut PENDING, puis SENT ; FAILED après plusieurs échecs). Avec Mailpit (docker compose up -d), les emails s'affichent sur http://localhost:8025.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const notifications = pm.response.json();",
+									"pm.test('un email par changement de statut', () => pm.expect(notifications.map(n => n.transition))",
+									"    .to.eql(['ACTIVATE', 'SUSPEND', 'REACTIVATE', 'TERMINATE']));",
+									"pm.test('adressés au client', () => notifications.forEach(n =>",
+									"    pm.expect(n.recipient).to.eql('awa.' + pm.collectionVariables.get('scenarioRun') + '@exemple.ci')));"
+								]
+							}
+						}
+					]
 				}
 			]
 		},

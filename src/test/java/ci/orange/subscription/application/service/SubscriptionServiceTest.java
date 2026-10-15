@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -15,6 +16,7 @@ import ci.orange.subscription.application.port.in.subscription.SubscriptionDetai
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.ClientRepository;
+import ci.orange.subscription.application.port.out.NotificationOutbox;
 import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
 import ci.orange.subscription.application.port.out.SubscriptionQueries;
@@ -30,6 +32,7 @@ import ci.orange.subscription.domain.subscription.StatusChange;
 import ci.orange.subscription.domain.subscription.InvalidStatusTransitionException;
 import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
+import ci.orange.subscription.domain.subscription.SubscriptionTransition;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -70,13 +73,16 @@ class SubscriptionServiceTest {
 	@Mock
 	private SubscriptionQueries subscriptionQueries;
 
+	@Mock
+	private NotificationOutbox notificationOutbox;
+
 	private SubscriptionService subscriptionService;
 
 	@BeforeEach
 	void createService() {
 		Clock clock = Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant().plusSeconds(3600), ABIDJAN);
 		subscriptionService = new SubscriptionService(subscriptionRepository, subscriptionQueries, clientRepository,
-				offerRepository, numberSequences, clock);
+				offerRepository, numberSequences, notificationOutbox, clock);
 	}
 
 	@Nested
@@ -201,6 +207,8 @@ class SubscriptionServiceTest {
 
 			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
 			verify(clientRepository).findByIdForUpdate(1L);
+			verify(notificationOutbox).enqueue(
+					new NotificationOutbox.Request(10L, SubscriptionTransition.ACTIVATE, "awa@mail.ci", null));
 		}
 
 		@Test
@@ -213,6 +221,8 @@ class SubscriptionServiceTest {
 			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.SUSPENDED);
 			assertThat(subscription.recordedStatusChanges())
 					.containsExactly(new StatusChange(SubscriptionStatus.ACTIVE, SubscriptionStatus.SUSPENDED, "Impayé"));
+			verify(notificationOutbox).enqueue(
+					new NotificationOutbox.Request(10L, SubscriptionTransition.SUSPEND, "awa@mail.ci", "Impayé"));
 		}
 
 		@Test
@@ -241,6 +251,7 @@ class SubscriptionServiceTest {
 			assertThatThrownBy(() -> subscriptionService.reactivate(10L))
 					.isInstanceOf(InvalidStatusTransitionException.class);
 			verify(subscriptionRepository, never()).save(any());
+			verifyNoInteractions(notificationOutbox);
 		}
 
 		@Test
@@ -274,6 +285,9 @@ class SubscriptionServiceTest {
 			Subscription subscription = Subscription.restore(10L, "SUB-2026-000001", "2700000001", 1L, 2L,
 					new BigDecimal("25000.00"), status, TODAY, null, null);
 			when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(subscription));
+			// Le client n'est relu, et verrouillé, que pour un changement de statut
+			lenient().when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(Client.restore(1L, "Awa",
+					"Koné", "awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE, null)));
 			return subscription;
 		}
 

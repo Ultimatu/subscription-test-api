@@ -46,13 +46,14 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Recherche insensible aux accents | `kone` trouve `Koné`, `bouake` trouve `Bouaké` | [ADR-0017](docs/adr/0017-recherche-insensible-aux-accents.md) |
 | Attestation PDF | Le conseiller remet au client une attestation de souscription, ou de résiliation, générée à la demande | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
 | Exports CSV | Les administrateurs sortent clients et souscriptions vers Excel, sans limite de taille, avec les filtres de la recherche | [ADR-0020](docs/adr/0020-exports-csv.md) |
+| Notifications par email | Le client est prévenu de chaque changement de statut, sans qu'aucun email soit perdu si le serveur de messagerie est indisponible | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 | Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Accès concurrents maîtrisés | Deux souscriptions simultanées ne peuvent pas contourner la règle 14 | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
 | Schéma versionné (Flyway), contraintes doublées en base | Les règles tiennent même en cas d'accès concurrent ou d'écriture directe en base | [ADR-0002](docs/adr/0002-schema-versionne-flyway.md) |
 | Couverture mesurée (JaCoCo), architecture vérifiée (ArchUnit) | Le build échoue si la couverture baisse ou si une dépendance va dans le mauvais sens | [ADR-0016](docs/adr/0016-couverture-de-code.md) |
 
-**Stack** : Java 17, Spring Boot 3.5 (Web, Data JPA, Validation, Security, OAuth2 Resource Server, Actuator), PostgreSQL, Flyway, springdoc-openapi, Thymeleaf et openhtmltopdf (PDF), Lombok. Tests : JUnit 5, AssertJ, Mockito, Spring Security Test, ArchUnit, JaCoCo.
+**Stack** : Java 17, Spring Boot 3.5 (Web, Data JPA, Validation, Security, OAuth2 Resource Server, Actuator), PostgreSQL, Flyway, springdoc-openapi, Thymeleaf et openhtmltopdf (PDF), Spring Mail, Lombok. Tests : JUnit 5, AssertJ, Mockito, Spring Security Test, GreenMail, ArchUnit, JaCoCo.
 
 ## 2. Prérequis
 
@@ -62,7 +63,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Maven | 3.6.3 ou plus récent | Facultatif : le dépôt contient le wrapper Maven (`./mvnw`), qui télécharge la bonne version |
 | PostgreSQL | 13 ou plus récent | Testé avec PostgreSQL 16. Le module *contrib* doit être installé (extension `unaccent`) : il l'est par défaut avec Homebrew, l'installeur Windows et l'image Docker officielle ; sous Debian ou Ubuntu, c'est le paquet `postgresql-contrib` |
 
-Docker est facultatif : il peut fournir PostgreSQL à la place d'une installation locale (voir ci-dessous).
+Docker est facultatif : il peut fournir PostgreSQL à la place d'une installation locale, ainsi que Mailpit, qui affiche les emails envoyés par l'application (voir ci-dessous). Sans lui, l'application fonctionne normalement : les emails restent en attente dans la base.
 
 ## 3. Démarrage rapide
 
@@ -81,11 +82,11 @@ mvn spring-boot:run
 **Ou avec Docker**, sans rien installer d'autre que le JDK
 
 ```bash
-docker compose up -d      # PostgreSQL 16, avec la base et l'utilisateur de application.yml
+docker compose up -d      # PostgreSQL 16 (base et utilisateur de application.yml) et Mailpit
 mvn spring-boot:run
 ```
 
-Si un PostgreSQL local occupe déjà le port 5432 : `POSTGRES_PORT=5433 docker compose up -d`, puis `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db mvn spring-boot:run`.
+Si un PostgreSQL local occupe déjà le port 5432 : `POSTGRES_PORT=5433 docker compose up -d`, puis `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db mvn spring-boot:run`. De même, le port SMTP de Mailpit se change par `MAILPIT_SMTP_PORT`, et celui qu'utilise l'application par `SPRING_MAIL_PORT`.
 
 L'application écoute sur `http://localhost:8080` :
 
@@ -94,6 +95,7 @@ L'application écoute sur `http://localhost:8080` :
 | `http://localhost:8080/swagger-ui.html` | Documentation interactive (bouton « Authorize » pour saisir le jeton) |
 | `http://localhost:8080/v3/api-docs` | Spécification OpenAPI (JSON) |
 | `http://localhost:8080/actuator/health` | État de l'application |
+| `http://localhost:8025` | Emails envoyés aux clients, reçus par Mailpit (avec Docker) |
 
 Toutes les routes `/api/**`, sauf la connexion, demandent un jeton, obtenu avec l'un des deux comptes de démonstration :
 
@@ -126,7 +128,7 @@ spring:
     open-in-view: false
 ```
 
-- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V9). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
+- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V10). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
 - **Droits nécessaires** : l'utilisateur doit être propriétaire de la base, pour que Flyway puisse créer les tables, le schéma des tests et l'extension `unaccent` (extension de confiance, qui ne demande pas de droits de super-utilisateur).
 - **Autre environnement** : les valeurs se remplacent par variables d'environnement, sans modifier le fichier ([ADR-0003](docs/adr/0003-configuration.md)) :
 
@@ -135,6 +137,8 @@ spring:
   | `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | Connexion à la base |
   | `APP_SECURITY_JWT_SECRET` | Clé de signature des jetons (256 bits en Base64) ; obligatoire hors développement |
   | `APP_SECURITY_ENABLED` | `false` pour désactiver l'authentification |
+  | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Serveur de messagerie (Mailpit en local) |
+  | `APP_NOTIFICATIONS_ENABLED` | `false` pour ne plus envoyer les emails (ils sont tout de même enregistrés) |
   | `SERVER_PORT` | Port HTTP (8080 par défaut) |
 
 - **Tests** : ils utilisent la même base, dans un schéma séparé `test` que Flyway crée et migre automatiquement (`src/test/resources/config/application.yml`). Les données saisies via l'application ne perturbent pas les tests, et il n'y a pas de seconde base à créer.
@@ -146,7 +150,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 284 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 346 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -157,8 +161,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 284 | 98,6 % | 81,6 % |
-| Tests unitaires seuls, sans base de données | 228 | 67,9 % | 49,8 % |
+| Tous les tests (`mvn test`) | 346 | 97,9 % | 84,9 % |
+| Tests unitaires seuls, sans base de données | 280 | 71,3 % | 63,3 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
 
@@ -169,6 +173,7 @@ Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls
 | Web | Slice `@WebMvcTest` | Codes HTTP, validation, format des erreurs |
 | Persistance | Intégration sur PostgreSQL, annulée en fin de test | Index uniques partiels, recherche, statistiques |
 | Sécurité | Contexte complet, vrais jetons | Matrice des droits, jetons expirés ou falsifiés |
+| Documents et emails | Rendu réel, relu par PDFBox ; serveur SMTP en mémoire (GreenMail) | Contenu du PDF ; email HTML et texte avec l'attestation jointe ; parcours complet du changement de statut à l'email reçu |
 | Architecture | ArchUnit | Le domaine ne dépend d'aucun framework |
 
 ## 6. Architecture
@@ -204,11 +209,12 @@ subscription-api/
 │       ├── persistence/            entités JPA, repositories Spring Data, implémentation des ports de sortie
 │       ├── security/               JWT, comptes utilisateurs, matrice des droits
 │       ├── document/               attestation PDF (gabarit Thymeleaf converti par openhtmltopdf)
+│       ├── notification/           envoi des emails (Spring Mail) et tâche planifiée
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── db/migration/               migrations Flyway V1 à V9
-│   └── templates/documents/        gabarit HTML de l'attestation
+│   ├── db/migration/               migrations Flyway V1 à V10
+│   └── templates/                  gabarits de l'attestation (documents/) et des emails (notifications/)
 └── src/test/java/                  tests, dans la même arborescence
 ```
 
@@ -222,6 +228,7 @@ subscription-api/
 | `infrastructure.persistence` | Implémente les ports de sortie avec JPA. Les entités JPA (`ClientEntity`…) sont distinctes des modèles du domaine, reliées par un mapping manuel. |
 | `infrastructure.security` | Émission et vérification des jetons, comptes utilisateurs, droits par rôle. |
 | `infrastructure.document` | Mise en page de l'attestation : gabarit HTML et CSS rendu en PDF. |
+| `infrastructure.notification` | Envoi des emails (SMTP) et tâche planifiée qui vide l'outbox des notifications. |
 | `infrastructure.config` | Assemblage : horloge (fuseau Africa/Abidjan), préfixe `/api`, description OpenAPI. |
 
 Les adaptateurs de `infrastructure` dépendent de `application` et de `domain`, jamais l'inverse : le métier ignore qu'il est exposé en HTTP et stocké dans PostgreSQL.
@@ -298,6 +305,7 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | GET | `/api/subscriptions/{id}/attestation` | Télécharger l'attestation de souscription ou de résiliation (PDF) | 200 | Conseiller |
 | GET | `/api/clients/export` | Exporter les clients en CSV (filtres de la liste) | 200 | Admin |
 | GET | `/api/subscriptions/export` | Exporter les souscriptions en CSV (filtres de la recherche globale) | 200 | Admin |
+| GET | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi | 200 | Conseiller |
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
 
 Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
@@ -442,7 +450,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 64 requêtes s'exécutent dans l'ordre et vérifient 126 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 65 requêtes s'exécutent dans l'ordre et vérifient 129 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -455,7 +463,7 @@ npx newman run postman/subscription-api.postman_collection.json
 | Dossier | Contenu |
 |---|---|
 | 0 · Authentification | Connexion en administrateur et en conseiller |
-| 1 · Scénario de bout en bout | Les 7 étapes de l'énoncé, puis la vérification de l'historique et l'attestation de résiliation |
+| 1 · Scénario de bout en bout | Les 7 étapes de l'énoncé, puis la vérification de l'historique, l'attestation de résiliation et les notifications envoyées au client |
 | 2 · Règles métier | Les règles démontrées par leurs cas d'erreur, et les contrôles de droits (401, 403, export refusé au conseiller) |
 | 3 · Clients | Tous les endpoints des clients, export CSV compris |
 | 4 · Offres | Tous les endpoints des offres |
@@ -611,6 +619,10 @@ Content-Type: application/json
 
 <p align="center"><img src="docs/images/attestation-resiliation.png" alt="Attestation de résiliation générée par l'API" width="560"></p>
 
+**9. Notifications** : chaque changement de statut a envoyé un email au client ; `GET /api/subscriptions/14/notifications` les liste, avec leur état d'envoi. Avec Docker, ils s'affichent dans Mailpit (`http://localhost:8025`) ; l'attestation est jointe à l'activation et à la résiliation.
+
+<p align="center"><img src="docs/images/email-resiliation.png" alt="Email de résiliation reçu par le client" width="480"></p>
+
 Le dossier « 2 · Règles métier » de la collection démontre ensuite les cas d'erreur : doublon d'email, souscription bloquée par une suspension (règles 13 et 15), unicité par technologie (règle 14), transition interdite, suppression refusée, droits insuffisants.
 
 ## 13. Limites et améliorations
@@ -624,6 +636,7 @@ Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai 
 | Prix mensuel figé à la souscription : une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Attestation de souscription ou de résiliation au format PDF, téléchargeable depuis l'API | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
 | Exports CSV des clients et des souscriptions pour Excel, lus par lots et protégés contre l'injection de formule | [ADR-0020](docs/adr/0020-exports-csv.md) |
+| Notifications par email à chaque changement de statut, fiables grâce à une outbox en base, avec l'attestation jointe | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 
 ### Pistes restantes
 
@@ -637,7 +650,8 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 **Métier**
 
-- **Événements métier** à chaque changement de statut (activation, suspension, résiliation), publiés de façon fiable (*transactional outbox*) pour prévenir la facturation ou le provisionnement de la ligne.
+- **Publier les changements de statut vers les autres systèmes** (facturation, provisionnement de la ligne) par un broker de messages, en réutilisant l'outbox des notifications.
+- **Figer le contenu des notifications** à leur enregistrement, pour prévenir aussi un client dont la souscription est supprimée avant l'envoi, et **purger** périodiquement les notifications envoyées.
 - **Planification** : une souscription dont la date de début est future pourrait être activée automatiquement ce jour-là.
 
 **Sécurité**
@@ -664,7 +678,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 20 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 21 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

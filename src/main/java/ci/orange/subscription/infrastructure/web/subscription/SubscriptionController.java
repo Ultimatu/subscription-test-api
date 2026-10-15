@@ -1,6 +1,7 @@
 package ci.orange.subscription.infrastructure.web.subscription;
 
 import ci.orange.subscription.application.port.in.BatchedExport;
+import ci.orange.subscription.application.port.in.notification.NotificationUseCases;
 import ci.orange.subscription.application.port.in.subscription.Attestation;
 import ci.orange.subscription.application.port.in.subscription.AttestationUseCases;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
@@ -65,12 +66,14 @@ class SubscriptionController {
 
 	private final SubscriptionUseCases subscriptionUseCases;
 	private final AttestationUseCases attestationUseCases;
+	private final NotificationUseCases notificationUseCases;
 	private final Clock clock;
 
 	SubscriptionController(SubscriptionUseCases subscriptionUseCases, AttestationUseCases attestationUseCases,
-			Clock clock) {
+			NotificationUseCases notificationUseCases, Clock clock) {
 		this.subscriptionUseCases = subscriptionUseCases;
 		this.attestationUseCases = attestationUseCases;
+		this.notificationUseCases = notificationUseCases;
 		this.clock = clock;
 	}
 
@@ -159,6 +162,15 @@ class SubscriptionController {
 				.header(HttpHeaders.CONTENT_DISPOSITION,
 						ContentDisposition.attachment().filename(attestation.fileName()).build().toString())
 				.body(attestation.content());
+	}
+
+	@Operation(summary = "Notifications envoyées au client",
+			description = "Un email par changement de statut, avec son état d'envoi : PENDING, SENT ou FAILED.")
+	@ApiResponse(responseCode = "200", description = "Notifications, de la plus ancienne à la plus récente")
+	@ApiErrors.NotFound
+	@GetMapping("/{id}/notifications")
+	List<NotificationResponse> notifications(@PathVariable Long id) {
+		return notificationUseCases.listForSubscription(id).stream().map(NotificationResponse::from).toList();
 	}
 
 	@Operation(summary = "Retrouver une souscription par son ND")

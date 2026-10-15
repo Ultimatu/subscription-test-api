@@ -7,3 +7,8 @@ spring:
     url: jdbc:postgresql://localhost:5432/subscription_db?currentSchema=test,public
   flyway:
     schemas: test
+
+app:
+  notifications:
+    # Pas d'envoi planifié pendant les tests : ceux qui l'exercent appellent l'envoi directement
+    enabled: false

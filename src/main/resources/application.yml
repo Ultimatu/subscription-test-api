@@ -13,12 +13,29 @@ spring:
     web:
       pageable:
         max-page-size: 100
+  mail:
+    # Mailpit, fourni par compose.yaml : les emails s'affichent sur http://localhost:8025, rien ne part
+    # vraiment. En production : SPRING_MAIL_HOST, SPRING_MAIL_PORT, SPRING_MAIL_USERNAME…
+    # [::1] plutôt que localhost : sur macOS, FinderSync écoute souvent en IPv4 sur le même port
+    # et les envois vers 127.0.0.1 timeoutent sans atteindre Mailpit (Compose, port 1026).
+    host: "[::1]"
+    port: 1026
+    properties:
+      # Sans délai maximal, un serveur de messagerie qui ne répond pas bloquerait l'envoi indéfiniment
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
   web:
     # Messages de Bean Validation (« ne doit pas être vide »…) en français, quelle que soit la langue du client
     locale: fr
     locale-resolver: fixed
 
 app:
+  notifications:
+    # Envoi des emails aux clients (ADR-0021) ; les notifications sont enregistrées dans tous les cas
+    enabled: true
+    from: "Subscription API <notifications@subscription-api.local>"
+    dispatch-interval: 10s
   security:
     # Désactivable pour tester l'API sans jeton : APP_SECURITY_ENABLED=false
     enabled: true
@@ -28,6 +45,13 @@ app:
       # Clé HMAC de 256 bits (Base64), pour le développement uniquement : en production, elle est
       # fournie par la variable d'environnement APP_SECURITY_JWT_SECRET
       secret: 4UNwXJoVwONomSM7a6LtumqQ2mOm4Nh2FTS+GQrz1JA=
+
+management:
+  health:
+    mail:
+      # L'email n'est pas une dépendance critique : sans serveur de messagerie, les notifications
+      # attendent dans l'outbox (ADR-0021). Sans ce réglage, /actuator/health passerait à DOWN.
+      enabled: false
 
 logging:
   level:

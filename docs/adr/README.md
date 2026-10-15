@@ -26,6 +26,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0018](0018-prix-fige-a-la-souscription.md) | Prix mensuel figé à la souscription | Acceptée |
 | [0019](0019-attestation-pdf.md) | Attestation de souscription au format PDF | Acceptée |
 | [0020](0020-exports-csv.md) | Exports CSV des clients et des souscriptions | Acceptée |
+| [0021](0021-notifications-par-email.md) | Notifications par email, avec une outbox en base | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).
 Le schéma de la base (tables, contraintes, index et requêtes servies) est décrit dans [../base-de-donnees.md](../base-de-donnees.md).

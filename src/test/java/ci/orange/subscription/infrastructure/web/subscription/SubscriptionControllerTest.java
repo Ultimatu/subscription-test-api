@@ -19,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ci.orange.subscription.application.port.in.notification.NotificationStatus;
+import ci.orange.subscription.application.port.in.notification.NotificationUseCases;
+import ci.orange.subscription.application.port.in.notification.NotificationView;
 import ci.orange.subscription.application.port.in.subscription.Attestation;
 import ci.orange.subscription.application.port.in.subscription.AttestationUseCases;
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
@@ -70,6 +73,24 @@ class SubscriptionControllerTest {
 
 	@MockitoBean
 	private AttestationUseCases attestationUseCases;
+
+	@MockitoBean
+	private NotificationUseCases notificationUseCases;
+
+	@Test
+	void listsTheNotificationsSentToTheClient() throws Exception {
+		when(notificationUseCases.listForSubscription(10L)).thenReturn(List.of(
+				new NotificationView(1L, SubscriptionTransition.ACTIVATE, "awa@mail.ci", NotificationStatus.SENT, 1,
+						Instant.parse("2026-10-15T08:00:00Z"), Instant.parse("2026-10-15T08:00:05Z"), null),
+				new NotificationView(2L, SubscriptionTransition.SUSPEND, "awa@mail.ci", NotificationStatus.PENDING, 1,
+						Instant.parse("2026-10-16T08:00:00Z"), null, "Connection refused")));
+
+		mockMvc.perform(get("/api/subscriptions/10/notifications"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].transition", contains("ACTIVATE", "SUSPEND")))
+				.andExpect(jsonPath("$[0].status").value("SENT"))
+				.andExpect(jsonPath("$[1].lastError").value("Connection refused"));
+	}
 
 	@Test
 	void exportsTheSubscriptionsAsAnExcelFriendlyCsv() throws Exception {

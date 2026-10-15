@@ -1,6 +1,6 @@
 # Base de données
 
-Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V9 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
+Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V10 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
 
 ## Tables et relations
 
@@ -11,6 +11,7 @@ erDiagram
     client ||--o{ subscription : "souscrit"
     offer ||--o{ subscription : "est souscrite par"
     subscription ||--o{ subscription_status_history : "historise"
+    subscription ||--o{ notification_outbox : "notifie"
 
     technology {
         varchar code PK "ex. 4G_BOX"
@@ -56,6 +57,17 @@ erDiagram
         timestamptz changed_at
         varchar changed_by
     }
+    notification_outbox {
+        bigint id PK
+        bigint subscription_id FK
+        varchar transition "ACTIVATE, SUSPEND, REACTIVATE, TERMINATE"
+        varchar recipient "email du client"
+        varchar status "PENDING, SENT, FAILED"
+        integer attempts
+        timestamptz next_attempt_at "prochaine tentative, ou bail pendant l'envoi"
+        varchar last_error
+        timestamptz sent_at
+    }
     subscription_reference_counter {
         integer year PK
         bigint last_value
@@ -80,6 +92,7 @@ Autres objets :
 - la **séquence `subscription_nd_seq`** (de 1 à 99 999 999), dont dérive le ND ([ADR-0014](adr/0014-souscriptions-numerotation-et-concurrence.md)) ;
 - la table **`subscription_reference_counter`**, un compteur par année pour la référence, incrémenté atomiquement ;
 - la table **`app_user`**, les comptes des utilisateurs de l'API, sans relation avec les autres tables ([ADR-0013](adr/0013-securite.md)) ;
+- la table **`notification_outbox`**, les emails à envoyer aux clients, enregistrés avec chaque changement de statut puis envoyés par une tâche planifiée ([ADR-0021](adr/0021-notifications-par-email.md)) ;
 - l'**extension `unaccent`**, pour la recherche insensible aux accents ([ADR-0017](adr/0017-recherche-insensible-aux-accents.md)).
 
 ## Règles métier garanties par la base
@@ -101,6 +114,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `fk_subscription_client`, `fk_subscription_offer`, `fk_subscription_technology` | subscription | Références existantes |
 | `fk_status_history_subscription` (`on delete cascade`) | historique | Historique rattaché à une souscription existante |
 | `uk_app_user_username`, `ck_app_user_role` | app_user | Nom d'utilisateur unique, rôle ADMIN ou CONSEILLER |
+| `fk_notification_subscription`, `ck_notification_transition`, `ck_notification_status` | notification_outbox | Notification rattachée à une souscription existante, opération et état prévus ([ADR-0021](adr/0021-notifications-par-email.md)) |
 
 ## Index et requêtes servies
 
@@ -118,6 +132,8 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_subscription_reference` | Unicité de la référence |
 | `ix_status_history_subscription` | Historique d'une souscription |
 | `uk_app_user_username` | Recherche du compte à la connexion |
+| `ix_notification_due` (partiel : `status = 'PENDING'`) | Réservation des notifications dues par la tâche d'envoi (`next_attempt_at <= now()`, `FOR UPDATE SKIP LOCKED`) |
+| `ix_notification_subscription` | Notifications d'une souscription (`GET /api/subscriptions/{id}/notifications`) |
 
 Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients a été retiré (V7) : depuis la recherche insensible aux accents, le filtre compare `lower(unaccent(city))`, expression qu'un index sur la colonne brute ne peut pas servir.
 
@@ -134,6 +150,7 @@ Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients
 | V7 | Retrait de l'index sur la ville, devenu inutile |
 | V8 | Comptes des utilisateurs de l'API et comptes de démonstration |
 | V9 | Prix mensuel figé sur chaque souscription |
+| V10 | Outbox des notifications par email |
 
 Une migration déjà appliquée n'est jamais modifiée, même pour un commentaire : Flyway vérifie son empreinte au démarrage.
 
