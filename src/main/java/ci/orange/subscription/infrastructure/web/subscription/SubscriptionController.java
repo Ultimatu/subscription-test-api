@@ -1,5 +1,7 @@
 package ci.orange.subscription.infrastructure.web.subscription;
 
+import ci.orange.subscription.application.port.in.subscription.Attestation;
+import ci.orange.subscription.application.port.in.subscription.AttestationUseCases;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
 import ci.orange.subscription.domain.subscription.Subscription;
@@ -8,6 +10,8 @@ import ci.orange.subscription.infrastructure.web.common.ApiErrors;
 import ci.orange.subscription.infrastructure.web.common.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,9 +48,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class SubscriptionController {
 
 	private final SubscriptionUseCases subscriptionUseCases;
+	private final AttestationUseCases attestationUseCases;
 
-	SubscriptionController(SubscriptionUseCases subscriptionUseCases) {
+	SubscriptionController(SubscriptionUseCases subscriptionUseCases, AttestationUseCases attestationUseCases) {
 		this.subscriptionUseCases = subscriptionUseCases;
+		this.attestationUseCases = attestationUseCases;
 	}
 
 	@Operation(summary = "Souscrire à une offre",
@@ -88,6 +97,23 @@ class SubscriptionController {
 	@GetMapping("/{id}")
 	SubscriptionDetailsResponse get(@PathVariable Long id) {
 		return details(id);
+	}
+
+	@Operation(summary = "Télécharger l'attestation (PDF)",
+			description = "Attestation de souscription, ou de résiliation pour une souscription résiliée, générée à la "
+					+ "demande à partir de l'état actuel de la souscription.")
+	@ApiResponse(responseCode = "200", description = "Attestation au format PDF",
+			content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
+					schema = @Schema(type = "string", format = "binary")))
+	@ApiErrors.NotFound
+	@GetMapping("/{id}/attestation")
+	ResponseEntity<byte[]> attestation(@PathVariable Long id) {
+		Attestation attestation = attestationUseCases.generate(id);
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType(Attestation.MEDIA_TYPE))
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.attachment().filename(attestation.fileName()).build().toString())
+				.body(attestation.content());
 	}
 
 	@Operation(summary = "Retrouver une souscription par son ND")

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<!--
+  Attestation de souscription, convertie en PDF par openhtmltopdf (CSS 2.1, pas de flexbox) :
+  la mise en page repose sur des tableaux. XHTML bien formé obligatoire (balises fermées, pas
+  d'entités nommées). Police Helvetica, l'une des polices standard du PDF, sans fichier à embarquer.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title th:text="${attestation.title} + ' ' + ${attestation.reference}">Attestation</title>
+<style>
+	@page {
+		size: A4;
+		margin: 16mm 16mm 22mm 16mm;
+		@bottom-left { content: element(footer); }
+		@bottom-right {
+			content: "Page " counter(page) " / " counter(pages);
+			font-family: Helvetica, sans-serif;
+			font-size: 7.5pt;
+			color: #595959;
+		}
+	}
+
+	body {
+		font-family: Helvetica, sans-serif;
+		font-size: 9.5pt;
+		color: #000000;
+		margin: 0;
+	}
+
+	table { border-collapse: collapse; width: 100%; }
+	td, th { vertical-align: top; padding: 0; }
+
+	/* En-tête : bandeau orange, nom de l'application et titre du document */
+	.band { height: 5mm; background-color: #FF7900; }
+	.header { margin-top: 6mm; }
+	.brand { font-size: 15pt; font-weight: bold; }
+	.brand-sub { font-size: 8.5pt; color: #595959; margin-top: 1mm; }
+	.doc-title { font-size: 19pt; font-weight: bold; text-align: right; }
+	.doc-ref { font-size: 9pt; color: #595959; text-align: right; margin-top: 1.5mm; }
+	.doc-ref strong { color: #000000; }
+
+	/* Bloc noir du numéro de ligne : le ND est l'information la plus recherchée */
+	.line {
+		margin-top: 8mm;
+		background-color: #000000;
+		color: #FFFFFF;
+		border-radius: 2mm;
+	}
+	.line td { padding: 6mm 7mm; vertical-align: middle; }
+	.line-label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.6pt; color: #CCCCCC; }
+	.line-nd { font-size: 24pt; font-weight: bold; color: #FF7900; margin-top: 1.5mm; letter-spacing: 0.5pt; }
+	.status {
+		display: inline-block;
+		padding: 1.6mm 4mm;
+		border-radius: 3mm;
+		font-size: 9pt;
+		font-weight: bold;
+	}
+	.status.pending { background-color: #4BB4E6; color: #000000; }
+	.status.active { background-color: #50BE87; color: #000000; }
+	.status.suspended { background-color: #FFD200; color: #000000; }
+	.status.terminated { background-color: #595959; color: #FFFFFF; }
+
+	/* Cartes titulaire et offre */
+	.cards { margin-top: 7mm; table-layout: fixed; }
+	.card {
+		border: 0.3mm solid #DDDDDD;
+		border-top: 1.2mm solid #FF7900;
+		padding: 4.5mm 5mm 5mm 5mm;
+	}
+	.gutter { width: 4%; }
+	.card-title {
+		font-size: 8pt;
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 0.6pt;
+		color: #595959;
+		margin-bottom: 3mm;
+	}
+	.field { margin-top: 2.6mm; }
+	.field-label { font-size: 7.5pt; color: #595959; }
+	.field-value { font-size: 10pt; font-weight: bold; margin-top: 0.6mm; }
+	.name { font-size: 13pt; font-weight: bold; }
+	.price { font-size: 17pt; font-weight: bold; }
+	.price-unit { font-size: 9pt; font-weight: normal; color: #595959; }
+
+	/* Encadré de résiliation */
+	.notice {
+		margin-top: 6mm;
+		background-color: #F4F4F4;
+		border-left: 1.2mm solid #000000;
+		padding: 3.5mm 5mm;
+	}
+
+	/* Historique */
+	h2 {
+		font-size: 11pt;
+		margin: 9mm 0 3mm 0;
+	}
+	.history th {
+		text-align: left;
+		font-size: 7.5pt;
+		text-transform: uppercase;
+		letter-spacing: 0.5pt;
+		color: #595959;
+		padding: 0 2mm 2mm 0;
+		border-bottom: 0.6mm solid #FF7900;
+	}
+	.history td {
+		padding: 2.4mm 2mm 2.4mm 0;
+		border-bottom: 0.2mm solid #DDDDDD;
+	}
+	.muted { color: #595959; }
+
+	.statement { margin-top: 9mm; font-size: 9pt; line-height: 1.45; }
+
+	/* Pied de page, répété en bas de chaque page */
+	.footer {
+		position: running(footer);
+		font-size: 7.5pt;
+		color: #595959;
+	}
+</style>
+</head>
+<body>
+
+<div class="footer">
+	Généré le <span th:text="${attestation.generatedAt}">15 octobre 2026 à 10:30</span> (heure d'Abidjan)
+	par Subscription API. Document de démonstration, sans valeur contractuelle.
+</div>
+
+<div class="band"></div>
+
+<table class="header">
+	<tr>
+		<td>
+			<div class="brand">Subscription API</div>
+			<div class="brand-sub">Gestion des clients, des offres et des souscriptions</div>
+		</td>
+		<td>
+			<div class="doc-title" th:text="${attestation.title}">Attestation de souscription</div>
+			<div class="doc-ref">Référence <strong th:text="${attestation.reference}">SUB-2026-000001</strong></div>
+		</td>
+	</tr>
+</table>
+
+<table class="line">
+	<tr>
+		<td>
+			<div class="line-label">Numéro de ligne (ND)</div>
+			<div class="line-nd" th:text="${attestation.nd}">27 00 00 00 01</div>
+		</td>
+		<td style="text-align: right; width: 45mm;">
+			<span th:class="'status ' + ${attestation.statusCss}" class="status active"
+				th:text="${attestation.statusLabel}">Active</span>
+		</td>
+	</tr>
+</table>
+
+<table class="cards">
+	<tr>
+		<td class="card" style="width: 48%;">
+			<div class="card-title">Titulaire</div>
+			<div class="name" th:text="${attestation.holderName}">Awa Koné</div>
+			<div class="field">
+				<div class="field-label">Email</div>
+				<div class="field-value" th:text="${attestation.holderEmail}">awa.kone@exemple.ci</div>
+			</div>
+			<div class="field">
+				<div class="field-label">Téléphone</div>
+				<div class="field-value" th:text="${attestation.holderPhone}">07 01 02 03 04</div>
+			</div>
+			<div class="field">
+				<div class="field-label">Ville</div>
+				<div class="field-value" th:text="${attestation.holderCity}">Abidjan</div>
+			</div>
+		</td>
+		<td class="gutter"></td>
+		<td class="card" style="width: 48%;">
+			<div class="card-title">Offre souscrite</div>
+			<div class="name" th:text="${attestation.offerLabel}">Fibre Confort 100 Mbps</div>
+			<div class="field">
+				<div class="field-label">Code de l'offre et technologie</div>
+				<div class="field-value">
+					<span th:text="${attestation.offerCode}">FTTH-100</span>
+					<span class="muted"> · </span>
+					<span th:text="${attestation.technologyLabel}">Fibre optique</span>
+				</div>
+			</div>
+			<div class="field">
+				<div class="field-label">Prix mensuel souscrit</div>
+				<div class="field-value">
+					<span class="price" th:text="${attestation.monthlyPrice}">25 000 FCFA</span>
+					<span class="price-unit"> / mois</span>
+				</div>
+			</div>
+			<div class="field">
+				<div class="field-label" th:text="${attestation.endDate} ? 'Période' : 'Date de début'">Date de début</div>
+				<div class="field-value" th:if="${attestation.endDate}"
+					th:text="'Du ' + ${attestation.startDate} + ' au ' + ${attestation.endDate}">Du 15 octobre 2026 au 20 octobre 2026</div>
+				<div class="field-value" th:unless="${attestation.endDate}" th:text="${attestation.startDate}">15 octobre 2026</div>
+			</div>
+		</td>
+	</tr>
+</table>
+
+<div class="notice" th:if="${attestation.endDate}">
+	<strong>Souscription résiliée le <span th:text="${attestation.endDate}">20 octobre 2026</span>.</strong>
+	<span th:if="${attestation.terminationReason}">
+		Motif : <span th:text="${attestation.terminationReason}">Déménagement</span>.
+	</span>
+	La ligne n'est plus en service.
+</div>
+
+<h2>Historique de la souscription</h2>
+<table class="history">
+	<thead>
+		<tr>
+			<th style="width: 27mm;">Date</th>
+			<th style="width: 27mm;">Opération</th>
+			<th style="width: 24mm;">Statut</th>
+			<th>Motif</th>
+			<th style="width: 26mm;">Par</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr th:each="row : ${attestation.history}">
+			<td th:text="${row.date}">15/10/2026 10:30</td>
+			<td th:text="${row.operation}">Souscription</td>
+			<td th:text="${row.status}">En attente</td>
+			<td th:text="${row.reason} ?: '-'" th:classappend="${row.reason} ? '' : 'muted'">-</td>
+			<td class="muted" th:text="${row.author}">conseiller</td>
+		</tr>
+	</tbody>
+</table>
+
+<p class="statement">
+	Nous attestons que <strong th:text="${attestation.holderName}">Awa Koné</strong> est titulaire de la
+	souscription <strong th:text="${attestation.reference}">SUB-2026-000001</strong> à l'offre
+	<strong th:text="${attestation.offerLabel}">Fibre Confort 100 Mbps</strong>, rattachée à la ligne
+	<strong th:text="${attestation.nd}">27 00 00 00 01</strong>, dans l'état décrit ci-dessus à la date de
+	génération de ce document.
+</p>
+
+</body>
+</html>

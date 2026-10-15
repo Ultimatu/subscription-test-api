@@ -334,6 +334,7 @@
 									"const body = pm.response.json();",
 									"pm.collectionVariables.set('scenarioSubscriptionId', body.id);",
 									"pm.collectionVariables.set('scenarioNd', body.nd);",
+									"pm.collectionVariables.set('scenarioReference', body.reference);",
 									"pm.test('souscription PENDING', () => pm.expect(body.status).to.eql('PENDING'));",
 									"pm.test('prix de l\\'offre figé sur la souscription', () => pm.expect(body.monthlyPrice).to.eql(30000));",
 									"pm.test('référence SUB-AAAA-NNNNNN', () => pm.expect(body.reference).to.match(/^SUB-\\d{4}-\\d{6}$/));",
@@ -555,6 +556,42 @@
 									"    .to.eql(['PENDING', 'ACTIVE', 'SUSPENDED', 'ACTIVE', 'TERMINATED']));",
 									"pm.test('motifs conservés', () => pm.expect(history.map(h => h.reason).filter(r => r))",
 									"    .to.eql(['Impayé', 'Déménagement']));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "9. Télécharger l'attestation de résiliation (PDF)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{scenarioSubscriptionId}}/attestation",
+						"description": "Attestation générée à la demande : ND, titulaire, offre, prix souscrit, historique et motif de résiliation. Dans Postman, « Send and Download » enregistre le fichier.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('document PDF', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+									"    pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true;",
+									"});",
+									"pm.test('téléchargé sous le nom de la référence', () => pm.expect(pm.response.headers.get('Content-Disposition'))",
+									"    .to.include('attachment').and.include('attestation-' + pm.collectionVariables.get('scenarioReference') + '.pdf'));"
 								]
 							}
 						}
@@ -2035,7 +2072,7 @@
 		},
 		{
 			"name": "6 · Souscriptions",
-			"description": "Lectures, recherche et suppression des souscriptions. Utilise le client, l'offre et la souscription du\nscénario de bout en bout : à exécuter après lui.",
+			"description": "Lectures, recherche, attestation et suppression des souscriptions. Utilise le client, l'offre et la souscription du\nscénario de bout en bout : à exécuter après lui.",
 			"item": [
 				{
 					"name": "Détail d'une souscription",
@@ -2203,7 +2240,44 @@
 								"type": "text/javascript",
 								"exec": [
 									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-									"pm.collectionVariables.set('pendingSubscriptionId', pm.response.json().id);"
+									"pm.collectionVariables.set('pendingSubscriptionId', pm.response.json().id);",
+									"pm.collectionVariables.set('pendingReference', pm.response.json().reference);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Télécharger l'attestation de souscription (PDF)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{pendingSubscriptionId}}/attestation",
+						"description": "Pour une souscription en cours, l'attestation de souscription ; pour une souscription résiliée, l'attestation de résiliation. Dans Postman, « Send and Download » enregistre le fichier.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('document PDF', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+									"    pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true;",
+									"});",
+									"pm.test('téléchargé sous le nom de la référence', () => pm.expect(pm.response.headers.get('Content-Disposition'))",
+									"    .to.include('attachment').and.include('attestation-' + pm.collectionVariables.get('pendingReference') + '.pdf'));"
 								]
 							}
 						}

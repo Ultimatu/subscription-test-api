@@ -44,13 +44,14 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Erreurs au format Problem Details (RFC 9457) | Format standard, avec un `code` stable exploitable par un client de l'API | [ADR-0007](docs/adr/0007-format-des-erreurs.md) |
 | Traçabilité par `X-Request-Id` | Retrouver dans les logs toutes les lignes d'une requête | [ADR-0008](docs/adr/0008-tracabilite-des-requetes.md) |
 | Recherche insensible aux accents | `kone` trouve `Koné`, `bouake` trouve `Bouaké` | [ADR-0017](docs/adr/0017-recherche-insensible-aux-accents.md) |
+| Attestation PDF | Le conseiller remet au client une attestation de souscription, ou de résiliation, générée à la demande | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
 | Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Accès concurrents maîtrisés | Deux souscriptions simultanées ne peuvent pas contourner la règle 14 | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
 | Schéma versionné (Flyway), contraintes doublées en base | Les règles tiennent même en cas d'accès concurrent ou d'écriture directe en base | [ADR-0002](docs/adr/0002-schema-versionne-flyway.md) |
 | Couverture mesurée (JaCoCo), architecture vérifiée (ArchUnit) | Le build échoue si la couverture baisse ou si une dépendance va dans le mauvais sens | [ADR-0016](docs/adr/0016-couverture-de-code.md) |
 
-**Stack** : Java 17, Spring Boot 3.5 (Web, Data JPA, Validation, Security, OAuth2 Resource Server, Actuator), PostgreSQL, Flyway, springdoc-openapi, Lombok. Tests : JUnit 5, AssertJ, Mockito, Spring Security Test, ArchUnit, JaCoCo.
+**Stack** : Java 17, Spring Boot 3.5 (Web, Data JPA, Validation, Security, OAuth2 Resource Server, Actuator), PostgreSQL, Flyway, springdoc-openapi, Thymeleaf et openhtmltopdf (PDF), Lombok. Tests : JUnit 5, AssertJ, Mockito, Spring Security Test, ArchUnit, JaCoCo.
 
 ## 2. Prérequis
 
@@ -201,10 +202,12 @@ subscription-api/
 │       ├── web/                    controllers REST, DTO, gestion des erreurs, traçabilité des requêtes
 │       ├── persistence/            entités JPA, repositories Spring Data, implémentation des ports de sortie
 │       ├── security/               JWT, comptes utilisateurs, matrice des droits
+│       ├── document/               attestation PDF (gabarit Thymeleaf converti par openhtmltopdf)
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   └── db/migration/               migrations Flyway V1 à V9
+│   ├── db/migration/               migrations Flyway V1 à V9
+│   └── templates/documents/        gabarit HTML de l'attestation
 └── src/test/java/                  tests, dans la même arborescence
 ```
 
@@ -217,6 +220,7 @@ subscription-api/
 | `infrastructure.web` | Traduit HTTP en appels aux ports d'entrée : validation des corps de requête (Bean Validation), conversion DTO ↔ modèle, conversion des exceptions en réponses Problem Details, identifiant de requête. |
 | `infrastructure.persistence` | Implémente les ports de sortie avec JPA. Les entités JPA (`ClientEntity`…) sont distinctes des modèles du domaine, reliées par un mapping manuel. |
 | `infrastructure.security` | Émission et vérification des jetons, comptes utilisateurs, droits par rôle. |
+| `infrastructure.document` | Mise en page de l'attestation : gabarit HTML et CSS rendu en PDF. |
 | `infrastructure.config` | Assemblage : horloge (fuseau Africa/Abidjan), préfixe `/api`, description OpenAPI. |
 
 Les adaptateurs de `infrastructure` dépendent de `application` et de `domain`, jamais l'inverse : le métier ignore qu'il est exposé en HTTP et stocké dans PostgreSQL.
@@ -290,6 +294,7 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | POST | `/api/auth/login` | Obtenir un jeton (`username`, `password`) | 200 | Public |
 | GET | `/api/technologies` | Lister les technologies | 200 | Conseiller |
 | GET | `/api/technologies/{code}` | Détail d'une technologie | 200 | Conseiller |
+| GET | `/api/subscriptions/{id}/attestation` | Télécharger l'attestation de souscription ou de résiliation (PDF) | 200 | Conseiller |
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
 
 Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
@@ -433,7 +438,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 59 requêtes s'exécutent dans l'ordre et vérifient 112 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 61 requêtes s'exécutent dans l'ordre et vérifient 118 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -446,12 +451,12 @@ npx newman run postman/subscription-api.postman_collection.json
 | Dossier | Contenu |
 |---|---|
 | 0 · Authentification | Connexion en administrateur et en conseiller |
-| 1 · Scénario de bout en bout | Les 7 étapes de l'énoncé, puis la vérification de l'historique |
+| 1 · Scénario de bout en bout | Les 7 étapes de l'énoncé, puis la vérification de l'historique et l'attestation de résiliation |
 | 2 · Règles métier | Les règles démontrées par leurs cas d'erreur, et les contrôles de droits (401, 403) |
 | 3 · Clients | Tous les endpoints des clients |
 | 4 · Offres | Tous les endpoints des offres |
 | 5 · Technologies | Catalogue des technologies |
-| 6 · Souscriptions | Détail, recherche par ND, recherche globale, liste par client, suppression |
+| 6 · Souscriptions | Détail, recherche par ND, recherche globale, liste par client, attestation, suppression |
 | 7 · Statistiques | Les trois indicateurs |
 
 La spécification OpenAPI (`http://localhost:8080/v3/api-docs`) peut aussi être importée dans Postman, qui génère alors une requête par endpoint, sans le scénario ni les vérifications.
@@ -598,17 +603,22 @@ Content-Type: application/json
 }
 ```
 
+**8. Attestation de résiliation** (conseiller) : `GET /api/subscriptions/14/attestation` renvoie le PDF, nommé `attestation-SUB-2026-000001.pdf`.
+
+<p align="center"><img src="docs/images/attestation-resiliation.png" alt="Attestation de résiliation générée par l'API" width="560"></p>
+
 Le dossier « 2 · Règles métier » de la collection démontre ensuite les cas d'erreur : doublon d'email, souscription bloquée par une suspension (règles 13 et 15), unicité par technologie (règle 14), transition interdite, suppression refusée, droits insuffisants.
 
 ## 13. Limites et améliorations
 
 ### Extensions réalisées
 
-Les améliorations suivantes figuraient dans cette liste. Le délai laissé pour le test étant largement suffisant, elles ont été réalisées, au-delà de l'énoncé et sans modifier son contrat d'API :
+Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai laissé pour le test étant largement suffisant, elles ont été réalisées, au-delà de l'énoncé et sans modifier son contrat d'API :
 
 | Extension | Détail |
 |---|---|
 | Prix mensuel figé à la souscription : une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
+| Attestation de souscription ou de résiliation au format PDF, téléchargeable depuis l'API | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
 
 ### Pistes restantes
 
@@ -635,6 +645,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 - **Index trigrammes** (`pg_trgm`) pour les recherches partielles, qui parcourent aujourd'hui toute la table, et un index d'expression sur la ville sans accents ; le schéma actuel est dimensionné pour quelques dizaines de milliers de clients ([docs/base-de-donnees.md](docs/base-de-donnees.md#pour-de-plus-gros-volumes)).
 - **Cache** du catalogue d'offres et de technologies, qui change rarement.
+- **Documents en masse** (relevés mensuels de tous les clients, par exemple) : une file de traitements (JobRunr sur PostgreSQL, ou un broker de messages). Inutile pour une attestation unitaire, générée en quelques dizaines de millisecondes ([ADR-0019](docs/adr/0019-attestation-pdf.md)).
 
 **Tests et exploitation**
 
@@ -648,7 +659,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 18 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 19 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

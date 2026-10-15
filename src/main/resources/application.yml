@@ -30,6 +30,9 @@ app:
       secret: 4UNwXJoVwONomSM7a6LtumqQ2mOm4Nh2FTS+GQrz1JA=
 
 logging:
+  level:
+    # Le moteur PDF détaille chaque génération au niveau INFO
+    com.openhtmltopdf: WARN
   pattern:
     # Chaque ligne de log porte l'identifiant de sa requête (voir RequestTracingFilter)
     correlation: "[%X{requestId:-}] "

@@ -12,10 +12,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ci.orange.subscription.application.port.in.subscription.Attestation;
+import ci.orange.subscription.application.port.in.subscription.AttestationUseCases;
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
 import ci.orange.subscription.application.port.in.subscription.StatusHistoryEntry;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
@@ -61,6 +64,33 @@ class SubscriptionControllerTest {
 
 	@MockitoBean
 	private SubscriptionUseCases subscriptionUseCases;
+
+	@MockitoBean
+	private AttestationUseCases attestationUseCases;
+
+	@Test
+	void downloadsTheAttestationAsAPdfAttachment() throws Exception {
+		byte[] pdf = "%PDF-1.4 attestation".getBytes();
+		when(attestationUseCases.generate(10L)).thenReturn(new Attestation("attestation-SUB-2026-000001.pdf", pdf));
+
+		mockMvc.perform(get("/api/subscriptions/10/attestation"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType(MediaType.APPLICATION_PDF))
+				.andExpect(header().string("Content-Disposition",
+						"attachment; filename=\"attestation-SUB-2026-000001.pdf\""))
+				.andExpect(content().bytes(pdf));
+	}
+
+	@Test
+	void reportsAnUnknownSubscriptionWhenAskedForItsAttestation() throws Exception {
+		when(attestationUseCases.generate(99L)).thenThrow(
+				new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription", 99L));
+
+		mockMvc.perform(get("/api/subscriptions/99/attestation"))
+				.andExpect(status().isNotFound())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.code").value("SUBSCRIPTION_NOT_FOUND"));
+	}
 
 	@Test
 	void createsASubscriptionAndReturnsItsDetails() throws Exception {
