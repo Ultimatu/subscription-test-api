@@ -152,7 +152,7 @@ class StatisticsServiceTest {
 	}
 
 	private static Technology technology(String code) {
-		return Technology.restore(code, "Libellé " + code, null);
+		return Technology.restore(code, "Libellé " + code, true, null);
 	}
 
 }

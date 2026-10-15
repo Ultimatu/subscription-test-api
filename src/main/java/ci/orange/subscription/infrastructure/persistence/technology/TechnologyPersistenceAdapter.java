@@ -35,11 +35,14 @@ class TechnologyPersistenceAdapter implements TechnologyRepository {
 		return jpaRepository.existsById(code);
 	}
 
+	/** Une technologie déjà enregistrée (lue en base, donc avec son audit) est mise à jour. */
 	@Override
 	public Technology save(Technology technology) {
-		TechnologyEntity entity = new TechnologyEntity();
+		TechnologyEntity entity = technology.getAudit() == null ? new TechnologyEntity()
+				: jpaRepository.findById(technology.getCode()).orElseThrow();
 		entity.setCode(technology.getCode());
 		entity.setLabel(technology.getLabel());
+		entity.setActive(technology.isActive());
 		try {
 			return toDomain(jpaRepository.saveAndFlush(entity));
 		}
@@ -51,7 +54,7 @@ class TechnologyPersistenceAdapter implements TechnologyRepository {
 	}
 
 	private static Technology toDomain(TechnologyEntity entity) {
-		return Technology.restore(entity.getCode(), entity.getLabel(), entity.toAuditInfo());
+		return Technology.restore(entity.getCode(), entity.getLabel(), entity.isActive(), entity.toAuditInfo());
 	}
 
 }

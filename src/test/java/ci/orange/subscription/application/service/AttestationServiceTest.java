@@ -79,7 +79,7 @@ class AttestationServiceTest {
 		when(subscriptionQueries.findHistory(10L)).thenReturn(history);
 		when(clientRepository.findById(1L)).thenReturn(Optional.of(holder));
 		when(technologyRepository.findByCode("FTTH"))
-				.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", null)));
+				.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", true, null)));
 		byte[] pdf = { 1, 2, 3 };
 		when(renderer.render(any())).thenReturn(pdf);
 

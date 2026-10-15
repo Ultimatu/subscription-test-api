@@ -12,6 +12,7 @@ import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
 import ci.orange.subscription.application.port.out.SubscriptionQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
+import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
@@ -22,6 +23,7 @@ import ci.orange.subscription.domain.subscription.SubscriptionEligibility;
 import ci.orange.subscription.domain.subscription.SubscriptionNumbering;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.domain.subscription.SubscriptionTransition;
+import ci.orange.subscription.domain.technology.Technology;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumSet;
@@ -40,17 +42,20 @@ public class SubscriptionService implements SubscriptionUseCases {
 	private final SubscriptionQueries subscriptionQueries;
 	private final ClientRepository clientRepository;
 	private final OfferRepository offerRepository;
+	private final TechnologyRepository technologyRepository;
 	private final SubscriptionNumberSequences numberSequences;
 	private final NotificationOutbox notificationOutbox;
 	private final Clock clock;
 
 	public SubscriptionService(SubscriptionRepository subscriptionRepository, SubscriptionQueries subscriptionQueries,
 			ClientRepository clientRepository, OfferRepository offerRepository,
-			SubscriptionNumberSequences numberSequences, NotificationOutbox notificationOutbox, Clock clock) {
+			TechnologyRepository technologyRepository, SubscriptionNumberSequences numberSequences,
+			NotificationOutbox notificationOutbox, Clock clock) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.subscriptionQueries = subscriptionQueries;
 		this.clientRepository = clientRepository;
 		this.offerRepository = offerRepository;
+		this.technologyRepository = technologyRepository;
 		this.numberSequences = numberSequences;
 		this.notificationOutbox = notificationOutbox;
 		this.clock = clock;
@@ -74,7 +79,11 @@ public class SubscriptionService implements SubscriptionUseCases {
 				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.OFFER_NOT_FOUND, "Offre",
 						command.offerId()));
 
-		SubscriptionEligibility.check(client, offer,
+		Technology technology = technologyRepository.findByCode(offer.getTechnology())
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.TECHNOLOGY_NOT_FOUND, "Technologie",
+						offer.getTechnology()));
+
+		SubscriptionEligibility.check(client, offer, technology,
 				subscriptionRepository.existsByClientIdAndStatusIn(client.getId(),
 						EnumSet.of(SubscriptionStatus.SUSPENDED)),
 				subscriptionRepository.existsOngoingForClientAndTechnology(client.getId(), offer.getTechnology()));

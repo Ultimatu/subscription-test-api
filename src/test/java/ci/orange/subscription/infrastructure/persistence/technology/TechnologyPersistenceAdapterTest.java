@@ -34,6 +34,17 @@ class TechnologyPersistenceAdapterTest {
 	}
 
 	@Test
+	void savesTheAvailabilityOfAnExistingTechnology() {
+		Technology satellite = technologyRepository.findByCode("SATELLITE").orElseThrow();
+		assertThat(satellite.isActive()).isTrue();
+
+		satellite.deactivate();
+		technologyRepository.save(satellite);
+
+		assertThat(technologyRepository.findByCode("SATELLITE").orElseThrow().isActive()).isFalse();
+	}
+
+	@Test
 	void theDatabaseRejectsADuplicateCodeThatSlippedThroughTheCheck() {
 		assertThatThrownBy(() -> technologyRepository.save(Technology.create("FTTH", "Doublon")))
 				.isInstanceOf(BusinessRuleViolationException.class);

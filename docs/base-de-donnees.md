@@ -1,6 +1,6 @@
 # Base de données
 
-Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V10 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
+Schéma PostgreSQL de l'application, tel qu'il résulte des migrations Flyway V1 à V11 (`src/main/resources/db/migration`). Le schéma n'est jamais modifié par Hibernate, qui se contente de vérifier au démarrage que les entités lui correspondent ([ADR-0002](adr/0002-schema-versionne-flyway.md)).
 
 ## Tables et relations
 
@@ -16,6 +16,7 @@ erDiagram
     technology {
         varchar code PK "ex. 4G_BOX"
         varchar label
+        boolean active "retirée du catalogue si faux"
     }
     offer {
         bigint id PK
@@ -151,6 +152,7 @@ Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients
 | V8 | Comptes des utilisateurs de l'API et comptes de démonstration |
 | V9 | Prix mensuel figé sur chaque souscription |
 | V10 | Outbox des notifications par email |
+| V11 | Retrait possible d'une technologie du catalogue |
 
 Une migration déjà appliquée n'est jamais modifiée, même pour un commentaire : Flyway vérifie son empreinte au démarrage.
 

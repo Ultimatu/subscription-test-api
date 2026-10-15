@@ -31,16 +31,29 @@ class TechnologyServiceTest {
 	private TechnologyService technologyService;
 
 	@Test
-	void listsTheCatalogue() {
-		List<Technology> catalogue = List.of(Technology.restore("FTTH", "Fibre optique", null));
-		when(technologyRepository.findAll()).thenReturn(catalogue);
+	void listsTheCatalogueOrOnlyTheAvailableOrRetiredTechnologies() {
+		Technology ftth = Technology.restore("FTTH", "Fibre optique", true, null);
+		Technology satellite = Technology.restore("SATELLITE", "Satellite", false, null);
+		when(technologyRepository.findAll()).thenReturn(List.of(ftth, satellite));
 
-		assertThat(technologyService.list()).isSameAs(catalogue);
+		assertThat(technologyService.list(null)).containsExactly(ftth, satellite);
+		assertThat(technologyService.list(true)).containsExactly(ftth);
+		assertThat(technologyService.list(false)).containsExactly(satellite);
+	}
+
+	@Test
+	void retiresThenRestoresATechnology() {
+		Technology ftth = Technology.restore("FTTH", "Fibre optique", true, null);
+		when(technologyRepository.findByCode("FTTH")).thenReturn(Optional.of(ftth));
+		when(technologyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assertThat(technologyService.deactivate("FTTH").isActive()).isFalse();
+		assertThat(technologyService.activate("FTTH").isActive()).isTrue();
 	}
 
 	@Test
 	void getsATechnology() {
-		Technology ftth = Technology.restore("FTTH", "Fibre optique", null);
+		Technology ftth = Technology.restore("FTTH", "Fibre optique", true, null);
 		when(technologyRepository.findByCode("FTTH")).thenReturn(Optional.of(ftth));
 
 		assertThat(technologyService.get("FTTH")).isSameAs(ftth);

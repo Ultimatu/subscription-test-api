@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,8 +37,8 @@ class TechnologyControllerTest {
 
 	@Test
 	void listsTheCatalogue() throws Exception {
-		when(technologyUseCases.list()).thenReturn(List.of(Technology.restore("4G_BOX", "Box 4G", null),
-				Technology.restore("FTTH", "Fibre optique", null)));
+		when(technologyUseCases.list(null)).thenReturn(List.of(Technology.restore("4G_BOX", "Box 4G", true, null),
+				Technology.restore("FTTH", "Fibre optique", true, null)));
 
 		mockMvc.perform(get("/api/technologies"))
 				.andExpect(status().isOk())
@@ -47,8 +48,33 @@ class TechnologyControllerTest {
 	}
 
 	@Test
+	void filtersOnAvailability() throws Exception {
+		when(technologyUseCases.list(false)).thenReturn(List.of(Technology.restore("SATELLITE", "Satellite", false,
+				null)));
+
+		mockMvc.perform(get("/api/technologies").param("active", "false"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].code").value("SATELLITE"))
+				.andExpect(jsonPath("$[0].active").value(false));
+	}
+
+	@Test
+	void retiresAndRestoresATechnology() throws Exception {
+		when(technologyUseCases.deactivate("FTTH")).thenReturn(Technology.restore("FTTH", "Fibre optique", false,
+				null));
+		when(technologyUseCases.activate("FTTH")).thenReturn(Technology.restore("FTTH", "Fibre optique", true, null));
+
+		mockMvc.perform(patch("/api/technologies/FTTH/deactivate"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.active").value(false));
+		mockMvc.perform(patch("/api/technologies/FTTH/activate"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.active").value(true));
+	}
+
+	@Test
 	void getsATechnology() throws Exception {
-		when(technologyUseCases.get("FTTH")).thenReturn(Technology.restore("FTTH", "Fibre optique", null));
+		when(technologyUseCases.get("FTTH")).thenReturn(Technology.restore("FTTH", "Fibre optique", true, null));
 
 		mockMvc.perform(get("/api/technologies/FTTH"))
 				.andExpect(status().isOk())
@@ -66,7 +92,7 @@ class TechnologyControllerTest {
 
 	@Test
 	void createsATechnology() throws Exception {
-		when(technologyUseCases.create(any())).thenReturn(Technology.restore("5G_BOX", "Box 5G", null));
+		when(technologyUseCases.create(any())).thenReturn(Technology.restore("5G_BOX", "Box 5G", true, null));
 
 		mockMvc.perform(post("/api/technologies").contentType(MediaType.APPLICATION_JSON)
 				.content("{ \"code\": \"5G_BOX\", \"label\": \"Box 5G\" }"))

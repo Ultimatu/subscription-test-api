@@ -63,7 +63,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.POST, "/api/offers/**", "/api/technologies/**").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.PUT, "/api/offers/**").hasRole(ADMIN)
-						.requestMatchers(HttpMethod.PATCH, "/api/offers/**").hasRole(ADMIN)
+						.requestMatchers(HttpMethod.PATCH, "/api/offers/**", "/api/technologies/**").hasRole(ADMIN)
 						// Tout le reste de l'API : clients et souscriptions au quotidien
 						.requestMatchers("/api/**").hasAnyRole(ADMIN, CONSEILLER)
 						.anyRequest().permitAll())

@@ -1,8 +1,10 @@
 package ci.orange.subscription.domain.technology;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,22 @@ class TechnologyTest {
 		assertThatThrownBy(() -> Technology.create("5G_BOX", " "))
 				.isInstanceOf(DomainValidationException.class)
 				.hasMessageContaining("label");
+	}
+
+	@Test
+	void isAvailableWhenCreatedAndCanBeRetiredThenRestored() {
+		Technology technology = Technology.create("5G_BOX", "Box 5G");
+		assertThat(technology.isActive()).isTrue();
+
+		technology.deactivate();
+		assertThat(technology.isActive()).isFalse();
+		assertThatThrownBy(technology::ensureActive)
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_INACTIVE)
+				.hasMessageContaining("5G_BOX");
+
+		technology.activate();
+		assertThatCode(technology::ensureActive).doesNotThrowAnyException();
 	}
 
 }

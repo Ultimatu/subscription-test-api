@@ -23,9 +23,12 @@ public class TechnologyService implements TechnologyUseCases {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<Technology> list() {
-		return technologyRepository.findAll();
+	public List<Technology> list(Boolean active) {
+		return technologyRepository.findAll().stream()
+				.filter(technology -> active == null || technology.isActive() == active)
+				.toList();
 	}
+
 
 	@Override
 	@Transactional(readOnly = true)
@@ -34,6 +37,20 @@ public class TechnologyService implements TechnologyUseCases {
 				.orElseThrow(
 						() -> new ResourceNotFoundException(DomainErrorCode.TECHNOLOGY_NOT_FOUND, "Technologie", code));
 	}
+	@Override
+	public Technology deactivate(String code) {
+		Technology technology = get(code);
+		technology.deactivate();
+		return technologyRepository.save(technology);
+	}
+
+	@Override
+	public Technology activate(String code) {
+		Technology technology = get(code);
+		technology.activate();
+		return technologyRepository.save(technology);
+	}
+
 
 	@Override
 	public Technology create(CreateTechnologyCommand command) {

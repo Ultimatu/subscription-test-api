@@ -17,6 +17,7 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.DomainValidationException;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.offer.Offer;
+import ci.orange.subscription.domain.technology.Technology;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -41,9 +42,11 @@ class OfferServiceTest {
 	@InjectMocks
 	private OfferService offerService;
 
+	private static final Technology FTTH = Technology.restore("FTTH", "Fibre optique", true, null);
+
 	@Test
 	void createsAnActiveOffer() {
-		when(technologyRepository.existsByCode("FTTH")).thenReturn(true);
+		when(technologyRepository.findByCode("FTTH")).thenReturn(Optional.of(FTTH));
 		when(offerRepository.existsByCode("FTTH-2000")).thenReturn(false);
 		when(offerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -55,7 +58,7 @@ class OfferServiceTest {
 
 	@Test
 	void refusesATechnologyAbsentFromTheCatalogue() {
-		when(technologyRepository.existsByCode("5G_BOX")).thenReturn(false);
+		when(technologyRepository.findByCode("5G_BOX")).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> offerService.create(command("BOX5G-100", "5G_BOX")))
 				.isInstanceOf(DomainValidationException.class)
@@ -65,8 +68,19 @@ class OfferServiceTest {
 	}
 
 	@Test
+	void refusesATechnologyRetiredFromTheCatalogue() {
+		when(technologyRepository.findByCode("FTTH"))
+				.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", false, null)));
+
+		assertThatThrownBy(() -> offerService.create(command("FTTH-2000", "FTTH")))
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_INACTIVE);
+		verify(offerRepository, never()).save(any());
+	}
+
+	@Test
 	void refusesAnExistingCode() {
-		when(technologyRepository.existsByCode("FTTH")).thenReturn(true);
+		when(technologyRepository.findByCode("FTTH")).thenReturn(Optional.of(FTTH));
 		when(offerRepository.existsByCode("FTTH-100")).thenReturn(true);
 
 		assertThatThrownBy(() -> offerService.create(command("FTTH-100", "FTTH")))

@@ -32,10 +32,10 @@ public class OfferService implements OfferUseCases {
 	@Override
 	public Offer create(CreateOfferCommand command) {
 		Offer offer = Offer.create(command.code(), command.label(), command.technology(), command.monthlyPrice());
-		if (!technologyRepository.existsByCode(offer.getTechnology())) {
-			throw new DomainValidationException(DomainErrorCode.UNKNOWN_TECHNOLOGY,
-					"Technologie inconnue : " + offer.getTechnology() + " (voir GET /api/technologies)");
-		}
+		technologyRepository.findByCode(offer.getTechnology())
+				.orElseThrow(() -> new DomainValidationException(DomainErrorCode.UNKNOWN_TECHNOLOGY,
+						"Technologie inconnue : " + offer.getTechnology() + " (voir GET /api/technologies)"))
+				.ensureActive();
 		if (offerRepository.existsByCode(offer.getCode())) {
 			throw new BusinessRuleViolationException(DomainErrorCode.OFFER_CODE_ALREADY_USED,
 					"Une offre existe déjà avec le code " + offer.getCode());

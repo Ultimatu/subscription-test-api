@@ -40,7 +40,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Authentification JWT, rôles ADMIN et CONSEILLER | Savoir qui agit, restreindre les opérations sensibles | [ADR-0013](docs/adr/0013-securite.md) |
 | Audit et historique des statuts | Chaque modification porte son auteur et sa date ; chaque changement de statut est conservé avec son motif | [ADR-0004](docs/adr/0004-audit-et-historique.md) |
 | Suppression logique | Un client ou une souscription supprimés disparaissent de l'API mais restent en base | [ADR-0005](docs/adr/0005-suppression-logique.md) |
-| Catalogue des technologies | Ajouter une technologie ne demande ni code ni déploiement | [ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md) |
+| Catalogue des technologies | Ajouter une technologie ne demande ni code ni déploiement ; la retirer du catalogue n'affecte pas l'existant | [ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md), [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
 | Erreurs au format Problem Details (RFC 9457) | Format standard, avec un `code` stable exploitable par un client de l'API | [ADR-0007](docs/adr/0007-format-des-erreurs.md) |
 | Traçabilité par `X-Request-Id` | Retrouver dans les logs toutes les lignes d'une requête | [ADR-0008](docs/adr/0008-tracabilite-des-requetes.md) |
 | Recherche insensible aux accents | `kone` trouve `Koné`, `bouake` trouve `Bouaké` | [ADR-0017](docs/adr/0017-recherche-insensible-aux-accents.md) |
@@ -128,7 +128,7 @@ spring:
     open-in-view: false
 ```
 
-- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V10). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
+- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V11). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
 - **Droits nécessaires** : l'utilisateur doit être propriétaire de la base, pour que Flyway puisse créer les tables, le schéma des tests et l'extension `unaccent` (extension de confiance, qui ne demande pas de droits de super-utilisateur).
 - **Autre environnement** : les valeurs se remplacent par variables d'environnement, sans modifier le fichier ([ADR-0003](docs/adr/0003-configuration.md)) :
 
@@ -213,7 +213,7 @@ subscription-api/
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── db/migration/               migrations Flyway V1 à V10
+│   ├── db/migration/               migrations Flyway V1 à V11
 │   └── templates/                  gabarits de l'attestation (documents/) et des emails (notifications/)
 └── src/test/java/                  tests, dans la même arborescence
 ```
@@ -300,13 +300,15 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | Méthode | URL | Description | Succès | Rôle |
 |---|---|---|---|---|
 | POST | `/api/auth/login` | Obtenir un jeton (`username`, `password`) | 200 | Public |
-| GET | `/api/technologies` | Lister les technologies | 200 | Conseiller |
+| GET | `/api/technologies` | Lister les technologies (`active` pour filtrer) | 200 | Conseiller |
 | GET | `/api/technologies/{code}` | Détail d'une technologie | 200 | Conseiller |
 | GET | `/api/subscriptions/{id}/attestation` | Télécharger l'attestation de souscription ou de résiliation (PDF) | 200 | Conseiller |
 | GET | `/api/clients/export` | Exporter les clients en CSV (filtres de la liste) | 200 | Admin |
 | GET | `/api/subscriptions/export` | Exporter les souscriptions en CSV (filtres de la recherche globale) | 200 | Admin |
 | GET | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi | 200 | Conseiller |
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
+| PATCH | `/api/technologies/{code}/deactivate` | Retirer une technologie du catalogue | 200 | Admin |
+| PATCH | `/api/technologies/{code}/activate` | Remettre une technologie au catalogue | 200 | Admin |
 
 Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
 
@@ -385,6 +387,7 @@ Chaque règle est appliquée dans le domaine ou dans les services ; les règles 
 | 20 | Motif obligatoire pour la suspension et la résiliation, conservé | 400 `VALIDATION_ERROR` |
 | 21 | Résiliation définitive, date de fin à la date du jour | 409 `INVALID_STATUS_TRANSITION` sur toute opération ultérieure |
 | 22 | Seule une souscription PENDING peut être supprimée | 409 `SUBSCRIPTION_NOT_DELETABLE` |
+| — | Hors énoncé : une technologie retirée du catalogue n'accepte plus de nouvelle offre ni de souscription ; vérifiée juste après l'offre active | 409 `TECHNOLOGY_INACTIVE` ([ADR-0022](docs/adr/0022-statut-des-technologies.md)) |
 
 Les points sur lesquels l'énoncé laisse une marge d'interprétation sont recensés, avec le choix retenu, dans [docs/interpretations.md](docs/interpretations.md). Les principaux :
 
@@ -637,6 +640,7 @@ Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai 
 | Attestation de souscription ou de résiliation au format PDF, téléchargeable depuis l'API | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
 | Exports CSV des clients et des souscriptions pour Excel, lus par lots et protégés contre l'injection de formule | [ADR-0020](docs/adr/0020-exports-csv.md) |
 | Notifications par email à chaque changement de statut, fiables grâce à une outbox en base, avec l'attestation jointe | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
+| Retrait d'une technologie du catalogue, réversible et sans effet sur l'existant | [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
 
 ### Pistes restantes
 
@@ -678,7 +682,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 21 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 22 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

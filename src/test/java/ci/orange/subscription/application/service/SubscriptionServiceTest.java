@@ -21,6 +21,7 @@ import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
 import ci.orange.subscription.application.port.out.SubscriptionQueries;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
+import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
@@ -33,6 +34,7 @@ import ci.orange.subscription.domain.subscription.InvalidStatusTransitionExcepti
 import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.domain.subscription.SubscriptionTransition;
+import ci.orange.subscription.domain.technology.Technology;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -68,6 +70,9 @@ class SubscriptionServiceTest {
 	private OfferRepository offerRepository;
 
 	@Mock
+	private TechnologyRepository technologyRepository;
+
+	@Mock
 	private SubscriptionNumberSequences numberSequences;
 
 	@Mock
@@ -82,7 +87,7 @@ class SubscriptionServiceTest {
 	void createService() {
 		Clock clock = Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant().plusSeconds(3600), ABIDJAN);
 		subscriptionService = new SubscriptionService(subscriptionRepository, subscriptionQueries, clientRepository,
-				offerRepository, numberSequences, notificationOutbox, clock);
+				offerRepository, technologyRepository, numberSequences, notificationOutbox, clock);
 	}
 
 	@Nested
@@ -133,6 +138,18 @@ class SubscriptionServiceTest {
 
 			verifyNoInteractions(numberSequences);
 			verify(subscriptionRepository, never()).save(any());
+		}
+
+		@Test
+		void refusesAnOfferWhoseTechnologyIsRetired() {
+			givenClient(ClientStatus.ACTIVE);
+			givenOffer(true);
+			when(technologyRepository.findByCode("FTTH"))
+					.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", false, null)));
+
+			assertThatThrownBy(() -> subscriptionService.create(new CreateSubscriptionCommand(1L, 2L, TODAY)))
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_INACTIVE);
+			verifyNoInteractions(numberSequences);
 		}
 
 		@Test
@@ -400,6 +417,8 @@ class SubscriptionServiceTest {
 		when(offerRepository.findById(2L)).thenReturn(Optional.of(
 				Offer.restore(2L, "FTTH-100", "Fibre Confort 100 Mbps", "FTTH", new BigDecimal("25000.00"), active,
 						null)));
+		when(technologyRepository.findByCode("FTTH"))
+				.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", true, null)));
 	}
 
 }
