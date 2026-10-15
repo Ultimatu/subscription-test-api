@@ -1,0 +1,25 @@
+# Facultatif : fournit PostgreSQL à qui ne l'a pas installé.
+#   docker compose up -d      puis      mvn spring-boot:run
+# Base, utilisateur et mot de passe sont ceux de src/main/resources/application.yml.
+# L'image officielle contient le module contrib (extension unaccent).
+# Si un PostgreSQL local occupe déjà le port 5432 : POSTGRES_PORT=5433 docker compose up -d,
+# puis lancer l'application avec SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: subscription_db
+      POSTGRES_USER: subscription_user
+      POSTGRES_PASSWORD: subscription_pwd
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subscription_user -d subscription_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

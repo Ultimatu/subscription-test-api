@@ -57,9 +57,11 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Maven | 3.6.3 ou plus récent | Facultatif : le dépôt contient le wrapper Maven (`./mvnw`), qui télécharge la bonne version |
 | PostgreSQL | 13 ou plus récent | Testé avec PostgreSQL 16. Le module *contrib* doit être installé (extension `unaccent`) : il l'est par défaut avec Homebrew, l'installeur Windows et l'image Docker officielle ; sous Debian ou Ubuntu, c'est le paquet `postgresql-contrib` |
 
-Docker n'est pas nécessaire.
+Docker est facultatif : il peut fournir PostgreSQL à la place d'une installation locale (voir ci-dessous).
 
 ## 3. Démarrage rapide
+
+**Avec PostgreSQL installé**
 
 ```bash
 # 1. Créer l'utilisateur et la base (une seule fois), avec un super-utilisateur PostgreSQL
@@ -70,6 +72,15 @@ psql -U postgres -c "CREATE DATABASE subscription_db OWNER subscription_user;"
 # 2. Lancer l'application (Flyway crée le schéma et charge le catalogue au démarrage)
 mvn spring-boot:run
 ```
+
+**Ou avec Docker**, sans rien installer d'autre que le JDK
+
+```bash
+docker compose up -d      # PostgreSQL 16, avec la base et l'utilisateur de application.yml
+mvn spring-boot:run
+```
+
+Si un PostgreSQL local occupe déjà le port 5432 : `POSTGRES_PORT=5433 docker compose up -d`, puis `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db mvn spring-boot:run`.
 
 L'application écoute sur `http://localhost:8080` :
 
@@ -134,6 +145,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
+
 
 **Couverture** (mesurée le 15/10/2026) :
 
@@ -615,7 +627,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 - **Testcontainers** : chaque exécution des tests aurait sa propre base PostgreSQL jetable. Écarté parce qu'il exige Docker, que l'énoncé ne prévoit pas ([ADR-0010](docs/adr/0010-strategie-de-tests.md)).
 - **Séparer les tests unitaires et d'intégration** (Surefire / Failsafe), pour mesurer et exiger séparément la couverture de chacun ([ADR-0016](docs/adr/0016-couverture-de-code.md)).
 - **Tests de contrat** de l'API générés depuis la spécification OpenAPI.
-- **Image Docker et `docker compose`** pour lancer l'application et sa base en une commande.
+- **Image Docker de l'application**, pour la lancer avec sa base en une seule commande (le `compose.yaml` ne fournit aujourd'hui que PostgreSQL).
 - **Observabilité** : métriques Prometheus (Micrometer), logs au format JSON, traces distribuées avec OpenTelemetry, en plus de l'identifiant de requête actuel.
 
 ## 14. Documentation complémentaire
