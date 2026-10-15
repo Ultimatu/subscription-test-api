@@ -1,6 +1,6 @@
 # ADR-0014 — Souscriptions : numérotation et accès concurrents
 
-- **Statut** : Acceptée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0025](0025-verrou-du-client-et-verrou-optimiste.md) : verrou pris avant toute lecture, étendu aux suppressions.
 
 ## Contexte
 

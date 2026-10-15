@@ -29,6 +29,9 @@ interface SubscriptionJpaRepository
 	@EntityGraph(attributePaths = { "client", "offer" })
 	Page<SubscriptionEntity> findAll(Specification<SubscriptionEntity> specification, Pageable pageable);
 
+	@Query("select s.client.id from SubscriptionEntity s where s.id = :id")
+	Optional<Long> findClientIdById(@Param("id") Long id);
+
 	boolean existsByClientIdAndStatusIn(Long clientId, Collection<SubscriptionStatus> statuses);
 
 	boolean existsByClientIdAndTechnologyAndStatusIn(Long clientId, String technology,

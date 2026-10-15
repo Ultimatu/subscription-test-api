@@ -49,7 +49,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Exports CSV | Les administrateurs sortent clients et souscriptions vers Excel, sans limite de taille, avec les filtres de la recherche | [ADR-0020](docs/adr/0020-exports-csv.md) |
 | Notifications par email | Le client est prévenu de chaque changement de statut, sans qu'aucun email soit perdu si le serveur de messagerie est indisponible | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 | Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
-| Accès concurrents maîtrisés | Deux souscriptions simultanées ne peuvent pas contourner la règle 14 | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md) |
+| Accès concurrents maîtrisés | Deux requêtes simultanées sur un même client s'exécutent l'une après l'autre et reçoivent les mêmes erreurs que si elles s'étaient suivies (deux souscriptions FTTH, deux résiliations), ce que prouve un test d'intégration | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md), [ADR-0025](docs/adr/0025-verrou-du-client-et-verrou-optimiste.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
 | Schéma versionné (Flyway), contraintes doublées en base | Les règles tiennent même en cas d'accès concurrent ou d'écriture directe en base | [ADR-0002](docs/adr/0002-schema-versionne-flyway.md) |
 | Couverture mesurée (JaCoCo), architecture vérifiée (ArchUnit) | Le build échoue si la couverture baisse ou si une dépendance va dans le mauvais sens | [ADR-0016](docs/adr/0016-couverture-de-code.md) |
@@ -153,7 +153,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 389 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 392 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -164,8 +164,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 389 | 98,2 % | 85,8 % |
-| Tests unitaires seuls, sans base de données | 314 | 71,6 % | 63,4 % |
+| Tous les tests (`mvn test`) | 392 | 98,2 % | 86,1 % |
+| Tests unitaires seuls, sans base de données | 315 | 71,8 % | 63,4 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
 
@@ -176,6 +176,7 @@ Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls
 | Web | Slice `@WebMvcTest` | Codes HTTP, validation, format des erreurs |
 | Persistance | Intégration sur PostgreSQL, annulée en fin de test | Index uniques partiels, recherche, statistiques |
 | Sécurité | Contexte complet, vrais jetons | Matrice des droits, jetons expirés ou falsifiés |
+| Concurrence | Application démarrée, deux requêtes HTTP en parallèle | Deux souscriptions FTTH simultanées : 201 et 409 ; deux résiliations simultanées : 200 et 409 `INVALID_STATUS_TRANSITION` |
 | Documents et emails | Rendu réel, relu par PDFBox ; serveur SMTP en mémoire (GreenMail) | Contenu du PDF ; email HTML et texte avec l'attestation jointe ; parcours complet du changement de statut à l'email reçu |
 | Architecture | ArchUnit | Le domaine ne dépend d'aucun framework |
 
@@ -665,6 +666,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 - **Versionner l'API** (`/api/v1`) : l'énoncé fixe des URLs sans version, conservées telles quelles. Le préfixe étant déclaré à un seul endroit, l'ajout d'une version ne toucherait qu'une ligne ([ADR-0009](docs/adr/0009-prefixe-api.md)).
 - **Clés d'idempotence** sur les `POST` (en-tête `Idempotency-Key`), pour qu'un appel rejoué après une coupure réseau ne crée pas une seconde souscription.
 - **Titres d'erreur traduits** pour les erreurs produites par Spring lui-même (405, 415…), qui restent en anglais.
+- **Détecter les modifications fondées sur une lecture ancienne** : la version des ressources n'est pas exposée. Si deux conseillers consultent le même client puis l'enregistrent l'un après l'autre (`GET`, puis `PUT`), le second écrase la modification du premier sans le savoir ; le verrou optimiste ne protège que des transactions simultanées. Un en-tête `ETag` sur les lectures et un `If-Match` sur les `PUT` (412 si la ressource a changé entre-temps) régleraient le problème ; facultatifs, ils ne modifieraient pas le contrat de l'énoncé ([ADR-0025](docs/adr/0025-verrou-du-client-et-verrou-optimiste.md)).
 
 **Métier**
 

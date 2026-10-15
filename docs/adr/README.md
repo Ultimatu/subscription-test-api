@@ -30,6 +30,7 @@ Une décision n'est jamais réécrite après coup : si elle change, une nouvelle
 | [0022](0022-statut-des-technologies.md) | Retrait d'une technologie du catalogue | Acceptée |
 | [0023](0023-suppression-et-conservation.md) | Suppression définitive et durée de conservation des données | Acceptée |
 | [0024](0024-journal-d-audit.md) | Journal d'audit des actions métier | Acceptée |
+| [0025](0025-verrou-du-client-et-verrou-optimiste.md) | Accès concurrents : verrou du client avant toute lecture, portée du verrou optimiste | Acceptée |
 
 Les interprétations des points ambigus de l'énoncé sont regroupées dans [../interpretations.md](../interpretations.md).
 Le schéma de la base (tables, contraintes, index et requêtes servies) est décrit dans [../base-de-donnees.md](../base-de-donnees.md).

@@ -18,6 +18,12 @@ public interface SubscriptionRepository {
 
 	Optional<Subscription> findById(Long id);
 
+	/**
+	 * Client de la souscription, lu sans charger celle-ci : de quoi verrouiller le client avant de lire
+	 * la souscription.
+	 */
+	Optional<Long> findClientId(Long id);
+
 	/** Suppression logique. */
 	void delete(Subscription subscription);
 

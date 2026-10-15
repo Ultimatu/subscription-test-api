@@ -136,7 +136,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 
 	@Override
 	public void delete(Long id) {
-		Subscription subscription = findSubscription(id);
+		Subscription subscription = lockClientThenRead(id).subscription();
 		subscription.ensureDeletable();
 		if (deletionPolicy.softDelete()) {
 			subscriptionRepository.delete(subscription);
@@ -153,9 +153,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 	@Override
 	@Transactional(readOnly = true)
 	public SubscriptionDetails get(Long id) {
-		SubscriptionView subscription = subscriptionQueries.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
-						id));
+		SubscriptionView subscription = subscriptionQueries.findById(id).orElseThrow(() -> subscriptionNotFound(id));
 		return new SubscriptionDetails(subscription, subscriptionQueries.findHistory(id));
 	}
 
@@ -212,20 +210,16 @@ public class SubscriptionService implements SubscriptionUseCases {
 	}
 
 	/**
-	 * Le domaine accepte ou refuse la transition. Le verrou sur le client la fait passer après une
-	 * éventuelle création simultanée pour le même client (règle 13) ; deux modifications
-	 * simultanées de la même souscription sont détectées grâce à sa version.
-	 */
-	/**
-	 * Le client est prévenu par email : la notification est enregistrée dans la même transaction que le
-	 * changement de statut, et n'existe donc que s'il est validé (ADR-0021).
+	 * Le domaine accepte ou refuse la transition, appliquée à l'état le plus récent de la souscription
+	 * (voir {@link #lockClientThenRead}). Le client est prévenu par email : la notification est
+	 * enregistrée dans la même transaction que le changement de statut, et n'existe donc que s'il est
+	 * validé (ADR-0021).
 	 */
 	private Subscription transition(Long id, SubscriptionTransition transition, String reason,
 			Consumer<Subscription> operation) {
-		Subscription subscription = findSubscription(id);
-		Client client = clientRepository.findByIdForUpdate(subscription.getClientId())
-				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client",
-						subscription.getClientId()));
+		LockedSubscription locked = lockClientThenRead(id);
+		Client client = locked.client();
+		Subscription subscription = locked.subscription();
 		operation.accept(subscription);
 		Subscription saved = subscriptionRepository.save(subscription);
 		String checkedReason = transition.isReasonRequired() ? reason.trim() : null;
@@ -237,10 +231,27 @@ public class SubscriptionService implements SubscriptionUseCases {
 		return saved;
 	}
 
-	private Subscription findSubscription(Long id) {
-		return subscriptionRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
-						id));
+	/**
+	 * Toute écriture sur les souscriptions d'un client commence par verrouiller la ligne du client
+	 * (ADR-0025), et la souscription n'est lue qu'ensuite. Une requête simultanée sur la même
+	 * souscription attend donc que la première soit validée, puis lit son résultat : une transition
+	 * devenue impossible est refusée par le domaine (409 INVALID_STATUS_TRANSITION), comme si les deux
+	 * requêtes s'étaient suivies. Lue avant le verrou, la souscription serait périmée, et seul le
+	 * verrou optimiste détecterait le conflit (409 CONCURRENT_MODIFICATION, moins explicite).
+	 */
+	private LockedSubscription lockClientThenRead(Long id) {
+		Long clientId = subscriptionRepository.findClientId(id).orElseThrow(() -> subscriptionNotFound(id));
+		Client client = clientRepository.findByIdForUpdate(clientId)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", clientId));
+		Subscription subscription = subscriptionRepository.findById(id).orElseThrow(() -> subscriptionNotFound(id));
+		return new LockedSubscription(client, subscription);
+	}
+
+	private record LockedSubscription(Client client, Subscription subscription) {
+	}
+
+	private static ResourceNotFoundException subscriptionNotFound(Long id) {
+		return new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription", id);
 	}
 
 	private static AuditAction auditAction(SubscriptionTransition transition) {

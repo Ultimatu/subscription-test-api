@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -54,6 +54,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -235,7 +236,10 @@ class SubscriptionServiceTest {
 			Subscription subscription = subscriptionService.activate(10L);
 
 			assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
-			verify(clientRepository).findByIdForUpdate(1L);
+			// Lue après le verrou, la souscription est dans son dernier état validé
+			InOrder order = inOrder(clientRepository, subscriptionRepository);
+			order.verify(clientRepository).findByIdForUpdate(1L);
+			order.verify(subscriptionRepository).findById(10L);
 			verify(notificationOutbox).enqueue(
 					new NotificationOutbox.Request(10L, SubscriptionTransition.ACTIVATE, "awa@mail.ci", null));
 		}
@@ -288,11 +292,24 @@ class SubscriptionServiceTest {
 
 		@Test
 		void reportsAnUnknownSubscription() {
-			when(subscriptionRepository.findById(99L)).thenReturn(Optional.empty());
+			when(subscriptionRepository.findClientId(99L)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> subscriptionService.activate(99L))
 					.isInstanceOf(ResourceNotFoundException.class)
 					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_FOUND);
+			verifyNoInteractions(clientRepository);
+		}
+
+		@Test
+		void reportsASubscriptionDeletedWhileWaitingForTheLock() {
+			when(subscriptionRepository.findClientId(10L)).thenReturn(Optional.of(1L));
+			when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(Client.restore(1L, "Awa", "Koné",
+					"awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE, null)));
+			when(subscriptionRepository.findById(10L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> subscriptionService.terminate(10L, "Déménagement"))
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.SUBSCRIPTION_NOT_FOUND);
+			verify(subscriptionRepository, never()).save(any());
 		}
 
 		@Test
@@ -331,9 +348,10 @@ class SubscriptionServiceTest {
 		private Subscription givenSubscription(SubscriptionStatus status) {
 			Subscription subscription = Subscription.restore(10L, "SUB-2026-000001", "2700000001", 1L, 2L,
 					new BigDecimal("25000.00"), status, TODAY, null, null);
+			when(subscriptionRepository.findClientId(10L)).thenReturn(Optional.of(1L));
 			when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(subscription));
-			// Le client n'est relu, et verrouillé, que pour un changement de statut
-			lenient().when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(Client.restore(1L, "Awa",
+			// Changement de statut ou suppression : le client est verrouillé avant la lecture de la souscription
+			when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(Client.restore(1L, "Awa",
 					"Koné", "awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE, null)));
 			return subscription;
 		}

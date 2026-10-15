@@ -126,7 +126,7 @@ public class ClientService implements ClientUseCases {
 	/** Les souscriptions résiliées sont supprimées avec le client ; tous restent en base pour la traçabilité. */
 	@Override
 	public void delete(Long id) {
-		Client client = findClient(id);
+		Client client = lockClient(id);
 		ensureNoOngoingSubscription(id);
 		if (deletionPolicy.softDelete() && subscriptionRepository.existsAnyForClient(id)) {
 			subscriptionRepository.deleteAllByClientId(id);
@@ -151,7 +151,7 @@ public class ClientService implements ClientUseCases {
 			ensureRetentionPeriodElapsed(deletedAt.get());
 		}
 		else {
-			findClient(id);
+			lockClient(id);
 			ensureNoOngoingSubscription(id);
 			if (deletionPolicy.retentionEnabled() && subscriptionRepository.existsAnyForClient(id)) {
 				throw new BusinessRuleViolationException(DomainErrorCode.RETENTION_PERIOD_NOT_ELAPSED,
@@ -233,6 +233,16 @@ public class ClientService implements ClientUseCases {
 
 	private Client findClient(Long id) {
 		return clientRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", id));
+	}
+
+	/**
+	 * Verrouille le client jusqu'à la fin de la transaction, comme toute écriture sur ses souscriptions
+	 * (ADR-0025) : une souscription créée au même moment ne peut pas survivre à la suppression de son
+	 * client (règle 6).
+	 */
+	private Client lockClient(Long id) {
+		return clientRepository.findByIdForUpdate(id)
 				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.CLIENT_NOT_FOUND, "Client", id));
 	}
 

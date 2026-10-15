@@ -84,6 +84,11 @@ class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 	}
 
 	@Override
+	public Optional<Long> findClientId(Long id) {
+		return jpaRepository.findClientIdById(id);
+	}
+
+	@Override
 	public void delete(Subscription subscription) {
 		SubscriptionEntity entity = findEntity(subscription.getId());
 		entity.markDeleted(clock.instant(), auditorAware.getCurrentAuditor().orElseThrow());

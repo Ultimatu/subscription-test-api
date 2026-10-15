@@ -186,7 +186,7 @@ class ClientServiceTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	void refusesToDeleteAClientWithOngoingOrSuspendedSubscriptions() {
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 		when(subscriptionRepository.existsByClientIdAndStatusIn(eq(1L), anySet())).thenReturn(true);
 
 		assertThatThrownBy(() -> clientService.delete(1L))
@@ -204,13 +204,14 @@ class ClientServiceTest {
 	@Test
 	void keepsAClientWithAHistoryOfSubscriptionsThroughALogicalDeletion() {
 		Client client = existingClient();
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(client));
 		when(subscriptionRepository.existsByClientIdAndStatusIn(eq(1L), anySet())).thenReturn(false);
 		when(subscriptionRepository.existsAnyForClient(1L)).thenReturn(true);
 
 		clientService.delete(1L);
 
 		InOrder order = inOrder(subscriptionRepository, clientRepository);
+		order.verify(clientRepository).findByIdForUpdate(1L);
 		order.verify(subscriptionRepository).deleteAllByClientId(1L);
 		order.verify(clientRepository).delete(client);
 		verify(clientRepository, never()).deletePermanently(any());
@@ -221,7 +222,7 @@ class ClientServiceTest {
 
 	@Test
 	void deletesPermanentlyAClientWhoNeverSubscribed() {
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 		when(subscriptionRepository.existsAnyForClient(1L)).thenReturn(false);
 
 		clientService.delete(1L);
@@ -236,7 +237,7 @@ class ClientServiceTest {
 
 	@Test
 	void deletesPermanentlyWhenLogicalDeletionIsDisabled() {
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 
 		service(new DeletionPolicy(false, true, false, Period.ofYears(3))).delete(1L);
 
@@ -259,7 +260,7 @@ class ClientServiceTest {
 	@Test
 	void purgesAClientThatIsStillVisibleWithoutRetention() {
 		when(clientRepository.findDeletionDate(1L)).thenReturn(Optional.empty());
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 
 		clientService.purge(1L);
 
@@ -289,7 +290,7 @@ class ClientServiceTest {
 	@Test
 	void requiresALogicalDeletionFirstForAClientWithAHistoryUnderRetention() {
 		when(clientRepository.findDeletionDate(1L)).thenReturn(Optional.empty());
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 		when(subscriptionRepository.existsAnyForClient(1L)).thenReturn(true);
 
 		assertThatThrownBy(() -> service(WITH_RETENTION).purge(1L))
@@ -300,7 +301,7 @@ class ClientServiceTest {
 	@Test
 	void refusesToPurgeAClientWithOngoingSubscriptions() {
 		when(clientRepository.findDeletionDate(1L)).thenReturn(Optional.empty());
-		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(existingClient()));
 		when(subscriptionRepository.existsByClientIdAndStatusIn(eq(1L), anySet())).thenReturn(true);
 
 		assertThatThrownBy(() -> clientService.purge(1L))
