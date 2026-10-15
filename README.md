@@ -1,5 +1,7 @@
 # Subscription API
 
+[![CI](https://github.com/Ultimatu/subscription-test-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Ultimatu/subscription-test-api/actions/workflows/ci.yml)
+
 API REST de gestion des clients, du catalogue d'offres et des souscriptions d'un fournisseur d'accès (fibre, satellite, box 4G), réalisée avec Spring Boot 3 et PostgreSQL dans le cadre d'un test technique.
 
 ## Sommaire
@@ -141,17 +143,18 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 283 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 284 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
+**Intégration continue** : à chaque push, GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) lance `mvn verify` sur une base PostgreSQL 16, puis démarre l'application et rejoue la collection Postman avec Newman. Le rapport de couverture est conservé comme artefact de l'exécution.
 
 **Couverture** (mesurée le 15/10/2026) :
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 283 | 98,6 % | 81,6 % |
+| Tous les tests (`mvn test`) | 284 | 98,6 % | 81,6 % |
 | Tests unitaires seuls, sans base de données | 228 | 67,9 % | 49,8 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
