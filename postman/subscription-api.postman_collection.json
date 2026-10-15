@@ -1,0 +1,2326 @@
+{
+	"info": {
+		"_postman_id": "b6110069-06a3-5ebe-8c8a-74ff7a0ad8ae",
+		"name": "Subscription API",
+		"description": "API de gestion des clients, des offres et des souscriptions.\n\n**Utilisation** : lancer l'application (`mvn spring-boot:run`), importer cette collection, puis\n*Run collection*. La variable `baseUrl` vaut `http://localhost:8080`.\n\n**Authentification automatique** : avant la première requête, la collection se connecte avec les\ncomptes de démonstration (`admin` / `Admin@2026` et `conseiller` / `Conseiller@2026`) et renouvelle\nles jetons avant leur expiration. Chaque requête utilise le jeton du rôle indiqué dans son nom\n(administrateur par défaut).\n\n**Dossiers** : le scénario de bout en bout demandé par l'énoncé, les règles métier démontrées par\nleurs cas d'erreur, puis tous les endpoints par ressource. Chaque requête vérifie sa réponse\n(onglet *Tests*). Les données sont générées à chaque exécution : la collection peut être rejouée.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{adminToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Date du jour : celle d'Abidjan, qui est à UTC+0",
+					"pm.collectionVariables.set('today', new Date().toISOString().slice(0, 10));",
+					"",
+					"// Connexion automatique : obtient, ou renouvelle une minute avant leur expiration, les jetons de",
+					"// l'administrateur et du conseiller. Chaque requête utilise l'un ou l'autre (onglet Authorization).",
+					"function ensureToken(role) {",
+					"    const token = pm.collectionVariables.get(role + 'Token');",
+					"    const expiresAt = Number(pm.collectionVariables.get(role + 'TokenExpiresAt') || 0);",
+					"    if (token && Date.now() < expiresAt - 60 * 1000) {",
+					"        return;",
+					"    }",
+					"    pm.sendRequest({",
+					"        url: pm.variables.get('baseUrl') + '/api/auth/login',",
+					"        method: 'POST',",
+					"        header: { 'Content-Type': 'application/json' },",
+					"        body: {",
+					"            mode: 'raw',",
+					"            raw: JSON.stringify({",
+					"                username: pm.variables.get(role + 'Username'),",
+					"                password: pm.variables.get(role + 'Password')",
+					"            })",
+					"        }",
+					"    }, (error, response) => {",
+					"        if (error || response.code !== 200) {",
+					"            console.error('Connexion impossible pour le rôle ' + role, error || response.text());",
+					"            return;",
+					"        }",
+					"        const body = response.json();",
+					"        pm.collectionVariables.set(role + 'Token', body.accessToken);",
+					"        pm.collectionVariables.set(role + 'TokenExpiresAt', Date.now() + body.expiresIn * 1000);",
+					"    });",
+					"}",
+					"ensureToken('admin');",
+					"ensureToken('conseiller');"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "adminUsername",
+			"value": "admin"
+		},
+		{
+			"key": "adminPassword",
+			"value": "Admin@2026"
+		},
+		{
+			"key": "conseillerUsername",
+			"value": "conseiller"
+		},
+		{
+			"key": "conseillerPassword",
+			"value": "Conseiller@2026"
+		},
+		{
+			"key": "adminToken",
+			"value": ""
+		},
+		{
+			"key": "adminTokenExpiresAt",
+			"value": ""
+		},
+		{
+			"key": "conseillerToken",
+			"value": ""
+		},
+		{
+			"key": "conseillerTokenExpiresAt",
+			"value": ""
+		},
+		{
+			"key": "today",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "0 · Authentification",
+			"description": "Obtention d'un jeton d'accès. La collection se connecte toute seule avant la première requête :\nces deux requêtes ne servent qu'à montrer l'échange. Le jeton est valable une heure.",
+			"item": [
+				{
+					"name": "Se connecter en administrateur",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/auth/login",
+						"description": "Tous les droits : catalogue, suppressions et statistiques en plus des clients et souscriptions.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"username\": \"{{adminUsername}}\", \"password\": \"{{adminPassword}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('jeton Bearer valable une heure', () => {",
+									"    pm.expect(body.tokenType).to.eql('Bearer');",
+									"    pm.expect(body.expiresIn).to.eql(3600);",
+									"    pm.expect(body.roles).to.eql(['ADMIN']);",
+									"});",
+									"pm.collectionVariables.set('adminToken', body.accessToken);",
+									"pm.collectionVariables.set('adminTokenExpiresAt', Date.now() + body.expiresIn * 1000);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Se connecter en conseiller",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/auth/login",
+						"description": "Clients et souscriptions, sans suppression, catalogue ni statistiques.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"username\": \"{{conseillerUsername}}\", \"password\": \"{{conseillerPassword}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('rôle CONSEILLER', () => pm.expect(body.roles).to.eql(['CONSEILLER']));",
+									"pm.collectionVariables.set('conseillerToken', body.accessToken);",
+									"pm.collectionVariables.set('conseillerTokenExpiresAt', Date.now() + body.expiresIn * 1000);"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "1 · Scénario de bout en bout",
+			"description": "Le scénario demandé par l'énoncé : création client → offre → souscription → activation → suspension\n→ réactivation → résiliation. À exécuter dans l'ordre : chaque étape réutilise les identifiants de la\nprécédente. Chaque exécution crée un nouveau client et une nouvelle offre, elle peut donc être rejouée.\nLe conseiller gère le client et la souscription, l'administrateur crée l'offre.",
+			"item": [
+				{
+					"name": "1. Créer un client (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "Le client est créé au statut ACTIVE (règle 3).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Awa\",\n  \"lastName\": \"Koné\",\n  \"email\": \"awa.{{scenarioRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('scenarioRun', Date.now().toString().slice(-8));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('scenarioClientId', body.id);",
+									"pm.test('client ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));",
+									"pm.test('auteur enregistré', () => pm.expect(['conseiller', 'anonymous']).to.include(body.createdBy));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "2. Créer une offre (administrateur)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "L'offre est créée active (règle 9), avec un code unique en majuscules (règle 7).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"E2E-{{scenarioRun}}\",\n  \"label\": \"Fibre Scenario {{scenarioRun}}\",\n  \"technology\": \"FTTH\",\n  \"monthlyPrice\": 30000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('scenarioOfferId', body.id);",
+									"pm.test('offre active', () => pm.expect(body.active).to.eql(true));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "3. Souscrire à l'offre (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "La souscription est créée PENDING ; le serveur attribue la référence et le ND (règles 16 et 17).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clientId\": {{scenarioClientId}},\n  \"offerId\": {{scenarioOfferId}},\n  \"startDate\": \"{{today}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('scenarioSubscriptionId', body.id);",
+									"pm.collectionVariables.set('scenarioNd', body.nd);",
+									"pm.test('souscription PENDING', () => pm.expect(body.status).to.eql('PENDING'));",
+									"pm.test('référence SUB-AAAA-NNNNNN', () => pm.expect(body.reference).to.match(/^SUB-\\d{4}-\\d{6}$/));",
+									"pm.test('ND 27XXXXXXXX', () => pm.expect(body.nd).to.match(/^27\\d{8}$/));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "4. Activer (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/activate",
+						"description": "PENDING → ACTIVE. L'identifiant passe dans le corps, comme l'impose l'énoncé.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{scenarioSubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('ACTIVE', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "5. Suspendre (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/suspend",
+						"description": "ACTIVE → SUSPENDED. Le motif est obligatoire et conservé dans l'historique (règle 20).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{scenarioSubscriptionId}}, \"reason\": \"Impayé\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('SUSPENDED', () => pm.expect(pm.response.json().status).to.eql('SUSPENDED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "6. Réactiver (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/reactivate",
+						"description": "SUSPENDED → ACTIVE.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{scenarioSubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('ACTIVE', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "7. Résilier (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/terminate",
+						"description": "→ TERMINATED, état final. La date de fin est celle du jour (règle 21).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{scenarioSubscriptionId}}, \"reason\": \"Déménagement\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('TERMINATED', () => pm.expect(body.status).to.eql('TERMINATED'));",
+									"pm.test('date de fin = aujourd\\'hui', () => pm.expect(body.endDate).to.eql(pm.collectionVariables.get('today')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "8. Vérifier l'historique (par ND)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/by-nd/{{scenarioNd}}",
+						"description": "Les cinq changements de statut, avec leurs motifs.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const history = pm.response.json().history;",
+									"pm.test('5 changements de statut', () => pm.expect(history.map(h => h.to))",
+									"    .to.eql(['PENDING', 'ACTIVE', 'SUSPENDED', 'ACTIVE', 'TERMINATED']));",
+									"pm.test('motifs conservés', () => pm.expect(history.map(h => h.reason).filter(r => r))",
+									"    .to.eql(['Impayé', 'Déménagement']));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "2 · Règles métier",
+			"description": "Les règles de l'énoncé, démontrées par leurs cas d'erreur : chaque requête vérifie le statut HTTP et le\ncode d'erreur attendus. À exécuter dans l'ordre ; le dossier crée ses propres données et les nettoie à\nla fin. Les vérifications de droits (401, 403) supposent la sécurité activée.",
+			"item": [
+				{
+					"name": "Préparation : catalogue des offres",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/offers?size=50&sort=code",
+						"description": "Récupère les identifiants des offres FTTH-100, FTTH-200 et SAT-20 du catalogue.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('rulesRun', Date.now().toString().slice(-8));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const offers = pm.response.json().content;",
+									"const id = code => offers.find(offer => offer.code === code).id;",
+									"pm.collectionVariables.set('offerFtth100', id('FTTH-100'));",
+									"pm.collectionVariables.set('offerFtth200', id('FTTH-200'));",
+									"pm.collectionVariables.set('offerSat20', id('SAT-20'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Préparation : créer un client",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Moussa\",\n  \"lastName\": \"Traoré\",\n  \"email\": \"moussa.{{rulesRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('rulesClientId', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 1 : email déjà utilisé, quelle que soit la casse → 409",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Autre\",\n  \"lastName\": \"Client\",\n  \"email\": \"MOUSSA.{{rulesRun}}@EXEMPLE.CI\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code CLIENT_EMAIL_ALREADY_USED', () => pm.expect(pm.response.json().code).to.eql('CLIENT_EMAIL_ALREADY_USED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 1 : email non modifiable → 400",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients/{{rulesClientId}}",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Moussa\",\n  \"lastName\": \"Traoré\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"ACTIVE\",\n  \"email\": \"nouveau.{{rulesRun}}@exemple.ci\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));",
+									"",
+									"        pm.test('champ email refusé', () => pm.expect(pm.response.json().errors[0].field).to.eql('email'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 2 : téléphone invalide → 400",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Awa\",\n  \"lastName\": \"Koné\",\n  \"email\": \"telephone.{{rulesRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0201020304\",\n  \"city\": \"Abidjan\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 7 : code d'offre en minuscules → 400",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"e2e-{{rulesRun}}\", \"label\": \"Offre\", \"technology\": \"FTTH\", \"monthlyPrice\": 10000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Technologie absente du catalogue → 400",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"T5G-{{rulesRun}}\", \"label\": \"Box 5G\", \"technology\": \"5G_BOX\", \"monthlyPrice\": 30000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code UNKNOWN_TECHNOLOGY', () => pm.expect(pm.response.json().code).to.eql('UNKNOWN_TECHNOLOGY'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 19 : date de début passée → 400",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{rulesClientId}}, \"offerId\": {{offerFtth100}}, \"startDate\": \"2020-01-01\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code START_DATE_IN_PAST', () => pm.expect(pm.response.json().code).to.eql('START_DATE_IN_PAST'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Souscrire en FTTH",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{rulesClientId}}, \"offerId\": {{offerFtth100}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('rulesSubscriptionId', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 14 : une seule souscription en cours par technologie → 409",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "Autre offre, même technologie FTTH : la vérification porte sur la technologie, pas sur l'offre.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{rulesClientId}}, \"offerId\": {{offerFtth200}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code TECHNOLOGY_ALREADY_SUBSCRIBED', () => pm.expect(pm.response.json().code).to.eql('TECHNOLOGY_ALREADY_SUBSCRIBED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Activer la souscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/activate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{rulesSubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspendre la souscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/suspend",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{rulesSubscriptionId}}, \"reason\": \"Impayé\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 15 : suspendu + même technologie → erreur de suspension",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "Les deux règles 13 et 14 sont enfreintes : c'est l'erreur de suspension qui est renvoyée, comme l'impose l'ordre de la règle 15.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{rulesClientId}}, \"offerId\": {{offerFtth200}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code CLIENT_HAS_SUSPENDED_SUBSCRIPTION', () => pm.expect(pm.response.json().code).to.eql('CLIENT_HAS_SUSPENDED_SUBSCRIPTION'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 13 : une suspension bloque toute technologie → 409",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{rulesClientId}}, \"offerId\": {{offerSat20}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code CLIENT_HAS_SUSPENDED_SUBSCRIPTION', () => pm.expect(pm.response.json().code).to.eql('CLIENT_HAS_SUSPENDED_SUBSCRIPTION'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Transition hors du schéma → 409 avec les statuts",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/activate",
+						"description": "Activer une souscription SUSPENDED : refusé, avec le statut courant et le statut requis.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{rulesSubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code INVALID_STATUS_TRANSITION', () => pm.expect(pm.response.json().code).to.eql('INVALID_STATUS_TRANSITION'));",
+									"",
+									"        const body = pm.response.json();",
+									"        pm.test('statut courant et statut requis', () => {",
+									"            pm.expect(body.currentStatus).to.eql('SUSPENDED');",
+									"            pm.expect(body.requiredStatuses).to.eql(['PENDING']);",
+									"        });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 18 : ND non modifiable → 400",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/reactivate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{rulesSubscriptionId}}, \"nd\": \"2712345678\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+									"pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));",
+									"",
+									"        pm.test('champ nd refusé', () => pm.expect(pm.response.json().errors[0].field).to.eql('nd'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 22 : supprimer une souscription non PENDING → 409",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{rulesSubscriptionId}}",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code SUBSCRIPTION_NOT_DELETABLE', () => pm.expect(pm.response.json().code).to.eql('SUBSCRIPTION_NOT_DELETABLE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 6 : supprimer un client avec une souscription suspendue → 409",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{rulesClientId}}",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code CLIENT_HAS_ONGOING_SUBSCRIPTIONS', () => pm.expect(pm.response.json().code).to.eql('CLIENT_HAS_ONGOING_SUBSCRIPTIONS'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Droits : statistiques interdites au conseiller → 403",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-city",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+									"pm.test('code ACCESS_DENIED', () => pm.expect(pm.response.json().code).to.eql('ACCESS_DENIED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Droits : suppression interdite au conseiller → 403",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{rulesClientId}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+									"pm.test('code ACCESS_DENIED', () => pm.expect(pm.response.json().code).to.eql('ACCESS_DENIED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Sécurité : requête sans jeton → 401",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+									"pm.test('code AUTHENTICATION_REQUIRED', () => pm.expect(pm.response.json().code).to.eql('AUTHENTICATION_REQUIRED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Sécurité : mauvais mot de passe → 401",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/auth/login",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"username\": \"admin\", \"password\": \"mauvais\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+									"pm.test('code INVALID_CREDENTIALS', () => pm.expect(pm.response.json().code).to.eql('INVALID_CREDENTIALS'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Nettoyage : résilier la souscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/terminate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{rulesSubscriptionId}}, \"reason\": \"Fin de la démonstration\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Règle 6 : client sans souscription en cours → suppression possible",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{rulesClientId}}",
+						"description": "Toutes ses souscriptions sont résiliées : le client peut être supprimé (suppression logique)."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "3 · Clients",
+			"description": "Tous les endpoints des clients. Le dossier crée son propre client et le supprime à la fin.",
+			"item": [
+				{
+					"name": "Créer un client",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "Le statut fourni est ignoré : un nouveau client est toujours ACTIVE (règle 3).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Séraphin\",\n  \"lastName\": \"Koné\",\n  \"email\": \"seraphin.{{clientsRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0101020304\",\n  \"city\": \"Abidjan\",\n  \"status\": \"INACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('clientsRun', Date.now().toString().slice(-8));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('clientsClientId', body.id);",
+									"pm.test('statut fourni ignoré', () => pm.expect(body.status).to.eql('ACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Rechercher des clients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients?search={{clientsRun}}&city=ABIDJAN&status=ACTIVE&page=0&size=20&sort=lastName,asc",
+						"description": "search : partiel, sans tenir compte de la casse ni des accents, sur le nom, le prénom et l'email ; city : sans tenir compte de la casse ni des accents ; pagination à partir de 0.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const page = pm.response.json();",
+									"pm.test('le client créé est trouvé', () => pm.expect(page.content.map(c => c.id))",
+									"    .to.include(pm.collectionVariables.get('clientsClientId')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Détail d'un client",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{clientsClientId}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Modifier un client",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients/{{clientsClientId}}",
+						"description": "Le statut est modifiable dans les deux sens (règle 4) ; l'email ne l'est pas (règle 1).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Séraphin\",\n  \"lastName\": \"Koné\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"INACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('INACTIVE', () => pm.expect(pm.response.json().status).to.eql('INACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Synthèse d'un client",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{clientsClientId}}/summary",
+						"description": "Nombre de souscriptions par statut et revenu mensuel des souscriptions ACTIVE.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('tous les statuts', () => pm.expect(Object.keys(pm.response.json().subscriptionsByStatus))",
+									"    .to.eql(['PENDING', 'ACTIVE', 'SUSPENDED', 'TERMINATED']));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Supprimer un client (administrateur)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{clientsClientId}}",
+						"description": "Suppression logique : le client disparaît de l'API mais reste en base."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Client supprimé → 404",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{clientsClientId}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+									"pm.test('code CLIENT_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('CLIENT_NOT_FOUND'));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "4 · Offres",
+			"description": "Tous les endpoints des offres (création, modification et désactivation réservées à l'administrateur).",
+			"item": [
+				{
+					"name": "Créer une offre",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "Le champ active fourni est ignoré : une nouvelle offre est toujours active (règle 9).",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"SAT-{{offersRun}}\",\n  \"label\": \"Satellite Demonstration\",\n  \"technology\": \"SATELLITE\",\n  \"monthlyPrice\": 50000,\n  \"active\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('offersRun', Date.now().toString().slice(-8));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('offersOfferId', body.id);",
+									"pm.test('active fourni ignoré', () => pm.expect(body.active).to.eql(true));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Lister les offres",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/offers?technology=SATELLITE&active=true&sort=monthlyPrice,asc",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('uniquement des offres SATELLITE actives', () => pm.response.json().content.forEach(offer => {",
+									"    pm.expect(offer.technology).to.eql('SATELLITE');",
+									"    pm.expect(offer.active).to.eql(true);",
+									"}));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Détail d'une offre",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/offers/{{offersOfferId}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Modifier une offre",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers/{{offersOfferId}}",
+						"description": "Seuls le libellé et le prix sont modifiables (règle 10).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"label\": \"Satellite Demonstration Plus\", \"monthlyPrice\": 55000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('prix modifié', () => pm.expect(pm.response.json().monthlyPrice).to.eql(55000));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Retirer une offre du catalogue",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": "{{baseUrl}}/api/offers/{{offersOfferId}}/deactivate",
+						"description": "Les souscriptions existantes ne sont pas affectées ; les nouvelles sont refusées (règle 11). Sans effet si l'offre est déjà inactive."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('inactive', () => pm.expect(pm.response.json().active).to.eql(false));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "5 · Technologies",
+			"description": "Catalogue des technologies d'accès (hors énoncé) : en ajouter une ne demande aucune modification du code.",
+			"item": [
+				{
+					"name": "Lister les technologies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/technologies",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('technologies de l\\'énoncé', () => pm.expect(pm.response.json().map(t => t.code))",
+									"    .to.include.members(['4G_BOX', 'FTTH', 'SATELLITE']));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Détail d'une technologie",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/technologies/4G_BOX",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Ajouter une technologie (code existant → 409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/technologies",
+						"description": "Avec un code nouveau, par exemple 5G_BOX, la réponse serait 201. La collection utilise un code existant pour ne pas ajouter de technologie à chaque exécution.",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"FTTH\", \"label\": \"Fibre optique\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code TECHNOLOGY_ALREADY_EXISTS', () => pm.expect(pm.response.json().code).to.eql('TECHNOLOGY_ALREADY_EXISTS'));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "6 · Souscriptions",
+			"description": "Lectures, recherche et suppression des souscriptions. Utilise le client, l'offre et la souscription du\nscénario de bout en bout : à exécuter après lui.",
+			"item": [
+				{
+					"name": "Détail d'une souscription",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{scenarioSubscriptionId}}",
+						"description": "Avec un aperçu du client et de l'offre, et l'historique des statuts.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('client et offre résumés', () => {",
+									"    pm.expect(body.client.id).to.eql(pm.collectionVariables.get('scenarioClientId'));",
+									"    pm.expect(body.offer.id).to.eql(pm.collectionVariables.get('scenarioOfferId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Retrouver une souscription par son ND",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/by-nd/{{scenarioNd}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Recherche globale",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions?status=TERMINATED&technology=FTTH&city=abidjan&nd={{scenarioNd}}&startDateFrom={{today}}&startDateTo={{today}}&page=0&size=20&sort=startDate,desc",
+						"description": "Tous les filtres sont facultatifs et combinés ; city porte sur la ville du client, sans tenir compte de la casse ni des accents ; les bornes de date sont incluses.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('la souscription du scénario', () => pm.expect(pm.response.json().content.map(s => s.id))",
+									"    .to.eql([pm.collectionVariables.get('scenarioSubscriptionId')]));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Souscriptions d'un client",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{scenarioClientId}}/subscriptions?page=0&size=20",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Souscrire (pour la suppression suivante)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "La souscription FTTH du scénario est résiliée : la technologie est de nouveau libre (règle 14).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{scenarioClientId}}, \"offerId\": {{scenarioOfferId}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('pendingSubscriptionId', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Supprimer une souscription PENDING (administrateur)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{pendingSubscriptionId}}",
+						"description": "Seule une souscription PENDING peut être supprimée (règle 22)."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "7 · Statistiques",
+			"description": "Indicateurs réservés à l'administrateur.",
+			"item": [
+				{
+					"name": "Souscriptions actives et revenu par ville",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-city",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('une ligne par ville', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Répartition par technologie",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-technology",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('toutes les technologies, avec leur part', () => pm.response.json().forEach(t =>",
+									"    pm.expect(t).to.have.all.keys('technology', 'label', 'activeSubscriptions', 'share')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Par statut sur une période (date de création)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-status?from={{today}}&to={{today}}",
+						"description": "basedOn vaut CREATION_DATE par défaut ; START_DATE et STATUS_CHANGE sont aussi possibles."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('basée sur la date de création', () => pm.expect(pm.response.json().basedOn).to.eql('CREATION_DATE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Par statut sur une période (changements de statut)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-status?from={{today}}&to={{today}}&basedOn=STATUS_CHANGE",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('au moins une résiliation aujourd\\'hui', () =>",
+									"    pm.expect(pm.response.json().subscriptionsByStatus.TERMINATED).to.be.at.least(1));"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
