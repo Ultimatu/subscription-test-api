@@ -1,6 +1,6 @@
 # ADR-0004 — Audit des modifications et historique des statuts
 
-- **Statut** : Acceptée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0024](0024-journal-d-audit.md) : journal des actions métier.
 
 ## Contexte
 

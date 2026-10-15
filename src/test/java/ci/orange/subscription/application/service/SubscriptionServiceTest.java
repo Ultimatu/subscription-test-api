@@ -4,17 +4,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ci.orange.subscription.application.port.in.audit.AuditAction;
+import ci.orange.subscription.application.port.in.audit.AuditResource;
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
 import ci.orange.subscription.application.port.in.subscription.StatusHistoryEntry;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.NotificationOutbox;
 import ci.orange.subscription.application.port.out.OfferRepository;
@@ -43,6 +47,7 @@ import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -82,6 +87,9 @@ class SubscriptionServiceTest {
 	@Mock
 	private NotificationOutbox notificationOutbox;
 
+	@Mock
+	private AuditTrail auditTrail;
+
 	private SubscriptionService subscriptionService;
 
 	@BeforeEach
@@ -89,7 +97,7 @@ class SubscriptionServiceTest {
 		Clock clock = Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant().plusSeconds(3600), ABIDJAN);
 		subscriptionService = new SubscriptionService(subscriptionRepository, subscriptionQueries, clientRepository,
 				offerRepository, technologyRepository, numberSequences, notificationOutbox,
-				new DeletionPolicy(true, true, false, Period.ofYears(3)), clock);
+				new DeletionPolicy(true, true, false, Period.ofYears(3)), auditTrail, clock);
 	}
 
 	@Nested
@@ -112,6 +120,8 @@ class SubscriptionServiceTest {
 			assertThat(subscription.getOfferId()).isEqualTo(2L);
 			assertThat(subscription.recordedStatusChanges())
 					.containsExactly(new StatusChange(null, SubscriptionStatus.PENDING, null));
+			verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.SUBSCRIPTION_CREATED
+					&& entry.clientId().equals(1L) && entry.details().get("nd").equals("2700000042")));
 		}
 
 		@Test
@@ -242,6 +252,9 @@ class SubscriptionServiceTest {
 					.containsExactly(new StatusChange(SubscriptionStatus.ACTIVE, SubscriptionStatus.SUSPENDED, "Impayé"));
 			verify(notificationOutbox).enqueue(
 					new NotificationOutbox.Request(10L, SubscriptionTransition.SUSPEND, "awa@mail.ci", "Impayé"));
+			verify(auditTrail).record(new AuditTrail.Entry(AuditAction.SUBSCRIPTION_SUSPENDED,
+					AuditResource.SUBSCRIPTION, 10L, 1L, "Souscription SUB-2026-000001 suspendue",
+					Map.of("reason", "Impayé")));
 		}
 
 		@Test
@@ -297,7 +310,7 @@ class SubscriptionServiceTest {
 			Subscription pending = givenSubscription(SubscriptionStatus.PENDING);
 			SubscriptionService hardDeleting = new SubscriptionService(subscriptionRepository, subscriptionQueries,
 					clientRepository, offerRepository, technologyRepository, numberSequences, notificationOutbox,
-					new DeletionPolicy(false, true, false, Period.ofYears(3)),
+					new DeletionPolicy(false, true, false, Period.ofYears(3)), auditTrail,
 					Clock.fixed(TODAY.atStartOfDay(ABIDJAN).toInstant(), ABIDJAN));
 
 			hardDeleting.delete(10L);

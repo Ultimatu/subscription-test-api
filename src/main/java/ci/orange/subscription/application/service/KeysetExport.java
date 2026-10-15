@@ -1,6 +1,7 @@
 package ci.orange.subscription.application.service;
 
 import ci.orange.subscription.application.port.in.BatchedExport;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -38,6 +39,21 @@ final class KeysetExport {
 			while (batch.size() == BATCH_SIZE);
 			return count;
 		};
+	}
+
+	/**
+	 * Noms des filtres renseignés, sans leurs valeurs, qui peuvent contenir des données personnelles :
+	 * pour le journal d'audit. Les arguments alternent nom et valeur.
+	 */
+	static List<String> usedFilters(Object... namesAndValues) {
+		List<String> used = new ArrayList<>();
+		for (int i = 0; i + 1 < namesAndValues.length; i += 2) {
+			Object value = namesAndValues[i + 1];
+			if (value != null && !value.toString().isBlank()) {
+				used.add(namesAndValues[i].toString());
+			}
+		}
+		return used;
 	}
 
 }

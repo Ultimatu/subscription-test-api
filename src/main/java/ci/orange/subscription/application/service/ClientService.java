@@ -1,12 +1,15 @@
 package ci.orange.subscription.application.service;
 
 import ci.orange.subscription.application.port.in.BatchedExport;
+import ci.orange.subscription.application.port.in.audit.AuditAction;
+import ci.orange.subscription.application.port.in.audit.AuditResource;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientSummary;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
 import ci.orange.subscription.application.port.in.client.CreateClientCommand;
 import ci.orange.subscription.application.port.in.client.DeletedClient;
 import ci.orange.subscription.application.port.in.client.UpdateClientCommand;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
@@ -44,13 +47,15 @@ public class ClientService implements ClientUseCases {
 	private final ClientRepository clientRepository;
 	private final SubscriptionRepository subscriptionRepository;
 	private final DeletionPolicy deletionPolicy;
+	private final AuditTrail auditTrail;
 	private final Clock clock;
 
 	public ClientService(ClientRepository clientRepository, SubscriptionRepository subscriptionRepository,
-			DeletionPolicy deletionPolicy, Clock clock) {
+			DeletionPolicy deletionPolicy, AuditTrail auditTrail, Clock clock) {
 		this.clientRepository = clientRepository;
 		this.subscriptionRepository = subscriptionRepository;
 		this.deletionPolicy = deletionPolicy;
+		this.auditTrail = auditTrail;
 		this.clock = clock;
 	}
 
@@ -62,7 +67,11 @@ public class ClientService implements ClientUseCases {
 			throw new BusinessRuleViolationException(DomainErrorCode.CLIENT_EMAIL_ALREADY_USED,
 					"Un client existe déjà avec l'email " + client.getEmail());
 		}
-		return clientRepository.save(client);
+		Client saved = clientRepository.save(client);
+		auditTrail.record(new AuditTrail.Entry(AuditAction.CLIENT_CREATED, AuditResource.CLIENT, saved.getId(),
+				saved.getId(), "Client " + fullName(saved) + " créé",
+				Map.of("email", saved.getEmail(), "city", saved.getCity())));
+		return saved;
 	}
 
 	@Override
@@ -75,7 +84,16 @@ public class ClientService implements ClientUseCases {
 	@Override
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public BatchedExport<Client> export(ClientSearchCriteria criteria) {
-		return KeysetExport.of((afterId, size) -> clientRepository.findBatch(criteria, afterId, size), Client::getId);
+		BatchedExport<Client> batches = KeysetExport.of(
+				(afterId, size) -> clientRepository.findBatch(criteria, afterId, size), Client::getId);
+		return action -> {
+			long rows = batches.forEachBatch(action);
+			auditTrail.record(new AuditTrail.Entry(AuditAction.CLIENTS_EXPORTED, AuditResource.CLIENT, null, null,
+					"Export de " + rows + " client(s)", Map.of("rows", rows, "filters",
+							KeysetExport.usedFilters("city", criteria.city(), "status", criteria.status(), "search",
+									criteria.search()))));
+			return rows;
+		};
 	}
 
 	@Override
@@ -87,9 +105,22 @@ public class ClientService implements ClientUseCases {
 	@Override
 	public Client update(Long id, UpdateClientCommand command) {
 		Client client = findClient(id);
+		Client before = Client.restore(client.getId(), client.getFirstName(), client.getLastName(), client.getEmail(),
+				client.getPhoneNumberClient(), client.getCity(), client.getStatus(), client.getAudit());
 		client.update(command.firstName(), command.lastName(), command.phoneNumberClient(), command.city(),
 				command.status());
-		return clientRepository.save(client);
+		Client saved = clientRepository.save(client);
+		Changes changes = new Changes()
+				.track("firstName", before.getFirstName(), saved.getFirstName())
+				.track("lastName", before.getLastName(), saved.getLastName())
+				.track("phoneNumberClient", before.getPhoneNumberClient(), saved.getPhoneNumberClient())
+				.track("city", before.getCity(), saved.getCity())
+				.track("status", before.getStatus(), saved.getStatus());
+		if (!changes.isEmpty()) {
+			auditTrail.record(new AuditTrail.Entry(AuditAction.CLIENT_UPDATED, AuditResource.CLIENT, saved.getId(),
+					saved.getId(), "Client " + fullName(saved) + " modifié", changes.asMap()));
+		}
+		return saved;
 	}
 
 	/** Les souscriptions résiliées sont supprimées avec le client ; tous restent en base pour la traçabilité. */
@@ -100,10 +131,12 @@ public class ClientService implements ClientUseCases {
 		if (deletionPolicy.softDelete() && subscriptionRepository.existsAnyForClient(id)) {
 			subscriptionRepository.deleteAllByClientId(id);
 			clientRepository.delete(client);
+			auditTrail.record(new AuditTrail.Entry(AuditAction.CLIENT_DELETED, AuditResource.CLIENT, id, id,
+					"Client " + fullName(client) + " supprimé, conservé jusqu'à sa purge", Map.of("permanent", false)));
 		}
 		else {
 			// Un client qui n'a jamais souscrit n'a rien à conserver
-			clientRepository.deletePermanently(id);
+			erase(id, AuditAction.CLIENT_DELETED, "Client n° " + id + " supprimé définitivement", null);
 		}
 	}
 
@@ -126,7 +159,7 @@ public class ClientService implements ClientUseCases {
 								+ "à l'issue du délai de conservation (" + deletionPolicy.retentionPeriod() + ")");
 			}
 		}
-		clientRepository.deletePermanently(id);
+		erase(id, AuditAction.CLIENT_PURGED, "Client n° " + id + " purgé", null);
 	}
 
 	@Override
@@ -146,8 +179,24 @@ public class ClientService implements ClientUseCases {
 		}
 		List<Long> expired = clientRepository
 				.findDeletedBefore(deletionPolicy.purgeableIfDeletedBefore(clock.instant(), clock.getZone()));
-		expired.forEach(clientRepository::deletePermanently);
+		expired.forEach(id -> erase(id, AuditAction.CLIENT_PURGED,
+				"Client n° " + id + " purgé à l'expiration du délai de conservation", "system"));
 		return expired.size();
+	}
+
+	/**
+	 * Suppression définitive : les événements du journal qui le concernent contiennent ses données
+	 * personnelles et sont effacés avec lui (loi n° 2013-450, art. 36) ; seule reste une trace anonyme.
+	 */
+	private void erase(Long id, AuditAction action, String summary, String actor) {
+		clientRepository.deletePermanently(id);
+		auditTrail.eraseClient(id);
+		auditTrail.record(new AuditTrail.Entry(action, AuditResource.CLIENT, id.toString(), null, summary,
+				Map.of("permanent", true), actor));
+	}
+
+	private static String fullName(Client client) {
+		return client.getFirstName() + " " + client.getLastName();
 	}
 
 	private void ensureNoOngoingSubscription(Long id) {

@@ -149,6 +149,8 @@ class SecurityIntegrationTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(get("/api/clients/deleted").header(HttpHeaders.AUTHORIZATION, conseiller))
 				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/audit-events").header(HttpHeaders.AUTHORIZATION, conseiller))
+				.andExpect(status().isForbidden());
 		mockMvc.perform(delete("/api/clients/1/purge").header(HttpHeaders.AUTHORIZATION, conseiller))
 				.andExpect(status().isForbidden());
 		mockMvc.perform(get("/api/subscriptions/export").header(HttpHeaders.AUTHORIZATION, conseiller))
@@ -163,6 +165,8 @@ class SecurityIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(content().contentType("text/csv;charset=UTF-8"));
 		mockMvc.perform(get("/api/subscriptions/export").header(HttpHeaders.AUTHORIZATION, admin))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/audit-events").header(HttpHeaders.AUTHORIZATION, admin))
 				.andExpect(status().isOk());
 	}
 

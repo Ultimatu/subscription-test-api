@@ -4,18 +4,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ci.orange.subscription.application.port.in.audit.AuditAction;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientSummary;
 import ci.orange.subscription.application.port.in.client.CreateClientCommand;
 import ci.orange.subscription.application.port.in.client.DeletedClient;
 import ci.orange.subscription.application.port.in.client.UpdateClientCommand;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.SubscriptionRepository;
 import ci.orange.subscription.domain.client.Client;
@@ -62,6 +66,9 @@ class ClientServiceTest {
 	private static final DeletionPolicy DEVELOPMENT = new DeletionPolicy(true, true, false, Period.ofYears(3));
 	private static final DeletionPolicy WITH_RETENTION = new DeletionPolicy(true, true, true, Period.ofYears(3));
 
+	@Mock
+	private AuditTrail auditTrail;
+
 	private ClientService clientService;
 
 	@BeforeEach
@@ -70,7 +77,7 @@ class ClientServiceTest {
 	}
 
 	private ClientService service(DeletionPolicy policy) {
-		return new ClientService(clientRepository, subscriptionRepository, policy, Clock.fixed(NOW, ABIDJAN));
+		return new ClientService(clientRepository, subscriptionRepository, policy, auditTrail, Clock.fixed(NOW, ABIDJAN));
 	}
 
 	@Test
@@ -83,6 +90,8 @@ class ClientServiceTest {
 
 		assertThat(client.getStatus()).isEqualTo(ClientStatus.ACTIVE);
 		assertThat(client.getEmail()).isEqualTo("awa@mail.ci");
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.CLIENT_CREATED
+				&& entry.summary().equals("Client Awa Koné créé")));
 	}
 
 	@Test
@@ -97,6 +106,10 @@ class ClientServiceTest {
 
 		assertThat(count).isEqualTo(1);
 		assertThat(exported).containsExactly(awa);
+		ArgumentCaptor<AuditTrail.Entry> entry = ArgumentCaptor.forClass(AuditTrail.Entry.class);
+		verify(auditTrail).record(entry.capture());
+		assertThat(entry.getValue().action()).isEqualTo(AuditAction.CLIENTS_EXPORTED);
+		assertThat(entry.getValue().details()).isEqualTo(Map.of("rows", 1L, "filters", List.of("city")));
 	}
 
 	@Test
@@ -150,6 +163,24 @@ class ClientServiceTest {
 		assertThat(client.getFirstName()).isEqualTo("Aya");
 		assertThat(client.getStatus()).isEqualTo(ClientStatus.INACTIVE);
 		assertThat(client.getEmail()).isEqualTo("awa@mail.ci");
+		ArgumentCaptor<AuditTrail.Entry> entry = ArgumentCaptor.forClass(AuditTrail.Entry.class);
+		verify(auditTrail).record(entry.capture());
+		assertThat(entry.getValue().action()).isEqualTo(AuditAction.CLIENT_UPDATED);
+		assertThat(entry.getValue().clientId()).isEqualTo(1L);
+		assertThat(entry.getValue().details()).containsOnlyKeys("firstName", "lastName", "phoneNumberClient", "city",
+				"status");
+		assertThat(entry.getValue().details().get("status"))
+				.isEqualTo(Map.of("before", ClientStatus.ACTIVE, "after", ClientStatus.INACTIVE));
+	}
+
+	@Test
+	void recordsNothingWhenAnUpdateChangesNothing() {
+		when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient()));
+		when(clientRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		clientService.update(1L, new UpdateClientCommand("Awa", "Koné", "0701020304", "Abidjan", ClientStatus.ACTIVE));
+
+		verifyNoInteractions(auditTrail);
 	}
 
 	@Test
@@ -183,6 +214,9 @@ class ClientServiceTest {
 		order.verify(subscriptionRepository).deleteAllByClientId(1L);
 		order.verify(clientRepository).delete(client);
 		verify(clientRepository, never()).deletePermanently(any());
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.CLIENT_DELETED
+				&& entry.clientId().equals(1L)));
+		verify(auditTrail, never()).eraseClient(any());
 	}
 
 	@Test
@@ -194,6 +228,10 @@ class ClientServiceTest {
 
 		verify(clientRepository).deletePermanently(1L);
 		verify(clientRepository, never()).delete(any());
+		InOrder order = inOrder(auditTrail);
+		order.verify(auditTrail).eraseClient(1L);
+		order.verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.CLIENT_DELETED
+				&& entry.clientId() == null && entry.summary().equals("Client n° 1 supprimé définitivement")));
 	}
 
 	@Test
@@ -213,6 +251,9 @@ class ClientServiceTest {
 		clientService.purge(1L);
 
 		verify(clientRepository).deletePermanently(1L);
+		verify(auditTrail).eraseClient(1L);
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.CLIENT_PURGED
+				&& entry.clientId() == null && entry.actor() == null));
 	}
 
 	@Test
@@ -295,6 +336,8 @@ class ClientServiceTest {
 
 		verify(clientRepository).deletePermanently(4L);
 		verify(clientRepository).deletePermanently(7L);
+		verify(auditTrail, times(2)).record(argThat(entry -> entry.action() == AuditAction.CLIENT_PURGED
+				&& "system".equals(entry.actor())));
 	}
 
 	@Test

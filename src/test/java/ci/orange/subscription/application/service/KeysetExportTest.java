@@ -39,6 +39,12 @@ class KeysetExportTest {
 		assertThat(batchSizes).isEmpty();
 	}
 
+	@Test
+	void namesTheFiltersInUseWithoutTheirValues() {
+		assertThat(KeysetExport.usedFilters("city", "Abidjan", "status", null, "search", " ")).containsExactly("city");
+		assertThat(KeysetExport.usedFilters()).isEmpty();
+	}
+
 	private List<Long> upTo1201(Long after, int size) {
 		requestedAfter.add(after);
 		return ids(after, size, 1201);

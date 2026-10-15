@@ -80,6 +80,7 @@ class NotificationFlowTest {
 		}
 		if (clientId != null) {
 			jdbcTemplate.update("delete from client where id = ?", clientId);
+			jdbcTemplate.update("delete from audit_event where client_id = ?", clientId);
 		}
 		int year = LocalDate.now(clock).getYear();
 		if (referenceCounterBefore == null) {

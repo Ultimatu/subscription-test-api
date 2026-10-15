@@ -1,11 +1,14 @@
 package ci.orange.subscription.application.service;
 
 import ci.orange.subscription.application.port.in.BatchedExport;
+import ci.orange.subscription.application.port.in.audit.AuditAction;
+import ci.orange.subscription.application.port.in.audit.AuditResource;
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.ClientRepository;
 import ci.orange.subscription.application.port.out.NotificationOutbox;
 import ci.orange.subscription.application.port.out.OfferRepository;
@@ -27,6 +30,8 @@ import ci.orange.subscription.domain.technology.Technology;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,12 +51,13 @@ public class SubscriptionService implements SubscriptionUseCases {
 	private final SubscriptionNumberSequences numberSequences;
 	private final NotificationOutbox notificationOutbox;
 	private final DeletionPolicy deletionPolicy;
+	private final AuditTrail auditTrail;
 	private final Clock clock;
 
 	public SubscriptionService(SubscriptionRepository subscriptionRepository, SubscriptionQueries subscriptionQueries,
 			ClientRepository clientRepository, OfferRepository offerRepository,
 			TechnologyRepository technologyRepository, SubscriptionNumberSequences numberSequences,
-			NotificationOutbox notificationOutbox, DeletionPolicy deletionPolicy, Clock clock) {
+			NotificationOutbox notificationOutbox, DeletionPolicy deletionPolicy, AuditTrail auditTrail, Clock clock) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.subscriptionQueries = subscriptionQueries;
 		this.clientRepository = clientRepository;
@@ -60,6 +66,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 		this.numberSequences = numberSequences;
 		this.notificationOutbox = notificationOutbox;
 		this.deletionPolicy = deletionPolicy;
+		this.auditTrail = auditTrail;
 		this.clock = clock;
 	}
 
@@ -93,8 +100,17 @@ public class SubscriptionService implements SubscriptionUseCases {
 		String reference = SubscriptionNumbering.reference(today.getYear(),
 				numberSequences.nextReference(today.getYear()));
 		String nd = SubscriptionNumbering.nd(numberSequences.nextNd());
-		return subscriptionRepository.save(
+		Subscription saved = subscriptionRepository.save(
 				Subscription.create(reference, nd, client.getId(), offer, command.startDate(), today));
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("reference", saved.getReference());
+		details.put("nd", saved.getNd());
+		details.put("offer", offer.getCode());
+		details.put("monthlyPrice", saved.getMonthlyPrice());
+		details.put("startDate", saved.getStartDate().toString());
+		auditTrail.record(new AuditTrail.Entry(AuditAction.SUBSCRIPTION_CREATED, AuditResource.SUBSCRIPTION,
+				saved.getId(), saved.getClientId(), "Souscription " + saved.getReference() + " créée", details));
+		return saved;
 	}
 
 	@Override
@@ -128,6 +144,10 @@ public class SubscriptionService implements SubscriptionUseCases {
 		else {
 			subscriptionRepository.deletePermanently(subscription);
 		}
+		auditTrail.record(new AuditTrail.Entry(AuditAction.SUBSCRIPTION_DELETED, AuditResource.SUBSCRIPTION,
+				subscription.getId(), subscription.getClientId(),
+				"Souscription " + subscription.getReference() + " supprimée",
+				Map.of("permanent", !deletionPolicy.softDelete())));
 	}
 
 	@Override
@@ -160,8 +180,17 @@ public class SubscriptionService implements SubscriptionUseCases {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public BatchedExport<SubscriptionView> export(SubscriptionSearchCriteria criteria) {
 		checkDateRange(criteria);
-		return KeysetExport.of((afterId, size) -> subscriptionQueries.findBatch(criteria, afterId, size),
-				SubscriptionView::id);
+		BatchedExport<SubscriptionView> batches = KeysetExport.of(
+				(afterId, size) -> subscriptionQueries.findBatch(criteria, afterId, size), SubscriptionView::id);
+		return action -> {
+			long rows = batches.forEachBatch(action);
+			auditTrail.record(new AuditTrail.Entry(AuditAction.SUBSCRIPTIONS_EXPORTED, AuditResource.SUBSCRIPTION, null,
+					null, "Export de " + rows + " souscription(s)", Map.of("rows", rows, "filters",
+							KeysetExport.usedFilters("status", criteria.status(), "technology", criteria.technology(),
+									"city", criteria.city(), "nd", criteria.nd(), "startDateFrom",
+									criteria.startDateFrom(), "startDateTo", criteria.startDateTo()))));
+			return rows;
+		};
 	}
 
 	private static void checkDateRange(SubscriptionSearchCriteria criteria) {
@@ -199,8 +228,12 @@ public class SubscriptionService implements SubscriptionUseCases {
 						subscription.getClientId()));
 		operation.accept(subscription);
 		Subscription saved = subscriptionRepository.save(subscription);
+		String checkedReason = transition.isReasonRequired() ? reason.trim() : null;
 		notificationOutbox.enqueue(new NotificationOutbox.Request(saved.getId(), transition, client.getEmail(),
-				transition.isReasonRequired() ? reason.trim() : null));
+				checkedReason));
+		auditTrail.record(new AuditTrail.Entry(auditAction(transition), AuditResource.SUBSCRIPTION, saved.getId(),
+				saved.getClientId(), "Souscription " + saved.getReference() + " " + pastParticiple(transition),
+				checkedReason == null ? Map.of() : Map.of("reason", checkedReason)));
 		return saved;
 	}
 
@@ -208,6 +241,24 @@ public class SubscriptionService implements SubscriptionUseCases {
 		return subscriptionRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND, "Souscription",
 						id));
+	}
+
+	private static AuditAction auditAction(SubscriptionTransition transition) {
+		return switch (transition) {
+			case ACTIVATE -> AuditAction.SUBSCRIPTION_ACTIVATED;
+			case SUSPEND -> AuditAction.SUBSCRIPTION_SUSPENDED;
+			case REACTIVATE -> AuditAction.SUBSCRIPTION_REACTIVATED;
+			case TERMINATE -> AuditAction.SUBSCRIPTION_TERMINATED;
+		};
+	}
+
+	private static String pastParticiple(SubscriptionTransition transition) {
+		return switch (transition) {
+			case ACTIVATE -> "activée";
+			case SUSPEND -> "suspendue";
+			case REACTIVATE -> "réactivée";
+			case TERMINATE -> "résiliée";
+		};
 	}
 
 }

@@ -39,6 +39,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 |---|---|---|
 | Authentification JWT, rôles ADMIN et CONSEILLER | Savoir qui agit, restreindre les opérations sensibles | [ADR-0013](docs/adr/0013-securite.md) |
 | Audit et historique des statuts | Chaque modification porte son auteur et sa date ; chaque changement de statut est conservé avec son motif | [ADR-0004](docs/adr/0004-audit-et-historique.md) |
+| Journal d'audit | Qui a fait quoi, et quand : chaque action métier et chaque export, avec l'avant et l'après des champs modifiés, consultables et filtrables par l'API | [ADR-0024](docs/adr/0024-journal-d-audit.md) |
 | Suppression logique, conservation et purge | Un client qui a un historique disparaît de l'API mais reste en base pendant le délai de conservation, puis est purgé ; un client qui n'a jamais souscrit est supprimé définitivement | [ADR-0005](docs/adr/0005-suppression-logique.md), [ADR-0023](docs/adr/0023-suppression-et-conservation.md) |
 | Catalogue des technologies | Ajouter une technologie ne demande ni code ni déploiement ; la retirer du catalogue n'affecte pas l'existant | [ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md), [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
 | Erreurs au format Problem Details (RFC 9457) | Format standard, avec un `code` stable exploitable par un client de l'API | [ADR-0007](docs/adr/0007-format-des-erreurs.md) |
@@ -128,7 +129,7 @@ spring:
     open-in-view: false
 ```
 
-- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V11). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
+- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V12). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
 - **Droits nécessaires** : l'utilisateur doit être propriétaire de la base, pour que Flyway puisse créer les tables, le schéma des tests et l'extension `unaccent` (extension de confiance, qui ne demande pas de droits de super-utilisateur).
 - **Autre environnement** : les valeurs se remplacent par variables d'environnement, sans modifier le fichier ([ADR-0003](docs/adr/0003-configuration.md)) :
 
@@ -152,7 +153,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 376 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 389 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -163,8 +164,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 376 | 98,1 % | 84,6 % |
-| Tests unitaires seuls, sans base de données | 305 | 70,4 % | 64,0 % |
+| Tous les tests (`mvn test`) | 389 | 98,2 % | 85,8 % |
+| Tests unitaires seuls, sans base de données | 314 | 71,6 % | 63,4 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
 
@@ -216,7 +217,7 @@ subscription-api/
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── db/migration/               migrations Flyway V1 à V11
+│   ├── db/migration/               migrations Flyway V1 à V12
 │   └── templates/                  gabarits de l'attestation (documents/) et des emails (notifications/)
 └── src/test/java/                  tests, dans la même arborescence
 ```
@@ -313,6 +314,7 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
 | PATCH | `/api/technologies/{code}/deactivate` | Retirer une technologie du catalogue | 200 | Admin |
 | PATCH | `/api/technologies/{code}/activate` | Remettre une technologie au catalogue | 200 | Admin |
+| GET | `/api/audit-events` | Journal d'audit, filtrable par ressource, auteur, action et période | 200 | Admin |
 | GET | `/api/clients/deleted` | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être | 200 | Admin |
 | DELETE | `/api/clients/{id}/purge` | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204 | Admin |
 
@@ -449,7 +451,7 @@ L'API est un outil de back-office : ce sont des conseillers et des administrateu
 - **Exports** : réservés aux administrateurs, parce qu'ils contiennent des données personnelles en masse ; chaque export est tracé (auteur, nombre de lignes, filtres utilisés).
 - **Conservation et purge** : seule la purge efface définitivement un client qui a eu une ligne. Elle est réservée aux administrateurs et, en production, soumise au délai de conservation : la loi n° 2013-450 limite la conservation au nécessaire (art. 16) tout en réservant les obligations légales de conserver (art. 35), et l'ARTCI fixe les durées (art. 43).
 - **Mots de passe** : stockés sous forme d'empreinte BCrypt, jamais écrits dans les logs.
-- **Audit** : l'auteur de chaque modification est le titulaire du jeton (`createdBy`, `updatedBy`, `changedBy` dans l'historique).
+- **Audit** : l'auteur de chaque modification est le titulaire du jeton (`createdBy`, `updatedBy`, `changedBy` dans l'historique), et chaque action métier est consignée dans le journal d'audit, consultable par les administrateurs ([ADR-0024](docs/adr/0024-journal-d-audit.md)).
 - **Désactivation** : `APP_SECURITY_ENABLED=false` ouvre toute l'API sans jeton, pour tester le contrat de l'énoncé tel quel. L'auteur enregistré est alors `anonymous`.
 
 Les comptes de démonstration et la clé de signature de `application.yml` servent au développement local uniquement. En production, la clé est fournie par `APP_SECURITY_JWT_SECRET`, et l'émission des jetons serait confiée à un fournisseur d'identité (voir [Limites et améliorations](#13-limites-et-améliorations)).
@@ -460,7 +462,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 95 requêtes s'exécutent dans l'ordre et vérifient 184 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 100 requêtes s'exécutent dans l'ordre et vérifient 195 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -480,7 +482,7 @@ npx newman run postman/subscription-api.postman_collection.json
 | 5 · Technologies | Catalogue des technologies |
 | 6 · Souscriptions | Détail, recherche par ND, recherche globale, export CSV, liste par client, attestation, suppression |
 | 7 · Statistiques | Les trois indicateurs |
-| 8 · Parcours complet de l'application | Toutes les fonctionnalités enchaînées, y compris les extensions : technologie retirée puis remise au catalogue, prix figé, cycle de vie, attestations, notifications, statistiques, exports, puis suppression, conservation et purge |
+| 8 · Parcours complet de l'application | Toutes les fonctionnalités enchaînées, y compris les extensions : technologie retirée puis remise au catalogue, prix figé, cycle de vie, attestations, notifications, statistiques, exports, journal d'audit, puis suppression, conservation et purge |
 
 Le dossier 1 reproduit à l'identique le scénario demandé par l'énoncé ; le dossier 8 est un parcours complémentaire, qui montre l'ensemble de l'application sans modifier ce scénario.
 
@@ -652,6 +654,7 @@ Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai 
 | Notifications par email à chaque changement de statut, fiables grâce à une outbox en base, avec l'attestation jointe | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 | Retrait d'une technologie du catalogue, réversible et sans effet sur l'existant | [ADR-0022](docs/adr/0022-statut-des-technologies.md) |
 | Suppression définitive et durée de conservation conformes à la loi n° 2013-450 : purge par un administrateur, purge automatique, tout réglable par configuration | [ADR-0023](docs/adr/0023-suppression-et-conservation.md) |
+| Journal d'audit de toutes les actions métier et des exports, effacé avec les données d'un client purgé | [ADR-0024](docs/adr/0024-journal-d-audit.md) |
 
 ### Pistes restantes
 
@@ -694,7 +697,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 23 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 24 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

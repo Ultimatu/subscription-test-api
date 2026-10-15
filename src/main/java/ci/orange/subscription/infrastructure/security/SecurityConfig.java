@@ -60,6 +60,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/stats/**").hasRole(ADMIN)
 						// Exports : des données personnelles en masse (ADR-0020)
 						.requestMatchers(HttpMethod.GET, "/api/*/export").hasRole(ADMIN)
+						// Journal d'audit (ADR-0024)
+						.requestMatchers("/api/audit-events/**").hasRole(ADMIN)
 						// Clients supprimés, en attente de purge (ADR-0023)
 						.requestMatchers(HttpMethod.GET, "/api/clients/deleted").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(ADMIN)

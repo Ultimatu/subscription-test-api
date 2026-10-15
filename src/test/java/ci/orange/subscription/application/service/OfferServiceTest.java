@@ -3,13 +3,17 @@ package ci.orange.subscription.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ci.orange.subscription.application.port.in.audit.AuditAction;
 import ci.orange.subscription.application.port.in.offer.CreateOfferCommand;
 import ci.orange.subscription.application.port.in.offer.OfferSearchCriteria;
 import ci.orange.subscription.application.port.in.offer.UpdateOfferCommand;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.OfferRepository;
 import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
@@ -20,9 +24,11 @@ import ci.orange.subscription.domain.offer.Offer;
 import ci.orange.subscription.domain.technology.Technology;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,6 +44,9 @@ class OfferServiceTest {
 
 	@Mock
 	private TechnologyRepository technologyRepository;
+
+	@Mock
+	private AuditTrail auditTrail;
 
 	@InjectMocks
 	private OfferService offerService;
@@ -117,6 +126,24 @@ class OfferServiceTest {
 		assertThat(offer.getLabel()).isEqualTo("Fibre Confort Plus");
 		assertThat(offer.getMonthlyPrice()).isEqualByComparingTo("27000");
 		assertThat(offer.getCode()).isEqualTo("FTTH-100");
+		ArgumentCaptor<AuditTrail.Entry> entry = ArgumentCaptor.forClass(AuditTrail.Entry.class);
+		verify(auditTrail).record(entry.capture());
+		assertThat(entry.getValue().action()).isEqualTo(AuditAction.OFFER_UPDATED);
+		assertThat(entry.getValue().details()).containsOnlyKeys("label", "monthlyPrice");
+	}
+
+	@Test
+	void recordsOnlyTheFieldsThatChanged() {
+		when(offerRepository.findById(1L)).thenReturn(Optional.of(existingOffer(true)));
+		when(offerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		offerService.update(1L, new UpdateOfferCommand("Fibre Confort 100 Mbps", new BigDecimal("27000")));
+
+		ArgumentCaptor<AuditTrail.Entry> entry = ArgumentCaptor.forClass(AuditTrail.Entry.class);
+		verify(auditTrail).record(entry.capture());
+		assertThat(entry.getValue().details()).containsOnlyKeys("monthlyPrice");
+		assertThat(entry.getValue().details().get("monthlyPrice"))
+				.isEqualTo(Map.of("before", new BigDecimal("25000"), "after", new BigDecimal("27000.00")));
 	}
 
 	@Test
@@ -125,6 +152,7 @@ class OfferServiceTest {
 		when(offerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		assertThat(offerService.deactivate(1L).isActive()).isFalse();
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.OFFER_DEACTIVATED));
 	}
 
 	@Test
@@ -134,6 +162,7 @@ class OfferServiceTest {
 
 		assertThat(offerService.deactivate(1L)).isSameAs(inactive);
 		verify(offerRepository, never()).save(any());
+		verifyNoInteractions(auditTrail);
 	}
 
 	private static CreateOfferCommand command(String code, String technology) {

@@ -3,11 +3,15 @@ package ci.orange.subscription.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ci.orange.subscription.application.port.in.audit.AuditAction;
 import ci.orange.subscription.application.port.in.technology.CreateTechnologyCommand;
+import ci.orange.subscription.application.port.out.AuditTrail;
 import ci.orange.subscription.application.port.out.TechnologyRepository;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
@@ -26,6 +30,9 @@ class TechnologyServiceTest {
 
 	@Mock
 	private TechnologyRepository technologyRepository;
+
+	@Mock
+	private AuditTrail auditTrail;
 
 	@InjectMocks
 	private TechnologyService technologyService;
@@ -49,6 +56,18 @@ class TechnologyServiceTest {
 
 		assertThat(technologyService.deactivate("FTTH").isActive()).isFalse();
 		assertThat(technologyService.activate("FTTH").isActive()).isTrue();
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.TECHNOLOGY_DEACTIVATED));
+		verify(auditTrail).record(argThat(entry -> entry.action() == AuditAction.TECHNOLOGY_ACTIVATED));
+	}
+
+	@Test
+	void retiringATechnologyAlreadyRetiredChangesNothing() {
+		Technology retired = Technology.restore("SATELLITE", "Satellite", false, null);
+		when(technologyRepository.findByCode("SATELLITE")).thenReturn(Optional.of(retired));
+
+		assertThat(technologyService.deactivate("SATELLITE")).isSameAs(retired);
+		verify(technologyRepository, never()).save(any());
+		verifyNoInteractions(auditTrail);
 	}
 
 	@Test

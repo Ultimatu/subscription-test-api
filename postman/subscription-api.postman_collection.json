@@ -1450,6 +1450,37 @@
 					]
 				},
 				{
+					"name": "Droits : journal d'audit interdit au conseiller → 403",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/audit-events",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+									"pm.test('code ACCESS_DENIED', () => pm.expect(pm.response.json().code).to.eql('ACCESS_DENIED'));"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "Droits : suppression interdite au conseiller → 403",
 					"request": {
 						"method": "DELETE",
@@ -2532,7 +2563,7 @@
 		},
 		{
 			"name": "8 · Parcours complet de l'application",
-			"description": "Le scénario de l'énoncé (dossier 1) reste inchangé. Ce parcours enchaîne toutes les fonctionnalités, y\ncompris celles ajoutées au-delà de l'énoncé : technologie retirée puis remise au catalogue, prix figé à la\nsouscription, cycle de vie complet, attestation PDF, notifications par email, statistiques, exports CSV,\npuis suppression, conservation et purge des données (ADR-0023). Il crée ses propres données à chaque\nexécution et peut être rejoué ; à exécuter dans l'ordre.",
+			"description": "Le scénario de l'énoncé (dossier 1) reste inchangé. Ce parcours enchaîne toutes les fonctionnalités, y\ncompris celles ajoutées au-delà de l'énoncé : technologie retirée puis remise au catalogue, prix figé à la\nsouscription, cycle de vie complet, attestation PDF, notifications par email, statistiques, exports CSV,\njournal d'audit, puis suppression, conservation et purge des données (ADR-0023). Il crée ses propres données à chaque\nexécution et peut être rejoué ; à exécuter dans l'ordre.",
 			"item": [
 				{
 					"name": "1. Créer une technologie (administrateur)",
@@ -3261,7 +3292,85 @@
 					]
 				},
 				{
-					"name": "21. Supprimer le client : historique conservé (administrateur)",
+					"name": "21. Journal d'audit de la souscription (administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/audit-events?resourceType=SUBSCRIPTION&resourceId={{journeySubscriptionId}}&sort=occurredAt,asc&sort=id,asc",
+						"description": "Chaque action métier est consignée : qui, quand, quoi, avec le motif et l'identifiant de la requête (ADR-0024)."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const events = pm.response.json().content;",
+									"pm.test('toutes les étapes de la souscription', () => pm.expect(events.map(e => e.action)).to.eql([",
+									"    'SUBSCRIPTION_CREATED', 'SUBSCRIPTION_ACTIVATED', 'SUBSCRIPTION_SUSPENDED',",
+									"    'SUBSCRIPTION_REACTIVATED', 'SUBSCRIPTION_TERMINATED']));",
+									"pm.test('par le conseiller, avec le motif', () => {",
+									"    pm.expect(events.every(e => e.actor === 'conseiller' || e.actor === 'anonymous')).to.be.true;",
+									"    pm.expect(events[2].details.reason).to.eql('Impayé');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "22. Journal : la hausse de prix, avant et après",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/audit-events?resourceType=OFFER&resourceId={{journeyOfferId}}&action=OFFER_UPDATED",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const change = pm.response.json().content[0].details.monthlyPrice;",
+									"pm.test('20 000 puis 25 000', () => {",
+									"    pm.expect(Number(change.before)).to.eql(20000);",
+									"    pm.expect(Number(change.after)).to.eql(25000);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "23. Journal : les exports de données personnelles sont tracés",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/audit-events?action=CLIENTS_EXPORTED&size=1",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const event = pm.response.json().content[0];",
+									"pm.test('nombre de lignes et filtres, sans leurs valeurs', () => {",
+									"    pm.expect(event.details.rows).to.be.at.least(1);",
+									"    pm.expect(event.details.filters).to.eql(['search']);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "24. Supprimer le client : historique conservé (administrateur)",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -3281,7 +3390,7 @@
 					]
 				},
 				{
-					"name": "22. Le client n'est plus visible",
+					"name": "25. Le client n'est plus visible",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -3312,7 +3421,7 @@
 					]
 				},
 				{
-					"name": "23. Droits : clients supprimés invisibles pour le conseiller → 403",
+					"name": "26. Droits : clients supprimés invisibles pour le conseiller → 403",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -3343,7 +3452,7 @@
 					]
 				},
 				{
-					"name": "24. Clients supprimés, en attente de purge (administrateur)",
+					"name": "27. Clients supprimés, en attente de purge (administrateur)",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -3366,7 +3475,7 @@
 					]
 				},
 				{
-					"name": "25. Purger le client (administrateur)",
+					"name": "28. Purger le client (administrateur)",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -3392,7 +3501,7 @@
 					]
 				},
 				{
-					"name": "26. Le client purgé n'est plus en attente",
+					"name": "29. Le client purgé n'est plus en attente",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -3420,7 +3529,36 @@
 					]
 				},
 				{
-					"name": "27. Créer un client sans souscription (conseiller)",
+					"name": "30. Journal : après la purge, seule une trace anonyme subsiste",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/audit-events?resourceType=CLIENT&resourceId={{journeyClientId}}",
+						"description": "Les événements du client contenaient ses données personnelles : ils sont effacés avec lui (loi n° 2013-450, art. 36), seule reste la trace de la purge."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const events = pm.response.json().content;",
+									"const purged = pm.collectionVariables.get('journeyPurged') === true",
+									"    || pm.collectionVariables.get('journeyPurged') === 'true';",
+									"pm.test('une seule trace, sans nom', () => {",
+									"    if (purged) {",
+									"        pm.expect(events.map(e => e.action)).to.eql(['CLIENT_PURGED']);",
+									"        pm.expect(events[0].summary).to.not.include('Fatou');",
+									"    }",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "31. Créer un client sans souscription (conseiller)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -3465,7 +3603,7 @@
 					]
 				},
 				{
-					"name": "28. Supprimer un client qui n'a jamais souscrit : définitif (administrateur)",
+					"name": "32. Supprimer un client qui n'a jamais souscrit : définitif (administrateur)",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -3485,7 +3623,7 @@
 					]
 				},
 				{
-					"name": "29. Il n'est pas conservé",
+					"name": "33. Il n'est pas conservé",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -3507,7 +3645,7 @@
 					]
 				},
 				{
-					"name": "30. Retirer la technologie de démonstration (administrateur)",
+					"name": "34. Retirer la technologie de démonstration (administrateur)",
 					"request": {
 						"method": "PATCH",
 						"header": [],
