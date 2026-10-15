@@ -2529,6 +2529,1004 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "8 · Parcours complet de l'application",
+			"description": "Le scénario de l'énoncé (dossier 1) reste inchangé. Ce parcours enchaîne toutes les fonctionnalités, y\ncompris celles ajoutées au-delà de l'énoncé : technologie retirée puis remise au catalogue, prix figé à la\nsouscription, cycle de vie complet, attestation PDF, notifications par email, statistiques, exports CSV,\npuis suppression, conservation et purge des données (ADR-0023). Il crée ses propres données à chaque\nexécution et peut être rejoué ; à exécuter dans l'ordre.",
+			"item": [
+				{
+					"name": "1. Créer une technologie (administrateur)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/technologies",
+						"description": "Ajouter une technologie ne demande aucune modification du code (ADR-0006).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"LAB_{{journeyRun}}\", \"label\": \"Technologie de démonstration\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('journeyRun', Date.now().toString().slice(-8));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.test('disponible dès sa création', () => pm.expect(pm.response.json().active).to.eql(true));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "2. Créer une offre sur cette technologie (administrateur)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"LAB-{{journeyRun}}\", \"label\": \"Offre de demonstration\", \"technology\": \"LAB_{{journeyRun}}\", \"monthlyPrice\": 20000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('journeyOfferId', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "3. Créer un client (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Fatou\",\n  \"lastName\": \"Bamba\",\n  \"email\": \"fatou.{{journeyRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0708091011\",\n  \"city\": \"Yamoussoukro\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('journeyClientId', pm.response.json().id);",
+									"pm.collectionVariables.set('journeyEmail', pm.response.json().email);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "4. Souscrire (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{journeyClientId}}, \"offerId\": {{journeyOfferId}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set('journeySubscriptionId', body.id);",
+									"pm.collectionVariables.set('journeyNd', body.nd);",
+									"pm.collectionVariables.set('journeyReference', body.reference);",
+									"pm.test('prix de l\\'offre figé sur la souscription', () => pm.expect(body.monthlyPrice).to.eql(20000));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "5. Augmenter le prix de l'offre (administrateur)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers/{{journeyOfferId}}",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"label\": \"Offre de demonstration\", \"monthlyPrice\": 25000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "6. Le prix souscrit reste figé",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{journeySubscriptionId}}",
+						"description": "La hausse du catalogue ne s'applique qu'aux nouvelles souscriptions (ADR-0018).",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('prix souscrit inchangé', () => pm.expect(body.monthlyPrice).to.eql(20000));",
+									"pm.test('prix actuel du catalogue', () => pm.expect(body.offer.monthlyPrice).to.eql(25000));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "7. Retirer la technologie du catalogue (administrateur)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": "{{baseUrl}}/api/technologies/LAB_{{journeyRun}}/deactivate",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('retirée', () => pm.expect(pm.response.json().active).to.eql(false));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "8. Technologie retirée : nouvelle offre refusée → 409",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/offers",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"LAB-{{journeyRun}}-2\", \"label\": \"Autre offre\", \"technology\": \"LAB_{{journeyRun}}\", \"monthlyPrice\": 30000 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code TECHNOLOGY_INACTIVE', () => pm.expect(pm.response.json().code).to.eql('TECHNOLOGY_INACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "9. Technologie retirée : nouvelle souscription refusée → 409",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions",
+						"description": "Vérifiée juste après l'offre active, avant le blocage global et l'unicité par technologie (ADR-0022).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"clientId\": {{journeyClientId}}, \"offerId\": {{journeyOfferId}}, \"startDate\": \"{{today}}\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code TECHNOLOGY_INACTIVE', () => pm.expect(pm.response.json().code).to.eql('TECHNOLOGY_INACTIVE'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "10. Remettre la technologie au catalogue (administrateur)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": "{{baseUrl}}/api/technologies/LAB_{{journeyRun}}/activate",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('disponible', () => pm.expect(pm.response.json().active).to.eql(true));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "11. Activer (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/activate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{journeySubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "12. Attestation de souscription (PDF)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{journeySubscriptionId}}/attestation",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('document PDF', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+									"    pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true;",
+									"});",
+									"pm.test('téléchargé sous le nom de la référence', () => pm.expect(pm.response.headers.get('Content-Disposition'))",
+									"    .to.include('attachment').and.include('attestation-' + pm.collectionVariables.get('journeyReference') + '.pdf'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "13. Suspendre (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/suspend",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{journeySubscriptionId}}, \"reason\": \"Impayé\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "14. Réactiver (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/reactivate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{journeySubscriptionId}} }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "15. Résilier (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/subscriptions/terminate",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"subscriptionId\": {{journeySubscriptionId}}, \"reason\": \"Déménagement\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "16. Attestation de résiliation (PDF)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{journeySubscriptionId}}/attestation",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('document PDF', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+									"    pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true;",
+									"});",
+									"pm.test('téléchargé sous le nom de la référence', () => pm.expect(pm.response.headers.get('Content-Disposition'))",
+									"    .to.include('attachment').and.include('attestation-' + pm.collectionVariables.get('journeyReference') + '.pdf'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "17. Notifications envoyées au client",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/{{journeySubscriptionId}}/notifications",
+						"description": "Avec Mailpit (docker compose up -d), les emails s'affichent sur http://localhost:8025.",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const notifications = pm.response.json();",
+									"pm.test('un email par changement de statut', () => pm.expect(notifications.map(n => n.transition))",
+									"    .to.eql(['ACTIVATE', 'SUSPEND', 'REACTIVATE', 'TERMINATE']));",
+									"pm.test('adressés au client', () => notifications.forEach(n =>",
+									"    pm.expect(n.recipient).to.eql(pm.collectionVariables.get('journeyEmail'))));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "18. Statistiques par technologie (administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/stats/subscriptions-by-technology",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('la technologie de démonstration y figure', () => pm.expect(pm.response.json()",
+									"    .map(t => t.technology)).to.include('LAB_' + pm.collectionVariables.get('journeyRun')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "19. Exporter la souscription (CSV, administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/export?nd={{journeyNd}}",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('fichier CSV pour Excel', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+									"    pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment; filename=\"souscriptions-\\d{4}-\\d{2}-\\d{2}\\.csv\"/);",
+									"});",
+									"pm.test('en-tête et ligne attendue', () => {",
+									"    const text = pm.response.text();",
+									"    pm.expect(text).to.include('Référence;ND;Statut');",
+									"    pm.expect(text).to.include(pm.collectionVariables.get('journeyReference'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "20. Exporter le client (CSV, administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/export?search={{journeyRun}}",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('fichier CSV pour Excel', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+									"    pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment; filename=\"clients-\\d{4}-\\d{2}-\\d{2}\\.csv\"/);",
+									"});",
+									"pm.test('en-tête et ligne attendue', () => {",
+									"    const text = pm.response.text();",
+									"    pm.expect(text).to.include('Identifiant;Prénom;Nom;Email');",
+									"    pm.expect(text).to.include(pm.collectionVariables.get('journeyEmail'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "21. Supprimer le client : historique conservé (administrateur)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{journeyClientId}}",
+						"description": "Le client a eu une ligne : il est supprimé logiquement, et conservé pendant le délai de conservation (ADR-0023)."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "22. Le client n'est plus visible",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{journeyClientId}}",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+									"pm.test('code CLIENT_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('CLIENT_NOT_FOUND'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "23. Droits : clients supprimés invisibles pour le conseiller → 403",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/deleted",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+									"pm.test('code ACCESS_DENIED', () => pm.expect(pm.response.json().code).to.eql('ACCESS_DENIED'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "24. Clients supprimés, en attente de purge (administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/deleted?size=20",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const deleted = pm.response.json().content.find(c => c.id === pm.collectionVariables.get('journeyClientId'));",
+									"pm.test('le client est conservé', () => pm.expect(deleted).to.not.be.undefined);",
+									"pm.test('avec sa date de purge possible', () => pm.expect(deleted.purgeableFrom).to.be.a('string'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "25. Purger le client (administrateur)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{journeyClientId}}/purge",
+						"description": "Suppression définitive du client, de sa souscription, de son historique et de ses notifications. Avec la rétention active (production), refusée tant que le délai de conservation n'est pas écoulé : 409 RETENTION_PERIOD_NOT_ELAPSED."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('purgé, ou refusé par la rétention', () => {",
+									"    pm.expect([204, 409]).to.include(pm.response.code);",
+									"    if (pm.response.code === 409) {",
+									"        pm.expect(pm.response.json().code).to.eql('RETENTION_PERIOD_NOT_ELAPSED');",
+									"    }",
+									"});",
+									"pm.collectionVariables.set('journeyPurged', pm.response.code === 204);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "26. Le client purgé n'est plus en attente",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/deleted?size=20",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"const ids = pm.response.json().content.map(c => c.id);",
+									"const purged = pm.collectionVariables.get('journeyPurged') === true",
+									"    || pm.collectionVariables.get('journeyPurged') === 'true';",
+									"pm.test('absent après la purge', () => {",
+									"    if (purged) {",
+									"        pm.expect(ids).to.not.include(pm.collectionVariables.get('journeyClientId'));",
+									"    }",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "27. Créer un client sans souscription (conseiller)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/clients",
+						"description": "",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Koffi\",\n  \"lastName\": \"Yao\",\n  \"email\": \"koffi.{{journeyRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0102030405\",\n  \"city\": \"Korhogo\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('journeyProspectId', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "28. Supprimer un client qui n'a jamais souscrit : définitif (administrateur)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/{{journeyProspectId}}",
+						"description": "Aucune donnée d'abonné à conserver : la suppression est définitive d'emblée."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "29. Il n'est pas conservé",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/deleted?size=20",
+						"description": ""
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('absent des clients conservés', () => pm.expect(pm.response.json().content.map(c => c.id))",
+									"    .to.not.include(pm.collectionVariables.get('journeyProspectId')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "30. Retirer la technologie de démonstration (administrateur)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": "{{baseUrl}}/api/technologies/LAB_{{journeyRun}}/deactivate",
+						"description": "Nettoyage : la technologie créée pour ce parcours ne reste pas commercialisable."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				}
+			]
 		}
 	]
 }

@@ -460,7 +460,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 65 requêtes s'exécutent dans l'ordre et vérifient 129 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 95 requêtes s'exécutent dans l'ordre et vérifient 184 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -480,6 +480,9 @@ npx newman run postman/subscription-api.postman_collection.json
 | 5 · Technologies | Catalogue des technologies |
 | 6 · Souscriptions | Détail, recherche par ND, recherche globale, export CSV, liste par client, attestation, suppression |
 | 7 · Statistiques | Les trois indicateurs |
+| 8 · Parcours complet de l'application | Toutes les fonctionnalités enchaînées, y compris les extensions : technologie retirée puis remise au catalogue, prix figé, cycle de vie, attestations, notifications, statistiques, exports, puis suppression, conservation et purge |
+
+Le dossier 1 reproduit à l'identique le scénario demandé par l'énoncé ; le dossier 8 est un parcours complémentaire, qui montre l'ensemble de l'application sans modifier ce scénario.
 
 La spécification OpenAPI (`http://localhost:8080/v3/api-docs`) peut aussi être importée dans Postman, qui génère alors une requête par endpoint, sans le scénario ni les vérifications.
 
