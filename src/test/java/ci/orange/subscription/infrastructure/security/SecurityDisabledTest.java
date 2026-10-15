@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ci.orange.subscription.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * Avec app.security.enabled=false, toute l'API répond sans jeton, y compris ce qui est réservé aux
  * administrateurs quand la sécurité est active.
  */
-@SpringBootTest(properties = "app.security.enabled=false")
+@IntegrationTest(properties = "app.security.enabled=false")
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class SecurityDisabledTest {

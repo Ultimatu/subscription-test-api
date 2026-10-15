@@ -153,7 +153,8 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 393 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 394 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test -DexcludedGroups=integration` | N'exécute que les tests unitaires, sans base de données ([ADR-0026](docs/adr/0026-classement-des-tests-par-etiquette.md)) |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
 Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
@@ -164,8 +165,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 393 | 98,2 % | 86,1 % |
-| Tests unitaires seuls, sans base de données | 315 | 71,8 % | 63,4 % |
+| Tous les tests (`mvn test`) | 394 | 98,2 % | 86,1 % |
+| Tests unitaires seuls (`-DexcludedGroups=integration`) | 316 | 71,8 % | 63,4 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
 
@@ -178,7 +179,7 @@ Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls
 | Sécurité | Contexte complet, vrais jetons | Matrice des droits, jetons expirés ou falsifiés |
 | Concurrence | Application démarrée, deux requêtes HTTP en parallèle | Deux souscriptions FTTH simultanées : 201 et 409 ; deux résiliations simultanées : 200 et 409 `INVALID_STATUS_TRANSITION` ; suppression d'un client pendant une souscription : 201 et 409 |
 | Documents et emails | Rendu réel, relu par PDFBox ; serveur SMTP en mémoire (GreenMail) | Contenu du PDF ; email HTML et texte avec l'attestation jointe ; parcours complet du changement de statut à l'email reçu |
-| Architecture | ArchUnit | Le domaine ne dépend d'aucun framework |
+| Architecture | ArchUnit | Le domaine ne dépend d'aucun framework ; tout test qui démarre la base porte l'étiquette des tests d'intégration |
 
 ## 6. Architecture
 
@@ -691,7 +692,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 **Tests et exploitation**
 
 - **Testcontainers** : chaque exécution des tests aurait sa propre base PostgreSQL jetable. Écarté parce qu'il exige Docker, que l'énoncé ne prévoit pas ([ADR-0010](docs/adr/0010-strategie-de-tests.md)).
-- **Séparer les tests unitaires et d'intégration** (Surefire / Failsafe), pour mesurer et exiger séparément la couverture de chacun ([ADR-0016](docs/adr/0016-couverture-de-code.md)).
+- **Exiger un seuil de couverture propre aux tests unitaires** : ils sont isolés par une étiquette et mesurés à part ([ADR-0026](docs/adr/0026-classement-des-tests-par-etiquette.md)), mais le build ne vérifie que la couverture de l'ensemble des tests ([ADR-0016](docs/adr/0016-couverture-de-code.md)).
 - **Tests de contrat** de l'API générés depuis la spécification OpenAPI.
 - **Image Docker de l'application**, pour la lancer avec sa base en une seule commande (le `compose.yaml` ne fournit aujourd'hui que PostgreSQL).
 - **Observabilité** : métriques Prometheus (Micrometer), logs au format JSON, traces distribuées avec OpenTelemetry, en plus de l'identifiant de requête actuel.

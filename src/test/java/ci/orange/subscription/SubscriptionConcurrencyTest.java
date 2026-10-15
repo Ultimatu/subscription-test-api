@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
@@ -44,7 +43,7 @@ import org.springframework.web.client.RestClient;
  * Les requêtes valident leurs données : le test ne peut pas s'exécuter dans une transaction annulée
  * à la fin. Il efface donc ce qu'il a créé, comme {@code NotificationFlowTest}.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@IntegrationTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class SubscriptionConcurrencyTest {
 
 	@LocalServerPort

@@ -1,6 +1,6 @@
 # ADR-0010 — Stratégie de tests
 
-- **Statut** : Acceptée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0026](0026-classement-des-tests-par-etiquette.md) : classement des tests par étiquette.
 
 ## Contexte
 

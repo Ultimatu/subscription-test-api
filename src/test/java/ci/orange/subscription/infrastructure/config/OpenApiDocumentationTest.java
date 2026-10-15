@@ -5,17 +5,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ci.orange.subscription.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * La description OpenAPI reste à son emplacement standard (hors du préfixe /api) et documente les
  * vrais codes de statut et corps d'erreur.
  */
-@SpringBootTest
+@IntegrationTest
 @AutoConfigureMockMvc
 class OpenApiDocumentationTest {
 

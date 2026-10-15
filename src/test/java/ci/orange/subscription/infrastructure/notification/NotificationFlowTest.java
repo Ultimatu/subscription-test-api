@@ -2,6 +2,7 @@ package ci.orange.subscription.infrastructure.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ci.orange.subscription.IntegrationTest;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
 import ci.orange.subscription.application.port.in.client.CreateClientCommand;
 import ci.orange.subscription.application.port.in.notification.NotificationStatus;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -34,7 +34,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * la notification, l'envoi la remet au serveur SMTP (GreenMail, en IPv4 sur le port 3025, quel que
  * soit l'hôte configuré pour le développement), avec l'attestation en pièce jointe.
  */
-@SpringBootTest(properties = { "spring.mail.host=127.0.0.1", "spring.mail.port=3025" })
+@IntegrationTest(properties = { "spring.mail.host=127.0.0.1", "spring.mail.port=3025" })
 class NotificationFlowTest {
 
 	@RegisterExtension
