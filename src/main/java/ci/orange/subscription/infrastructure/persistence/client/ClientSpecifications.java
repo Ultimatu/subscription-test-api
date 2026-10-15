@@ -35,6 +35,11 @@ final class ClientSpecifications {
 		};
 	}
 
+	/** Lot suivant d'un export : identifiant strictement supérieur à {@code afterId}, ou tous si nul. */
+	static Specification<ClientEntity> after(Long afterId) {
+		return (root, query, builder) -> afterId == null ? null : builder.greaterThan(root.get("id"), afterId);
+	}
+
 	private static boolean hasText(String value) {
 		return value != null && !value.isBlank();
 	}

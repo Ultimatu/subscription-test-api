@@ -1384,6 +1384,37 @@
 					]
 				},
 				{
+					"name": "Droits : export interdit au conseiller → 403",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/export",
+						"description": "",
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{conseillerToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+									"pm.test('code ACCESS_DENIED', () => pm.expect(pm.response.json().code).to.eql('ACCESS_DENIED'));"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "Droits : suppression interdite au conseiller → 403",
 					"request": {
 						"method": "DELETE",
@@ -1743,6 +1774,44 @@
 					]
 				},
 				{
+					"name": "Exporter les clients (CSV, administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/clients/export?search={{clientsRun}}",
+						"description": "Mêmes filtres que la liste, sans pagination. Séparateur « ; » et UTF-8, pour Excel. Réservé aux administrateurs (données personnelles). « Send and Download » enregistre le fichier."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('clientsEmail', 'seraphin.' + pm.collectionVariables.get('clientsRun') + '@exemple.ci');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('fichier CSV pour Excel', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+									"    pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment; filename=\"clients-\\d{4}-\\d{2}-\\d{2}\\.csv\"/);",
+									"});",
+									"pm.test('en-tête et ligne attendue', () => {",
+									"    const text = pm.response.text();",
+									"    pm.expect(text).to.include('Identifiant;Prénom;Nom;Email');",
+									"    pm.expect(text).to.include(pm.collectionVariables.get('clientsEmail'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "Supprimer un client (administrateur)",
 					"request": {
 						"method": "DELETE",
@@ -2072,7 +2141,7 @@
 		},
 		{
 			"name": "6 · Souscriptions",
-			"description": "Lectures, recherche, attestation et suppression des souscriptions. Utilise le client, l'offre et la souscription du\nscénario de bout en bout : à exécuter après lui.",
+			"description": "Lectures, recherche, export, attestation et suppression des souscriptions. Utilise le client, l'offre et la souscription du\nscénario de bout en bout : à exécuter après lui.",
 			"item": [
 				{
 					"name": "Détail d'une souscription",
@@ -2166,6 +2235,35 @@
 									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
 									"pm.test('la souscription du scénario', () => pm.expect(pm.response.json().content.map(s => s.id))",
 									"    .to.eql([pm.collectionVariables.get('scenarioSubscriptionId')]));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Exporter les souscriptions (CSV, administrateur)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/subscriptions/export?nd={{scenarioNd}}",
+						"description": "Mêmes filtres que la recherche globale, sans pagination ; le prix est celui figé à la souscription. Réservé aux administrateurs. « Send and Download » enregistre le fichier."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+									"pm.test('fichier CSV pour Excel', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+									"    pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment; filename=\"souscriptions-\\d{4}-\\d{2}-\\d{2}\\.csv\"/);",
+									"});",
+									"pm.test('en-tête et ligne attendue', () => {",
+									"    const text = pm.response.text();",
+									"    pm.expect(text).to.include('Référence;ND;Statut');",
+									"    pm.expect(text).to.include(pm.collectionVariables.get('scenarioReference'));",
+									"});"
 								]
 							}
 						}

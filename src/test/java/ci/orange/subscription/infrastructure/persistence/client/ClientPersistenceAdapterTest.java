@@ -97,6 +97,18 @@ class ClientPersistenceAdapterTest {
 	}
 
 	@Test
+	void readsAnExportBatchByBatchInTheOrderOfIdentifiers() {
+		Long awa = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan")).getId();
+		clientRepository.save(newClient("Aya", "Traoré", "aya@mail.ci", "Bouaké"));
+		Long moussa = clientRepository.save(newClient("Moussa", "Konaté", "moussa@mail.ci", "abidjan")).getId();
+		ClientSearchCriteria abidjan = new ClientSearchCriteria("Abidjan", null, null);
+
+		assertThat(clientRepository.findBatch(abidjan, null, 1)).extracting(Client::getId).containsExactly(awa);
+		assertThat(clientRepository.findBatch(abidjan, awa, 1)).extracting(Client::getId).containsExactly(moussa);
+		assertThat(clientRepository.findBatch(abidjan, moussa, 1)).isEmpty();
+	}
+
+	@Test
 	void searchesWithoutCaringAboutAccents() {
 		clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Bouaké"));
 		clientRepository.save(newClient("Moussa", "Kone", "moussa@mail.ci", "Abidjan"));

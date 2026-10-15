@@ -1,8 +1,10 @@
 package ci.orange.subscription.infrastructure.web.subscription;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -24,9 +26,9 @@ import ci.orange.subscription.application.port.in.subscription.StatusHistoryEntr
 import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
-import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView.ClientOverview;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView.OfferOverview;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.domain.client.ClientStatus;
 import ci.orange.subscription.domain.exception.BusinessRuleViolationException;
 import ci.orange.subscription.domain.exception.DomainErrorCode;
@@ -38,6 +40,7 @@ import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.domain.subscription.SubscriptionTransition;
 import ci.orange.subscription.infrastructure.web.WebAdapterTest;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -67,6 +70,41 @@ class SubscriptionControllerTest {
 
 	@MockitoBean
 	private AttestationUseCases attestationUseCases;
+
+	@Test
+	void exportsTheSubscriptionsAsAnExcelFriendlyCsv() throws Exception {
+		when(subscriptionUseCases.export(any())).thenReturn(action -> {
+			action.accept(List.of(view(SubscriptionStatus.ACTIVE)));
+			return 1;
+		});
+
+		String csv = mockMvc.perform(get("/api/subscriptions/export").param("status", "ACTIVE"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("text/csv;charset=UTF-8"))
+				.andExpect(header().string("Content-Disposition",
+						matchesPattern("attachment; filename=\"souscriptions-\\d{4}-\\d{2}-\\d{2}\\.csv\"")))
+				.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+		assertThat(csv.split("\r\n")).containsExactly(
+				"\uFEFFRéférence;ND;Statut;Technologie;Code offre;Offre;Prix mensuel (FCFA);Date de début;Date de fin;"
+						+ "Identifiant client;Prénom;Nom;Ville;Créée le;Créée par",
+				"SUB-2026-000001;2700000001;ACTIVE;FTTH;FTTH-100;Fibre Confort 100 Mbps;25000,00;20/10/2026;;1;Awa;Koné;"
+						+ "Abidjan;;");
+		verify(subscriptionUseCases)
+				.export(new SubscriptionSearchCriteria(SubscriptionStatus.ACTIVE, null, null, null, null, null));
+	}
+
+	@Test
+	void refusesAnInvertedDateRangeBeforeWritingTheExport() throws Exception {
+		when(subscriptionUseCases.export(any())).thenThrow(new DomainValidationException(
+				DomainErrorCode.INVALID_DATE_RANGE, "startDateFrom doit être antérieure ou égale à startDateTo"));
+
+		mockMvc.perform(get("/api/subscriptions/export").param("startDateFrom", "2026-10-20")
+				.param("startDateTo", "2026-10-01"))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.code").value("INVALID_DATE_RANGE"));
+	}
 
 	@Test
 	void downloadsTheAttestationAsAPdfAttachment() throws Exception {

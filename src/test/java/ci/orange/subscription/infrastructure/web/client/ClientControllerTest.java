@@ -3,6 +3,7 @@ package ci.orange.subscription.infrastructure.web.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,6 +35,7 @@ import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.web.WebAdapterTest;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,6 +80,26 @@ class ClientControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Test
+	void exportsTheClientsAsAnExcelFriendlyCsv() throws Exception {
+		Client awa = Client.restore(1L, "Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE,
+				new AuditInfo(Instant.parse("2026-10-15T08:30:00Z"), "conseiller", null, null));
+		when(clientUseCases.export(new ClientSearchCriteria("Abidjan", null, null))).thenReturn(action -> {
+			action.accept(List.of(awa));
+			return 1;
+		});
+
+		String csv = mockMvc.perform(get("/api/clients/export").param("city", "Abidjan"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("text/csv;charset=UTF-8"))
+				.andExpect(header().string("Content-Disposition",
+						matchesPattern("attachment; filename=\"clients-\\d{4}-\\d{2}-\\d{2}\\.csv\"")))
+				.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+		assertThat(csv).isEqualTo("\uFEFFIdentifiant;Prénom;Nom;Email;Téléphone;Ville;Statut;Créé le;Créé par\r\n"
+				+ "1;Awa;Koné;awa@mail.ci;07 01 02 03 04;Abidjan;ACTIVE;15/10/2026 08:30;conseiller\r\n");
+	}
 
 	@MockitoBean
 	private ClientUseCases clientUseCases;

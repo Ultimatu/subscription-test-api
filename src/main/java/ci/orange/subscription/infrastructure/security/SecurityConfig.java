@@ -58,6 +58,8 @@ public class SecurityConfig {
 						.requestMatchers(PUBLIC_PATHS).permitAll()
 						// Pilotage, suppressions et catalogue : administrateurs uniquement
 						.requestMatchers(HttpMethod.GET, "/api/stats/**").hasRole(ADMIN)
+						// Exports : des données personnelles en masse (ADR-0020)
+						.requestMatchers(HttpMethod.GET, "/api/*/export").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.POST, "/api/offers/**", "/api/technologies/**").hasRole(ADMIN)
 						.requestMatchers(HttpMethod.PUT, "/api/offers/**").hasRole(ADMIN)

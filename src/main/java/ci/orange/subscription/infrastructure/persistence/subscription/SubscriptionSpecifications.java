@@ -43,6 +43,11 @@ final class SubscriptionSpecifications {
 		return (root, query, builder) -> builder.equal(root.get("client").get("id"), clientId);
 	}
 
+	/** Lot suivant d'un export : identifiant strictement supérieur à {@code afterId}, ou tous si nul. */
+	static Specification<SubscriptionEntity> after(Long afterId) {
+		return (root, query, builder) -> afterId == null ? null : builder.greaterThan(root.get("id"), afterId);
+	}
+
 	private static boolean hasText(String value) {
 		return value != null && !value.isBlank();
 	}

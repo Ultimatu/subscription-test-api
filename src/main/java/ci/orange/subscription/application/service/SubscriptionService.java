@@ -1,5 +1,6 @@
 package ci.orange.subscription.application.service;
 
+import ci.orange.subscription.application.port.in.BatchedExport;
 import ci.orange.subscription.application.port.in.subscription.CreateSubscriptionCommand;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionDetails;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
@@ -26,6 +27,7 @@ import java.util.function.Consumer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -128,13 +130,26 @@ public class SubscriptionService implements SubscriptionUseCases {
 	@Override
 	@Transactional(readOnly = true)
 	public Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable) {
+		checkDateRange(criteria);
+		return subscriptionQueries.search(criteria, pageable);
+	}
+
+	/** Aucune transaction englobante : chaque lot est lu dans sa propre transaction, courte. */
+	@Override
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public BatchedExport<SubscriptionView> export(SubscriptionSearchCriteria criteria) {
+		checkDateRange(criteria);
+		return KeysetExport.of((afterId, size) -> subscriptionQueries.findBatch(criteria, afterId, size),
+				SubscriptionView::id);
+	}
+
+	private static void checkDateRange(SubscriptionSearchCriteria criteria) {
 		if (criteria.startDateFrom() != null && criteria.startDateTo() != null
 				&& criteria.startDateFrom().isAfter(criteria.startDateTo())) {
 			throw new DomainValidationException(DomainErrorCode.INVALID_DATE_RANGE,
 					"startDateFrom (%s) doit être antérieure ou égale à startDateTo (%s)"
 							.formatted(criteria.startDateFrom(), criteria.startDateTo()));
 		}
-		return subscriptionQueries.search(criteria, pageable);
 	}
 
 	@Override

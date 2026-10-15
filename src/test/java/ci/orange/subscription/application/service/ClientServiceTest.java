@@ -23,6 +23,7 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,20 @@ class ClientServiceTest {
 
 		assertThat(client.getStatus()).isEqualTo(ClientStatus.ACTIVE);
 		assertThat(client.getEmail()).isEqualTo("awa@mail.ci");
+	}
+
+	@Test
+	void exportsTheMatchingClientsBatchByBatch() {
+		ClientSearchCriteria criteria = new ClientSearchCriteria("Abidjan", null, null);
+		Client awa = Client.restore(1L, "Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan", ClientStatus.ACTIVE,
+				null);
+		when(clientRepository.findBatch(criteria, null, 500)).thenReturn(List.of(awa));
+		List<Client> exported = new ArrayList<>();
+
+		long count = clientService.export(criteria).forEachBatch(exported::addAll);
+
+		assertThat(count).isEqualTo(1);
+		assertThat(exported).containsExactly(awa);
 	}
 
 	@Test

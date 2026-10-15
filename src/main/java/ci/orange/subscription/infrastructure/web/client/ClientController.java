@@ -1,17 +1,30 @@
 package ci.orange.subscription.infrastructure.web.client;
 
+import ci.orange.subscription.application.port.in.BatchedExport;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
 import ci.orange.subscription.domain.client.Client;
 import ci.orange.subscription.domain.client.ClientStatus;
+import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.infrastructure.web.common.ApiErrors;
+import ci.orange.subscription.infrastructure.web.common.CsvExport;
 import ci.orange.subscription.infrastructure.web.common.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
+import java.security.Principal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -31,6 +44,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * Uniquement du HTTP : valide l'entrée, appelle le cas d'usage et convertit le résultat. Aucune
  * règle métier ici.
  */
+@Slf4j
 @Tag(name = "Clients", description = "Gestion des clients")
 @ApiErrors.Unauthorized
 @ApiErrors.Forbidden
@@ -38,10 +52,15 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/clients")
 class ClientController {
 
-	private final ClientUseCases clientUseCases;
+	private static final List<String> CSV_COLUMNS = List.of("Identifiant", "Prénom", "Nom", "Email", "Téléphone",
+			"Ville", "Statut", "Créé le", "Créé par");
 
-	ClientController(ClientUseCases clientUseCases) {
+	private final ClientUseCases clientUseCases;
+	private final Clock clock;
+
+	ClientController(ClientUseCases clientUseCases, Clock clock) {
 		this.clientUseCases = clientUseCases;
+		this.clock = clock;
 	}
 
 	@Operation(summary = "Créer un client",
@@ -72,6 +91,26 @@ class ClientController {
 			@ParameterObject @PageableDefault(size = 20, sort = "id") Pageable pageable) {
 		return PageResponse.from(clientUseCases.search(new ClientSearchCriteria(city, status, search), pageable),
 				ClientResponse::from);
+	}
+
+	@Operation(summary = "Exporter les clients (CSV)",
+			description = "Mêmes filtres que la liste, sans pagination. Fichier CSV pour Excel : séparateur « ; », "
+					+ "UTF-8. Réservé aux administrateurs.")
+	@ApiResponse(responseCode = "200", description = "Fichier CSV",
+			content = @Content(mediaType = "text/csv", schema = @Schema(type = "string", format = "binary")))
+	@ApiErrors.BadRequest
+	@GetMapping("/export")
+	void export(
+			@Parameter(description = "Ville exacte, insensible à la casse") @RequestParam(required = false) String city,
+			@RequestParam(required = false) ClientStatus status,
+			@Parameter(description = "Recherche partielle, insensible à la casse, sur le nom, le prénom et l'email")
+			@RequestParam(required = false) String search,
+			Principal principal, HttpServletResponse response) throws IOException {
+		BatchedExport<Client> export = clientUseCases.export(new ClientSearchCriteria(city, status, search));
+		long rows = CsvExport.write(response, "clients-" + LocalDate.now(clock) + ".csv", CSV_COLUMNS, export,
+				this::csvRow);
+		log.info("Client export by {}: {} rows, filters: {}", principal == null ? "anonymous" : principal.getName(),
+				rows, CsvExport.usedFilters("city", city, "status", status, "search", search));
 	}
 
 	@Operation(summary = "Détail d'un client")
@@ -113,6 +152,14 @@ class ClientController {
 	@GetMapping("/{id}/summary")
 	ClientSummaryResponse summary(@PathVariable Long id) {
 		return ClientSummaryResponse.from(clientUseCases.summarize(id));
+	}
+
+	private List<String> csvRow(Client client) {
+		AuditInfo audit = client.getAudit();
+		return Arrays.asList(String.valueOf(client.getId()), client.getFirstName(), client.getLastName(),
+				client.getEmail(), CsvExport.phone(client.getPhoneNumberClient()), client.getCity(),
+				client.getStatus().name(), audit == null ? "" : CsvExport.dateTime(audit.createdAt(), clock.getZone()),
+				audit == null ? "" : audit.createdBy());
 	}
 
 }

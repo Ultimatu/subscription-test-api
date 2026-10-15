@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,6 +143,21 @@ class SecurityIntegrationTest {
 		mockMvc.perform(post("/api/technologies").header(HttpHeaders.AUTHORIZATION, conseiller)
 				.contentType(MediaType.APPLICATION_JSON).content("{}"))
 				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/clients/export").header(HttpHeaders.AUTHORIZATION, conseiller))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/subscriptions/export").header(HttpHeaders.AUTHORIZATION, conseiller))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void anAdministratorCanExport() throws Exception {
+		String admin = bearer("admin");
+
+		mockMvc.perform(get("/api/clients/export").header(HttpHeaders.AUTHORIZATION, admin))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("text/csv;charset=UTF-8"));
+		mockMvc.perform(get("/api/subscriptions/export").header(HttpHeaders.AUTHORIZATION, admin))
+				.andExpect(status().isOk());
 	}
 
 	@Test

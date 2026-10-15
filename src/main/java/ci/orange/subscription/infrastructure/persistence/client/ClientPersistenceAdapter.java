@@ -8,13 +8,16 @@ import ci.orange.subscription.domain.exception.DomainErrorCode;
 import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.infrastructure.persistence.entity.ClientEntity;
 import java.time.Clock;
+import java.util.List;
 import java.util.Optional;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 class ClientPersistenceAdapter implements ClientRepository {
@@ -69,6 +72,18 @@ class ClientPersistenceAdapter implements ClientRepository {
 	public Page<Client> search(ClientSearchCriteria criteria, Pageable pageable) {
 		return jpaRepository.findAll(ClientSpecifications.matching(criteria), pageable)
 				.map(ClientEntityMapper::toDomain);
+	}
+
+	/** Tri sur la clé primaire et limite, sans requête de comptage. */
+	@Override
+	@Transactional(readOnly = true)
+	public List<Client> findBatch(ClientSearchCriteria criteria, Long afterId, int size) {
+		return jpaRepository
+				.findBy(ClientSpecifications.matching(criteria).and(ClientSpecifications.after(afterId)),
+						query -> query.sortBy(Sort.by("id")).limit(size).all())
+				.stream()
+				.map(ClientEntityMapper::toDomain)
+				.toList();
 	}
 
 	@Override

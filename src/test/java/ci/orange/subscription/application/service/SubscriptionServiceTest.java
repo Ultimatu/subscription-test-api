@@ -35,6 +35,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -329,6 +330,29 @@ class SubscriptionServiceTest {
 
 			assertThatThrownBy(() -> subscriptionService.search(criteria, PageRequest.of(0, 20)))
 					.isInstanceOf(DomainValidationException.class)
+					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_DATE_RANGE);
+			verifyNoInteractions(subscriptionQueries);
+		}
+
+		@Test
+		void exportsTheMatchingSubscriptionsBatchByBatch() {
+			SubscriptionSearchCriteria criteria = new SubscriptionSearchCriteria(SubscriptionStatus.ACTIVE, null, null,
+					null, null, null);
+			when(subscriptionQueries.findBatch(criteria, null, 500)).thenReturn(List.of(view));
+			List<SubscriptionView> exported = new ArrayList<>();
+
+			long count = subscriptionService.export(criteria).forEachBatch(exported::addAll);
+
+			assertThat(count).isEqualTo(1);
+			assertThat(exported).containsExactly(view);
+		}
+
+		@Test
+		void refusesAnInvertedDateRangeBeforeTheExportStarts() {
+			SubscriptionSearchCriteria criteria = new SubscriptionSearchCriteria(null, null, null, null, TODAY,
+					TODAY.minusDays(1));
+
+			assertThatThrownBy(() -> subscriptionService.export(criteria))
 					.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.INVALID_DATE_RANGE);
 			verifyNoInteractions(subscriptionQueries);
 		}

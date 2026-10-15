@@ -1,12 +1,16 @@
 package ci.orange.subscription.infrastructure.web.subscription;
 
+import ci.orange.subscription.application.port.in.BatchedExport;
 import ci.orange.subscription.application.port.in.subscription.Attestation;
 import ci.orange.subscription.application.port.in.subscription.AttestationUseCases;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionSearchCriteria;
 import ci.orange.subscription.application.port.in.subscription.SubscriptionUseCases;
+import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
+import ci.orange.subscription.domain.common.AuditInfo;
 import ci.orange.subscription.domain.subscription.Subscription;
 import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.web.common.ApiErrors;
+import ci.orange.subscription.infrastructure.web.common.CsvExport;
 import ci.orange.subscription.infrastructure.web.common.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,9 +18,16 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
+import java.security.Principal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -40,6 +51,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * Chaque écriture renvoie le détail de la souscription obtenue (client, offre et historique), relu
  * après la modification.
  */
+@Slf4j
 @Tag(name = "Souscriptions", description = "Souscriptions et cycle de vie")
 @ApiErrors.Unauthorized
 @ApiErrors.Forbidden
@@ -47,12 +59,19 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/subscriptions")
 class SubscriptionController {
 
+	private static final List<String> CSV_COLUMNS = List.of("Référence", "ND", "Statut", "Technologie", "Code offre",
+			"Offre", "Prix mensuel (FCFA)", "Date de début", "Date de fin", "Identifiant client", "Prénom", "Nom",
+			"Ville", "Créée le", "Créée par");
+
 	private final SubscriptionUseCases subscriptionUseCases;
 	private final AttestationUseCases attestationUseCases;
+	private final Clock clock;
 
-	SubscriptionController(SubscriptionUseCases subscriptionUseCases, AttestationUseCases attestationUseCases) {
+	SubscriptionController(SubscriptionUseCases subscriptionUseCases, AttestationUseCases attestationUseCases,
+			Clock clock) {
 		this.subscriptionUseCases = subscriptionUseCases;
 		this.attestationUseCases = attestationUseCases;
+		this.clock = clock;
 	}
 
 	@Operation(summary = "Souscrire à une offre",
@@ -89,6 +108,32 @@ class SubscriptionController {
 		SubscriptionSearchCriteria criteria = new SubscriptionSearchCriteria(status, technology, city, nd,
 				startDateFrom, startDateTo);
 		return PageResponse.from(subscriptionUseCases.search(criteria, pageable), SubscriptionResponse::from);
+	}
+
+	@Operation(summary = "Exporter les souscriptions (CSV)",
+			description = "Mêmes filtres que la recherche, sans pagination. Fichier CSV pour Excel : séparateur « ; », "
+					+ "UTF-8 ; le prix est celui figé à la souscription. Réservé aux administrateurs.")
+	@ApiResponse(responseCode = "200", description = "Fichier CSV",
+			content = @Content(mediaType = "text/csv", schema = @Schema(type = "string", format = "binary")))
+	@ApiErrors.BadRequest
+	@GetMapping("/export")
+	void export(@RequestParam(required = false) SubscriptionStatus status,
+			@Parameter(description = "Code de technologie, ex. FTTH") @RequestParam(required = false) String technology,
+			@Parameter(description = "Ville du client, insensible à la casse") @RequestParam(required = false) String city,
+			@Parameter(description = "ND exact") @RequestParam(required = false) String nd,
+			@Parameter(description = "Date de début minimale, incluse (AAAA-MM-JJ)")
+			@RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate startDateFrom,
+			@Parameter(description = "Date de début maximale, incluse (AAAA-MM-JJ)")
+			@RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate startDateTo,
+			Principal principal, HttpServletResponse response) throws IOException {
+		BatchedExport<SubscriptionView> export = subscriptionUseCases.export(
+				new SubscriptionSearchCriteria(status, technology, city, nd, startDateFrom, startDateTo));
+		long rows = CsvExport.write(response, "souscriptions-" + LocalDate.now(clock) + ".csv", CSV_COLUMNS, export,
+				this::csvRow);
+		log.info("Subscription export by {}: {} rows, filters: {}",
+				principal == null ? "anonymous" : principal.getName(), rows,
+				CsvExport.usedFilters("status", status, "technology", technology, "city", city, "nd", nd,
+						"startDateFrom", startDateFrom, "startDateTo", startDateTo));
 	}
 
 	@Operation(summary = "Détail d'une souscription", description = "Avec le client, l'offre et l'historique.")
@@ -183,6 +228,17 @@ class SubscriptionController {
 
 	private SubscriptionDetailsResponse details(Long id) {
 		return SubscriptionDetailsResponse.from(subscriptionUseCases.get(id));
+	}
+
+	private List<String> csvRow(SubscriptionView subscription) {
+		AuditInfo audit = subscription.audit();
+		return Arrays.asList(subscription.reference(), subscription.nd(), subscription.status().name(),
+				subscription.technology(), subscription.offer().code(), subscription.offer().label(),
+				CsvExport.amount(subscription.monthlyPrice()), CsvExport.date(subscription.startDate()),
+				CsvExport.date(subscription.endDate()), String.valueOf(subscription.client().id()),
+				subscription.client().firstName(), subscription.client().lastName(), subscription.client().city(),
+				audit == null ? "" : CsvExport.dateTime(audit.createdAt(), clock.getZone()),
+				audit == null ? "" : audit.createdBy());
 	}
 
 }

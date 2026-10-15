@@ -1,5 +1,6 @@
 package ci.orange.subscription.application.service;
 
+import ci.orange.subscription.application.port.in.BatchedExport;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientSummary;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
@@ -21,6 +22,7 @@ import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -54,6 +56,13 @@ public class ClientService implements ClientUseCases {
 	@Transactional(readOnly = true)
 	public Page<Client> search(ClientSearchCriteria criteria, Pageable pageable) {
 		return clientRepository.search(criteria, pageable);
+	}
+
+	/** Aucune transaction englobante : chaque lot est lu dans sa propre transaction, courte. */
+	@Override
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public BatchedExport<Client> export(ClientSearchCriteria criteria) {
+		return KeysetExport.of((afterId, size) -> clientRepository.findBatch(criteria, afterId, size), Client::getId);
 	}
 
 	@Override

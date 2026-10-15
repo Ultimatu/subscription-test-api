@@ -24,6 +24,12 @@ public interface SubscriptionQueries {
 
 	Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable);
 
+	/**
+	 * Au plus {@code size} souscriptions correspondant aux critères, d'identifiant strictement
+	 * supérieur à {@code afterId} (toutes si nul), triées par identifiant : un lot d'export.
+	 */
+	List<SubscriptionView> findBatch(SubscriptionSearchCriteria criteria, Long afterId, int size);
+
 	Page<SubscriptionView> findByClient(Long clientId, Pageable pageable);
 
 }

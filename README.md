@@ -45,6 +45,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Traçabilité par `X-Request-Id` | Retrouver dans les logs toutes les lignes d'une requête | [ADR-0008](docs/adr/0008-tracabilite-des-requetes.md) |
 | Recherche insensible aux accents | `kone` trouve `Koné`, `bouake` trouve `Bouaké` | [ADR-0017](docs/adr/0017-recherche-insensible-aux-accents.md) |
 | Attestation PDF | Le conseiller remet au client une attestation de souscription, ou de résiliation, générée à la demande | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
+| Exports CSV | Les administrateurs sortent clients et souscriptions vers Excel, sans limite de taille, avec les filtres de la recherche | [ADR-0020](docs/adr/0020-exports-csv.md) |
 | Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Accès concurrents maîtrisés | Deux souscriptions simultanées ne peuvent pas contourner la règle 14 | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
@@ -295,6 +296,8 @@ Toutes les routes métier sont préfixées par `/api`. **Rôles** : *Conseiller*
 | GET | `/api/technologies` | Lister les technologies | 200 | Conseiller |
 | GET | `/api/technologies/{code}` | Détail d'une technologie | 200 | Conseiller |
 | GET | `/api/subscriptions/{id}/attestation` | Télécharger l'attestation de souscription ou de résiliation (PDF) | 200 | Conseiller |
+| GET | `/api/clients/export` | Exporter les clients en CSV (filtres de la liste) | 200 | Admin |
+| GET | `/api/subscriptions/export` | Exporter les souscriptions en CSV (filtres de la recherche globale) | 200 | Admin |
 | POST | `/api/technologies` | Ajouter une technologie (`code`, `label`) | 201 | Admin |
 
 Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
@@ -425,7 +428,8 @@ Quand plusieurs problèmes se cumulent, les données invalides (400) sont signal
 L'API est un outil de back-office : ce sont des conseillers et des administrateurs qui l'utilisent, pas les clients finaux.
 
 - **Connexion** : `POST /api/auth/login` renvoie un jeton JWT signé, valable une heure, à transmettre dans l'en-tête `Authorization: Bearer <jeton>`.
-- **Rôles** : CONSEILLER gère les clients et les souscriptions ; ADMIN a en plus la gestion du catalogue, les suppressions et les statistiques (matrice complète dans l'[ADR-0013](docs/adr/0013-securite.md)).
+- **Rôles** : CONSEILLER gère les clients et les souscriptions ; ADMIN a en plus la gestion du catalogue, les suppressions, les statistiques et les exports (matrice complète dans l'[ADR-0013](docs/adr/0013-securite.md) ; exports dans l'[ADR-0020](docs/adr/0020-exports-csv.md)).
+- **Exports** : réservés aux administrateurs, parce qu'ils contiennent des données personnelles en masse ; chaque export est tracé (auteur, nombre de lignes, filtres utilisés).
 - **Mots de passe** : stockés sous forme d'empreinte BCrypt, jamais écrits dans les logs.
 - **Audit** : l'auteur de chaque modification est le titulaire du jeton (`createdBy`, `updatedBy`, `changedBy` dans l'historique).
 - **Désactivation** : `APP_SECURITY_ENABLED=false` ouvre toute l'API sans jeton, pour tester le contrat de l'énoncé tel quel. L'auteur enregistré est alors `anonymous`.
@@ -438,7 +442,7 @@ Les comptes de démonstration et la clé de signature de `application.yml` serve
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 61 requêtes s'exécutent dans l'ordre et vérifient 118 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 64 requêtes s'exécutent dans l'ordre et vérifient 126 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -452,11 +456,11 @@ npx newman run postman/subscription-api.postman_collection.json
 |---|---|
 | 0 · Authentification | Connexion en administrateur et en conseiller |
 | 1 · Scénario de bout en bout | Les 7 étapes de l'énoncé, puis la vérification de l'historique et l'attestation de résiliation |
-| 2 · Règles métier | Les règles démontrées par leurs cas d'erreur, et les contrôles de droits (401, 403) |
-| 3 · Clients | Tous les endpoints des clients |
+| 2 · Règles métier | Les règles démontrées par leurs cas d'erreur, et les contrôles de droits (401, 403, export refusé au conseiller) |
+| 3 · Clients | Tous les endpoints des clients, export CSV compris |
 | 4 · Offres | Tous les endpoints des offres |
 | 5 · Technologies | Catalogue des technologies |
-| 6 · Souscriptions | Détail, recherche par ND, recherche globale, liste par client, attestation, suppression |
+| 6 · Souscriptions | Détail, recherche par ND, recherche globale, export CSV, liste par client, attestation, suppression |
 | 7 · Statistiques | Les trois indicateurs |
 
 La spécification OpenAPI (`http://localhost:8080/v3/api-docs`) peut aussi être importée dans Postman, qui génère alors une requête par endpoint, sans le scénario ni les vérifications.
@@ -619,6 +623,7 @@ Ces extensions sont celles que j'aurais inscrites dans cette section. Le délai 
 |---|---|
 | Prix mensuel figé à la souscription : une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
 | Attestation de souscription ou de résiliation au format PDF, téléchargeable depuis l'API | [ADR-0019](docs/adr/0019-attestation-pdf.md) |
+| Exports CSV des clients et des souscriptions pour Excel, lus par lots et protégés contre l'injection de formule | [ADR-0020](docs/adr/0020-exports-csv.md) |
 
 ### Pistes restantes
 
@@ -659,7 +664,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 
 | Document | Contenu |
 |---|---|
-| [docs/adr/](docs/adr/README.md) | Les 19 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
+| [docs/adr/](docs/adr/README.md) | Les 20 décisions d'architecture : contexte, décision, alternatives écartées et conséquences |
 | [docs/interpretations.md](docs/interpretations.md) | Les points ambigus de l'énoncé et le choix retenu pour chacun |
 | [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et relations, contraintes reliées aux règles métier, index et requêtes qu'ils servent |
 | Swagger UI (`/swagger-ui.html`) | Chaque endpoint, ses paramètres, ses réponses et ses erreurs |

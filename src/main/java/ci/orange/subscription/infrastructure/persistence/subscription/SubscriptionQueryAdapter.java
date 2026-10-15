@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 class SubscriptionQueryAdapter implements SubscriptionQueries {
@@ -55,6 +57,21 @@ class SubscriptionQueryAdapter implements SubscriptionQueries {
 	public Page<SubscriptionView> findByClient(Long clientId, Pageable pageable) {
 		return jpaRepository.findAll(SubscriptionSpecifications.ofClient(clientId), pageable)
 				.map(SubscriptionQueryAdapter::toView);
+	}
+
+	/**
+	 * Tri sur la clé primaire et limite, sans requête de comptage. Le client et l'offre sont chargés
+	 * par la même requête (graphe de chargement), comme pour la recherche paginée.
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	public List<SubscriptionView> findBatch(SubscriptionSearchCriteria criteria, Long afterId, int size) {
+		return jpaRepository
+				.findBy(SubscriptionSpecifications.matching(criteria).and(SubscriptionSpecifications.after(afterId)),
+						query -> query.project("client", "offer").sortBy(Sort.by("id")).limit(size).all())
+				.stream()
+				.map(SubscriptionQueryAdapter::toView)
+				.toList();
 	}
 
 	private static SubscriptionView toView(SubscriptionEntity entity) {
