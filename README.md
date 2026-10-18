@@ -128,6 +128,7 @@ spring:
 - **Tests** : ils utilisent la même base, dans un schéma séparé `test` que Flyway crée et migre automatiquement (`src/test/resources/config/application.yml`). Les données saisies via l'application ne perturbent pas les tests, et il n'y a pas de seconde base à créer.
 
 ## 5. Lancement et tests
+  | `APP_CORS_ALLOWED_ORIGINS` | Origines autorisées à appeler l'API depuis un navigateur (un back-office publié sur un autre domaine), séparées par des virgules ; aucune par défaut |
 
 PostgreSQL doit être démarré, pour l'application comme pour les tests.
 

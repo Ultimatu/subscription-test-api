@@ -1,6 +1,6 @@
 # ADR-0013 — Extensions au-delà de l'énoncé
 
-- **Statut** : Acceptées et mises en œuvre (14 et 15/10/2026). Cette fiche regroupe les anciennes fiches 0013 (authentification), 0018 (prix figé), 0019 (attestation), 0020 (exports), 0021 (notifications), 0022 (retrait d'une technologie), 0023 (suppression définitive et conservation) et 0024 (journal d'audit).
+- **Statut** : Acceptées et mises en œuvre (14 et 15/10/2026 ; CORS ajouté le 18/10/2026). Cette fiche regroupe les anciennes fiches 0013 (authentification), 0018 (prix figé), 0019 (attestation), 0020 (exports), 0021 (notifications), 0022 (retrait d'une technologie), 0023 (suppression définitive et conservation) et 0024 (journal d'audit).
 
 ## Principe
 
@@ -35,6 +35,7 @@ Ces fonctionnalités ne sont pas demandées par l'énoncé. Elles ont été réa
   | Connexion, Swagger UI, `/actuator/health` | public | public |
 
 - Erreurs 401 (`AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`) et 403 (`ACCESS_DENIED`) au format Problem Details, comme les autres.
+- **CORS fermé par défaut** : seules les origines listées dans `APP_CORS_ALLOWED_ORIGINS` (un back-office publié sur un autre domaine) peuvent appeler `/api/**` depuis un navigateur. Le jeton voyage dans l'en-tête `Authorization`, jamais dans un cookie : aucun identifiant n'est envoyé automatiquement, d'où l'absence de protection CSRF.
 - **Désactivable** (`APP_SECURITY_ENABLED=false`), avec un avertissement à chaque démarrage ; la collection Postman se connecte toute seule. Le contrat de l'énoncé reste testable tel quel.
 
 **Écarté.** Un rôle CLIENT, qui supposerait des comptes clients et un filtrage par propriétaire : c'est une autre application. Aucune authentification : conforme à l'énoncé, mais l'audit perdrait son intérêt.

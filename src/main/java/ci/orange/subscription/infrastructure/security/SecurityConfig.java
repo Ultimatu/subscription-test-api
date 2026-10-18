@@ -1,16 +1,21 @@
 package ci.orange.subscription.infrastructure.security;
 
 import ci.orange.subscription.infrastructure.web.error.ProblemDetailFactory;
+import ci.orange.subscription.infrastructure.web.tracing.RequestTracingFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,6 +28,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Authentification par jeton JWT et droits par rôle (ADR-0013). L'API est sans état : aucune session,
@@ -30,7 +38,7 @@ import org.springframework.security.web.SecurityFilterChain;
  */
 @Slf4j
 @Configuration
-@EnableConfigurationProperties(SecurityProperties.class)
+@EnableConfigurationProperties({ SecurityProperties.class, CorsProperties.class })
 public class SecurityConfig {
 
 	private static final String ADMIN = UserRole.ADMIN.name();
@@ -44,6 +52,7 @@ public class SecurityConfig {
 			ProblemDetailFactory problems, ObjectMapper objectMapper) throws Exception {
 		ProblemDetailsSecurityHandler errors = new ProblemDetailsSecurityHandler(problems, objectMapper);
 		http.csrf(AbstractHttpConfigurer::disable)
+				.cors(Customizer.withDefaults())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(handling -> handling.authenticationEntryPoint(errors).accessDeniedHandler(errors));
 		if (!properties.enabled()) {
@@ -75,6 +84,30 @@ public class SecurityConfig {
 						.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
 						.authenticationEntryPoint(errors))
 				.build();
+	}
+
+	/**
+	 * Origines autorisées à appeler l'API depuis un navigateur ({@code app.cors.allowed-origins}), comme le
+	 * back-office publié sur un autre domaine. Sans origine configurée, aucune règle n'est déclarée et l'API
+	 * se comporte comme avant. Le jeton circule dans l'en-tête Authorization, jamais dans un cookie : aucun
+	 * identifiant n'est partagé. Les en-têtes exposés permettent au navigateur de lire l'identifiant de la
+	 * requête, l'adresse d'une ressource créée et le nom des fichiers téléchargés.
+	 */
+	@Bean
+	CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		if (!properties.allowedOrigins().isEmpty()) {
+			CorsConfiguration configuration = new CorsConfiguration();
+			configuration.setAllowedOrigins(properties.allowedOrigins());
+			configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+			configuration.setAllowedHeaders(List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE,
+					RequestTracingFilter.REQUEST_ID_HEADER));
+			configuration.setExposedHeaders(List.of(RequestTracingFilter.REQUEST_ID_HEADER, HttpHeaders.LOCATION,
+					HttpHeaders.CONTENT_DISPOSITION));
+			configuration.setMaxAge(Duration.ofHours(1));
+			source.registerCorsConfiguration("/api/**", configuration);
+		}
+		return source;
 	}
 
 	/** Clé HMAC partagée par l'émission et la vérification des jetons. */

@@ -61,6 +61,10 @@ app:
       # Clé HMAC de 256 bits (Base64), pour le développement uniquement : en production, elle est
       # fournie par la variable d'environnement APP_SECURITY_JWT_SECRET
       secret: 4UNwXJoVwONomSM7a6LtumqQ2mOm4Nh2FTS+GQrz1JA=
+  cors:
+    # Origines autorisées à appeler l'API depuis un navigateur
+    # domaine : APP_CORS_ALLOWED_ORIGINS=https://front.example,https://autre.example. Aucune par défaut.
+    allowed-origins: []
 
 management:
   health:
