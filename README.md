@@ -226,73 +226,71 @@ Exemple : `POST /api/subscriptions/suspend` avec `{ "subscriptionId": 1, "reason
 
 ## 7. Endpoints
 
-Toutes les routes métier sont préfixées par `/api`, déclaré une seule fois (`WebConfig`) pour les seuls controllers métier : Swagger UI et Actuator gardent leurs chemins habituels. Les URLs sont exactement celles de l'énoncé, sans numéro de version (voir [Limites et améliorations](#13-limites-et-améliorations)). **Rôles** : *Conseiller* signifie accessible aux rôles CONSEILLER et ADMIN ; *Admin*, au seul rôle ADMIN. Les listes sont paginées (`page` à partir de 0, `size` 20 par défaut et 100 au maximum, `sort=champ,asc|desc`).
+Toutes les routes métier sont préfixées par `/api`, déclaré une seule fois (`WebConfig`) pour les seuls controllers métier : Swagger UI et Actuator gardent leurs chemins habituels. Les URLs sont exactement celles de l'énoncé, sans numéro de version (voir [Limites et améliorations](#13-limites-et-améliorations)). **Rôles** : *Conseiller* signifie accessible aux rôles CONSEILLER et ADMIN ; *Admin*, au seul rôle ADMIN. Les listes sont paginées (`page` à partir de 0, `size` 20 par défaut et 100 au maximum, `sort=champ,asc|desc`). Les paramètres et corps de requête sont ceux de l'énoncé ; Swagger UI les détaille, avec les réponses et les erreurs possibles de chaque endpoint.
 
 ### Clients
 
-| Méthode | URL                                       | Paramètres                                                                      | Description                                                | Succès | Rôle      |
-| -------- | ----------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------- | ---------- |
-| POST     | `/api/clients`                          | Corps : `firstName`, `lastName`, `email`, `phoneNumberClient`, `city`  | Créer un client                                           | 201     | Conseiller |
-| GET      | `/api/clients`                          | `city`, `status`, `search`, `page`, `size`, `sort`                   | Lister les clients                                         | 200     | Conseiller |
-| GET      | `/api/clients/{id}`                     |                                                                                  | Détail d'un client                                        | 200     | Conseiller |
-| PUT      | `/api/clients/{id}`                     | Corps : `firstName`, `lastName`, `phoneNumberClient`, `city`, `status` | Modifier un client                                         | 200     | Conseiller |
-| DELETE   | `/api/clients/{id}`                     |                                                                                  | Supprimer un client                                        | 204     | Admin      |
-| GET      | `/api/clients/{id}/summary`             |                                                                                  | Nombre de souscriptions par statut et revenu mensuel total | 200     | Conseiller |
-| GET      | `/api/clients/{clientId}/subscriptions` | `page`, `size`, `sort`                                                     | Souscriptions d'un client                                  | 200     | Conseiller |
+| Méthode | URL                                     | Description                                                | Succès | Rôle       |
+| ------- | --------------------------------------- | ---------------------------------------------------------- | ------ | ---------- |
+| POST    | `/api/clients`                          | Créer un client                                            | 201    | Conseiller |
+| GET     | `/api/clients`                          | Lister les clients                                         | 200    | Conseiller |
+| GET     | `/api/clients/{id}`                     | Détail d'un client                                         | 200    | Conseiller |
+| PUT     | `/api/clients/{id}`                     | Modifier un client                                         | 200    | Conseiller |
+| DELETE  | `/api/clients/{id}`                     | Supprimer un client                                        | 204    | Admin      |
+| GET     | `/api/clients/{id}/summary`             | Nombre de souscriptions par statut et revenu mensuel total | 200    | Conseiller |
+| GET     | `/api/clients/{clientId}/subscriptions` | Souscriptions d'un client                                  | 200    | Conseiller |
 
 ### Offres
 
-| Méthode | URL                             | Paramètres                                                   | Description                    | Succès | Rôle      |
-| -------- | ------------------------------- | ------------------------------------------------------------- | ------------------------------ | ------- | ---------- |
-| POST     | `/api/offers`                 | Corps : `code`, `label`, `technology`, `monthlyPrice` | Créer une offre               | 201     | Admin      |
-| GET      | `/api/offers`                 | `technology`, `active`, `page`, `size`, `sort`      | Lister les offres              | 200     | Conseiller |
-| GET      | `/api/offers/{id}`            |                                                               | Détail d'une offre            | 200     | Conseiller |
-| PUT      | `/api/offers/{id}`            | Corps : `label`, `monthlyPrice`                           | Modifier une offre             | 200     | Admin      |
-| PATCH    | `/api/offers/{id}/deactivate` |                                                               | Retirer une offre du catalogue | 200     | Admin      |
+| Méthode | URL                           | Description                    | Succès | Rôle       |
+| ------- | ----------------------------- | ------------------------------ | ------ | ---------- |
+| POST    | `/api/offers`                 | Créer une offre                | 201    | Admin      |
+| GET     | `/api/offers`                 | Lister les offres              | 200    | Conseiller |
+| GET     | `/api/offers/{id}`            | Détail d'une offre             | 200    | Conseiller |
+| PUT     | `/api/offers/{id}`            | Modifier une offre             | 200    | Admin      |
+| PATCH   | `/api/offers/{id}/deactivate` | Retirer une offre du catalogue | 200    | Admin      |
 
 ### Souscriptions
 
-| Méthode | URL                               | Paramètres                                                                                                    | Description                                                  | Succès | Rôle      |
-| -------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------- | ---------- |
-| POST     | `/api/subscriptions`            | Corps : `clientId`, `offerId`, `startDate`                                                               | Souscrire à une offre                                       | 201     | Conseiller |
-| GET      | `/api/subscriptions`            | `status`, `technology`, `city`, `nd`, `startDateFrom`, `startDateTo`, `page`, `size`, `sort` | Recherche globale                                            | 200     | Conseiller |
-| GET      | `/api/subscriptions/{id}`       |                                                                                                                | Détail, avec le client, l'offre et l'historique des statuts | 200     | Conseiller |
-| GET      | `/api/subscriptions/by-nd/{nd}` |                                                                                                                | Retrouver une souscription par son ND                        | 200     | Conseiller |
-| POST     | `/api/subscriptions/activate`   | Corps : `subscriptionId`                                                                                     | PENDING → ACTIVE                                            | 200     | Conseiller |
-| POST     | `/api/subscriptions/suspend`    | Corps : `subscriptionId`, `reason`                                                                         | ACTIVE → SUSPENDED                                          | 200     | Conseiller |
-| POST     | `/api/subscriptions/reactivate` | Corps : `subscriptionId`                                                                                     | SUSPENDED → ACTIVE                                          | 200     | Conseiller |
-| POST     | `/api/subscriptions/terminate`  | Corps : `subscriptionId`, `reason`                                                                         | → TERMINATED                                                | 200     | Conseiller |
-| DELETE   | `/api/subscriptions/{id}`       |                                                                                                                | Supprimer une souscription PENDING                           | 204     | Admin      |
+| Méthode | URL                             | Description                                                 | Succès | Rôle       |
+| ------- | ------------------------------- | ----------------------------------------------------------- | ------ | ---------- |
+| POST    | `/api/subscriptions`            | Souscrire à une offre                                       | 201    | Conseiller |
+| GET     | `/api/subscriptions`            | Recherche globale                                           | 200    | Conseiller |
+| GET     | `/api/subscriptions/{id}`       | Détail, avec le client, l'offre et l'historique des statuts | 200    | Conseiller |
+| GET     | `/api/subscriptions/by-nd/{nd}` | Retrouver une souscription par son ND                       | 200    | Conseiller |
+| POST    | `/api/subscriptions/activate`   | PENDING → ACTIVE                                            | 200    | Conseiller |
+| POST    | `/api/subscriptions/suspend`    | ACTIVE → SUSPENDED                                          | 200    | Conseiller |
+| POST    | `/api/subscriptions/reactivate` | SUSPENDED → ACTIVE                                          | 200    | Conseiller |
+| POST    | `/api/subscriptions/terminate`  | → TERMINATED                                                | 200    | Conseiller |
+| DELETE  | `/api/subscriptions/{id}`       | Supprimer une souscription PENDING                          | 204    | Admin      |
 
 ### Statistiques
 
-| Méthode | URL                                        | Paramètres                                | Description                                            | Succès | Rôle |
-| -------- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------ | ------- | ----- |
-| GET      | `/api/stats/subscriptions-by-city`       |                                            | Souscriptions actives et revenu mensuel par ville      | 200     | Admin |
-| GET      | `/api/stats/subscriptions-by-technology` |                                            | Répartition des souscriptions actives par technologie | 200     | Admin |
-| GET      | `/api/stats/subscriptions-by-status`     | `from`, `to`, `basedOn` (facultatif) | Nombre de souscriptions par statut sur une période    | 200     | Admin |
+| Méthode | URL                                      | Description                                           | Succès | Rôle  |
+| ------- | ---------------------------------------- | ----------------------------------------------------- | ------ | ----- |
+| GET     | `/api/stats/subscriptions-by-city`       | Souscriptions actives et revenu mensuel par ville     | 200    | Admin |
+| GET     | `/api/stats/subscriptions-by-technology` | Répartition des souscriptions actives par technologie | 200    | Admin |
+| GET     | `/api/stats/subscriptions-by-status`     | Nombre de souscriptions par statut sur une période    | 200    | Admin |
 
-`basedOn` précise quelle date doit tomber dans la période : `CREATION_DATE` (par défaut), `START_DATE` ou `STATUS_CHANGE` (changements de statut survenus pendant la période, d'après l'historique).
+Le paramètre facultatif `basedOn`, ajouté à `subscriptions-by-status`, précise quelle date doit tomber dans la période : `CREATION_DATE` (par défaut), `START_DATE` ou `STATUS_CHANGE` (changements de statut survenus pendant la période, d'après l'historique).
 
 ### Hors énoncé
 
-| Méthode | URL                                       | Description                                                                                             | Succès | Rôle      |
-| -------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------- | ---------- |
-| POST     | `/api/auth/login`                       | Obtenir un jeton (`username`, `password`)                                                           | 200     | Public     |
-| GET      | `/api/technologies`                     | Lister les technologies (`active` pour filtrer)                                                       | 200     | Conseiller |
-| GET      | `/api/technologies/{code}`              | Détail d'une technologie                                                                               | 200     | Conseiller |
-| GET      | `/api/subscriptions/{id}/attestation`   | Télécharger l'attestation de souscription ou de résiliation (PDF)                                    | 200     | Conseiller |
-| GET      | `/api/clients/export`                   | Exporter les clients en CSV (filtres de la liste)                                                       | 200     | Admin      |
-| GET      | `/api/subscriptions/export`             | Exporter les souscriptions en CSV (filtres de la recherche globale)                                     | 200     | Admin      |
-| GET      | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi                                                      | 200     | Conseiller |
-| POST     | `/api/technologies`                     | Ajouter une technologie (`code`, `label`)                                                           | 201     | Admin      |
-| PATCH    | `/api/technologies/{code}/deactivate`   | Retirer une technologie du catalogue                                                                    | 200     | Admin      |
-| PATCH    | `/api/technologies/{code}/activate`     | Remettre une technologie au catalogue                                                                   | 200     | Admin      |
-| GET      | `/api/audit-events`                     | Journal d'audit, filtrable par ressource, auteur, action et période                                    | 200     | Admin      |
-| GET      | `/api/clients/deleted`                  | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être         | 200     | Admin      |
-| DELETE   | `/api/clients/{id}/purge`               | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204     | Admin      |
-
-Le détail de chaque endpoint (corps, réponses, erreurs possibles) est consultable dans Swagger UI.
+| Méthode | URL                                     | Description                                                                                           | Succès | Rôle       |
+| ------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------ | ---------- |
+| POST    | `/api/auth/login`                       | Obtenir un jeton (`username`, `password`)                                                             | 200    | Public     |
+| GET     | `/api/technologies`                     | Lister les technologies (`active` pour filtrer)                                                       | 200    | Conseiller |
+| GET     | `/api/technologies/{code}`              | Détail d'une technologie                                                                              | 200    | Conseiller |
+| GET     | `/api/subscriptions/{id}/attestation`   | Télécharger l'attestation de souscription ou de résiliation (PDF)                                     | 200    | Conseiller |
+| GET     | `/api/clients/export`                   | Exporter les clients en CSV (filtres de la liste)                                                     | 200    | Admin      |
+| GET     | `/api/subscriptions/export`             | Exporter les souscriptions en CSV (filtres de la recherche globale)                                   | 200    | Admin      |
+| GET     | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi                                                      | 200    | Conseiller |
+| POST    | `/api/technologies`                     | Ajouter une technologie (`code`, `label`)                                                             | 201    | Admin      |
+| PATCH   | `/api/technologies/{code}/deactivate`   | Retirer une technologie du catalogue                                                                  | 200    | Admin      |
+| PATCH   | `/api/technologies/{code}/activate`     | Remettre une technologie au catalogue                                                                 | 200    | Admin      |
+| GET     | `/api/audit-events`                     | Journal d'audit, filtrable par ressource, auteur, action et période                                   | 200    | Admin      |
+| GET     | `/api/clients/deleted`                  | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être          | 200    | Admin      |
+| DELETE  | `/api/clients/{id}/purge`               | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204    | Admin      |
 
 ## 8. Transitions de statut d'une souscription
 
