@@ -53,5 +53,4 @@ public final class ApiErrors {
 			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblem.class)))
 	public @interface Conflict {
 	}
-
 }

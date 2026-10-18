@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.5.16</version>
-		<relativePath/> <!-- parent récupéré depuis le dépôt Maven -->
+		<relativePath /> <!-- parent récupéré depuis le dépôt Maven -->
 	</parent>
 	<groupId>ci.orange</groupId>
 	<artifactId>subscription-api</artifactId>
@@ -21,7 +22,7 @@
 		<jacoco.version>0.8.15</jacoco.version>
 		<!-- HTML vers PDF, sur PDFBox ; compatible Java 17 (Flying Saucer 10 exige Java 21) -->
 		<openhtmltopdf.version>1.1.97</openhtmltopdf.version>
-		
+
 		<greenmail.version>2.1.14</greenmail.version>
 	</properties>
 	<dependencies>
@@ -63,16 +64,16 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		<dependency>
-    <groupId>io.github.openhtmltopdf</groupId>
-    <artifactId>openhtmltopdf-pdfbox</artifactId>
-    <version>${openhtmltopdf.version}</version>
-    <exclusions>
-        <exclusion>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging</artifactId>
-        </exclusion>
-    </exclusions>
-</dependency>
+			<groupId>io.github.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>${openhtmltopdf.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		<dependency>
 			<groupId>io.github.openhtmltopdf</groupId>
 			<artifactId>openhtmltopdf-slf4j</artifactId>
@@ -162,7 +163,8 @@
 						</goals>
 					</execution>
 					<execution>
-						<!-- En phase test pour que « mvn test » produise target/site/jacoco/index.html -->
+						<!-- En phase test pour que « mvn test » produise
+						target/site/jacoco/index.html -->
 						<id>report</id>
 						<phase>test</phase>
 						<goals>
@@ -170,7 +172,8 @@
 						</goals>
 					</execution>
 					<execution>
-						<!-- En phase verify plutôt que test, pour qu'exécuter un seul test n'échoue jamais pour cause de couverture -->
+						<!-- En phase verify plutôt que test, pour qu'exécuter un seul test n'échoue
+						jamais pour cause de couverture -->
 						<id>check</id>
 						<goals>
 							<goal>check</goal>
