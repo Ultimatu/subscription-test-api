@@ -391,13 +391,33 @@ class ClientControllerTest {
 	}
 
 	@Test
-	void enrichesErrorsRaisedBySpringItself() throws Exception {
+	void enrichesAndTranslatesErrorsRaisedBySpringItself() throws Exception {
 		mockMvc.perform(patch("/api/clients"))
 				.andExpect(status().isMethodNotAllowed())
 				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.title").value("Méthode non autorisée"))
+				.andExpect(jsonPath("$.detail").value(containsString("La méthode PATCH n'est pas acceptée par cette URL")))
 				.andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
 				.andExpect(jsonPath("$.timestamp").isNotEmpty())
 				.andExpect(jsonPath("$.requestId").isNotEmpty());
+	}
+
+	@Test
+	void translatesAnUnsupportedContentType() throws Exception {
+		mockMvc.perform(post("/api/clients").contentType(MediaType.TEXT_PLAIN).content(VALID_CLIENT))
+				.andExpect(status().isUnsupportedMediaType())
+				.andExpect(jsonPath("$.title").value("Type de contenu non pris en charge"))
+				.andExpect(jsonPath("$.detail").value(containsString("Le type de contenu text/plain")))
+				.andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
+	}
+
+	@Test
+	void translatesAnUnknownRoute() throws Exception {
+		mockMvc.perform(get("/api/clients/1/unknown"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.title").value("Ressource introuvable"))
+				.andExpect(jsonPath("$.detail").value("Aucune ressource ne correspond à cette URL"))
+				.andExpect(jsonPath("$.code").value("NOT_FOUND"));
 	}
 
 	private static Client client(ClientStatus status) {

@@ -134,7 +134,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande                                  | Effet                                                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `mvn spring-boot:run`                   | Lance l'application sur le port 8080                                                                       |
-| `mvn test`                              | Exécute les 401 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
+| `mvn test`                              | Exécute les 403 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
 | `mvn test -DexcludedGroups=integration` | N'exécute que les tests unitaires, sans base de données ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) |
 | `mvn verify`                            | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes                        |
 
@@ -146,8 +146,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre                                              | Tests | Lignes | Branches |
 | -------------------------------------------------------- | ----- | ------ | -------- |
-| Tous les tests (`mvn test`)                            | 401   | 98,3 % | 86,0 %   |
-| Tests unitaires seuls (`-DexcludedGroups=integration`) | 319   | 71,8 % | 63,5 %   |
+| Tous les tests (`mvn test`)                            | 403   | 98,3 % | 86,0 %   |
+| Tests unitaires seuls (`-DexcludedGroups=integration`) | 321   | 72,0 % | 63,5 %   |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond, du domaine en Java pur jusqu'à l'application démarrée ([ADR-0010](docs/adr/0010-strategie-de-tests.md)). Parmi les tests notables : les 16 combinaisons statut × opération confrontées au tableau de l'énoncé, l'ordre de vérification de la règle 15, la matrice des droits avec de vrais jetons, le contenu réel du PDF et des emails, et des requêtes HTTP réellement concurrentes, dont chaque cas échoue si l'on retire la protection qu'il vérifie ([ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md)).
 
@@ -496,8 +496,7 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 **API**
 
 - **Versionner l'API** (`/api/v1`) : l'énoncé fixe des URLs sans version, conservées telles quelles. Le préfixe étant déclaré à un seul endroit, l'ajout d'une version ne toucherait qu'une ligne.
-- **Clés d'idempotence** sur les `POST` (en-tête `Idempotency-Key`), pour qu'un appel rejoué après une coupure réseau ne crée pas une seconde souscription.
-- **Titres d'erreur traduits** pour les erreurs produites par Spring lui-même (405, 415…), qui restent en anglais.
+- **Clés d'idempotence** sur les `POST` (en-tête `Idempotency-Key`), pour qu'un appel rejoué après une coupure réseau reçoive la réponse du premier, au lieu d'un 409. Les règles d'unicité empêchent déjà tout doublon (un `POST /api/subscriptions` rejoué est refusé par la règle 14, un client rejoué par l'unicité de l'email), mais l'appelant ne sait pas si son premier appel a réussi.
 - **Détecter les modifications fondées sur une lecture ancienne** : la version des ressources n'est pas exposée. Si deux conseillers consultent le même client puis l'enregistrent l'un après l'autre (`GET`, puis `PUT`), le second écrase la modification du premier sans le savoir ; le verrou optimiste ne protège que des transactions simultanées. Un en-tête `ETag` sur les lectures et un `If-Match` sur les `PUT` (412 si la ressource a changé entre-temps) régleraient le problème ; facultatifs, ils ne modifieraient pas le contrat de l'énoncé ([ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md)).
 
 **Métier**

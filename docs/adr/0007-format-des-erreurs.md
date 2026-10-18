@@ -1,6 +1,6 @@
 # ADR-0007 — Erreurs au format Problem Details avec un code stable
 
-- **Statut** : Acceptée (14/10/2026)
+- **Statut** : Acceptée (14/10/2026). Traduction des erreurs produites par Spring ajoutée le 18/10/2026.
 
 ## Contexte
 
@@ -21,7 +21,7 @@ Les clients de l'API doivent pouvoir distinguer précisément les cas d'erreur (
   | `ResourceNotFoundException` | 404 |
   | `BusinessRuleViolationException` (dont les transitions refusées) | 409 |
 
-- Les erreurs techniques ont leurs propres codes (`TechnicalErrorCode` : `VALIDATION_ERROR`, `MALFORMED_REQUEST`, `CONCURRENT_MODIFICATION`, `INTERNAL_ERROR`…). Celles que gère Spring lui-même (405, 415…) reçoivent un code tiré de leur statut (`METHOD_NOT_ALLOWED`).
+- Les erreurs techniques ont leurs propres codes (`TechnicalErrorCode` : `VALIDATION_ERROR`, `MALFORMED_REQUEST`, `CONCURRENT_MODIFICATION`, `INTERNAL_ERROR`…). Celles que gère Spring lui-même (405, 415…) reçoivent un code tiré de leur statut (`METHOD_NOT_ALLOWED`), et leur titre et leur message sont traduits par `messages.properties`, que `ResponseEntityExceptionHandler` lit par le `MessageSource` (clés `problemDetail.title.<exception>` et `problemDetail.<exception>`).
 - Une erreur inattendue renvoie 500 avec un message générique : aucun détail interne ne sort de l'API.
 - Les messages sont en français. Un code n'est jamais renommé : on en ajoute un nouveau.
 - **Pas d'enveloppe** `{ status, timestamp, data }` sur les réponses de succès.
@@ -34,4 +34,4 @@ Les clients de l'API doivent pouvoir distinguer précisément les cas d'erreur (
 ## Conséquences
 
 - Un client de l'API peut traiter chaque cas d'erreur de façon fiable, et le format est documenté dans Swagger (schéma `Problem`).
-- Les titres des erreurs gérées par Spring lui-même restent en anglais (« Method Not Allowed ») ; on pourrait les traduire par un `MessageSource`.
+- Toutes les erreurs que l'API peut rencontrer sont en français, y compris celles de Spring (405, 406, 415, 404 sur une route inconnue, paramètre manquant). Une exception de Spring absente de `messages.properties` garderait son titre anglais : en ajouter une se fait sans code, par deux lignes dans ce fichier.
