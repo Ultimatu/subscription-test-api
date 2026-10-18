@@ -35,7 +35,7 @@ public interface SubscriptionUseCases {
 	Page<SubscriptionView> search(SubscriptionSearchCriteria criteria, Pageable pageable);
 
 	/**
-	 * Toutes les souscriptions correspondant aux critères, lues par lots (ADR-0020). Les critères sont
+	 * Toutes les souscriptions correspondant aux critères, lues par lots (ADR-0013). Les critères sont
 	 * vérifiés immédiatement, comme pour la recherche.
 	 */
 	BatchedExport<SubscriptionView> export(SubscriptionSearchCriteria criteria);

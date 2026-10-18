@@ -10,9 +10,9 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | 1 | Qu'est-ce qu'une « tentative de modification » de l'email ? | La présence d'un champ `email` non nul dans le corps du `PUT`, même s'il est identique à l'email actuel : 400 `VALIDATION_ERROR`. |
 | 2 | Format exact du numéro de contact | Dix chiffres commençant par 01, 05 ou 07 : `^0[157][0-9]{8}$`. Ni espaces ni indicatif `+225`. |
 | 3 | Que faire d'un `status` fourni à la création ? | Il est ignoré, sans erreur, comme le demande l'énoncé. |
-| 6 | Que deviennent les souscriptions résiliées d'un client supprimé ? | Le client et ses souscriptions résiliées sont supprimés logiquement : ils disparaissent de l'API mais restent en base pendant le délai de conservation, puis peuvent être purgés ([ADR-0005](adr/0005-suppression-logique.md), [ADR-0023](adr/0023-suppression-et-conservation.md)). Un client qui n'a jamais souscrit est supprimé définitivement. |
+| 6 | Que deviennent les souscriptions résiliées d'un client supprimé ? | Le client et ses souscriptions résiliées sont supprimés logiquement : ils disparaissent de l'API mais restent en base pendant le délai de conservation, puis peuvent être purgés ([ADR-0005](adr/0005-suppression-logique.md), [ADR-0013](adr/0013-extensions.md#7-suppression-définitive-et-durée-de-conservation)). Un client qui n'a jamais souscrit est supprimé définitivement. |
 | 6 | Peut-on recréer un client avec l'email d'un client supprimé ? | Oui : c'est un nouveau client, avec un nouvel identifiant. |
-| — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées, au prix figé à la souscription ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)). Tous les statuts figurent dans le décompte, y compris à zéro. |
+| — | Synthèse : quel revenu mensuel total ? | La somme des prix mensuels des souscriptions **ACTIVE** uniquement, les seules facturées, au prix figé à la souscription ([ADR-0013](adr/0013-extensions.md#2-prix-figé-à-la-souscription)). Tous les statuts figurent dans le décompte, y compris à zéro. |
 | — | Filtres de la liste | `city` : égalité insensible à la casse **et aux accents**. `search` : correspondance partielle, insensible à la casse et aux accents (au-delà de l'énoncé : `kone` trouve `Koné`, [ADR-0017](adr/0017-recherche-insensible-aux-accents.md)), sur le prénom, le nom et l'email ; les caractères `%` et `_` sont recherchés littéralement. |
 
 ## Offres
@@ -20,7 +20,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | Règle | Question | Choix retenu |
 |---|---|---|
 | 7 | Code en minuscules : convertir ou refuser ? | Refuser (400). Le code accepte majuscules, chiffres et tirets : `^[A-Z0-9]+(-[A-Z0-9]+)*$`. |
-| 8 | Nombre de décimales du prix | Deux au plus ; une troisième est refusée plutôt qu'arrondie ([ADR-0011](adr/0011-montants.md)). |
+| 8 | Nombre de décimales du prix | Deux au plus ; une troisième est refusée plutôt qu'arrondie. Les montants sont des `BigDecimal` en Java et des `numeric(12,2)` en base, jamais des nombres à virgule flottante, et toujours exprimés avec deux décimales (`25000.00`, `0.00`). |
 | 9 | `active` fourni à la création | Ignoré, comme le demande l'énoncé. |
 | 9 | `active` fourni dans le `PUT` | Refusé (400) : la désactivation passe exclusivement par `PATCH /api/offers/{id}/deactivate`. |
 | 10 | `code` ou `technology` fournis dans le `PUT` | Refusés (400), par cohérence avec la règle 1 sur l'email. |
@@ -48,7 +48,7 @@ Ce document recense les points sur lesquels l'énoncé laisse une marge d'interp
 | Question | Choix retenu |
 |---|---|
 | « Souscriptions actives et revenu mensuel par ville » | La ville est celle du client, regroupée sans tenir compte de la casse ni des accents (« Bouaké » et « bouake » forment une seule ligne). Le revenu est la somme des prix mensuels des souscriptions ACTIVE ; seules les villes ayant au moins une souscription active apparaissent, revenu le plus élevé en premier. |
-| Quel prix pour le revenu ? | Le prix **figé à la souscription** : une hausse du catalogue ne change pas le revenu des souscriptions existantes ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)). Ce choix remplace le précédent, qui utilisait le prix actuel de l'offre. |
+| Quel prix pour le revenu ? | Le prix **figé à la souscription** : une hausse du catalogue ne change pas le revenu des souscriptions existantes ([ADR-0013](adr/0013-extensions.md#2-prix-figé-à-la-souscription)). Ce choix remplace le précédent, qui utilisait le prix actuel de l'offre. |
 | « Répartition par technologie » | Nombre de souscriptions ACTIVE et part en pourcentage (deux décimales). Toutes les technologies du catalogue apparaissent, y compris à 0. |
 | « Par statut sur une période » : quelle date doit tomber dans la période ? | Au choix de l'appelant, par le paramètre facultatif `basedOn` : `CREATION_DATE` (par défaut : souscriptions créées dans la période, selon leur statut actuel), `START_DATE` (souscriptions qui démarrent dans la période, selon leur statut actuel) ou `STATUS_CHANGE` (souscriptions passées à chaque statut pendant la période, d'après l'historique). |
 | Bornes de la période | `from` et `to` sont facultatifs et inclus, interprétés comme des dates à Abidjan. Une période inversée donne une 400 `INVALID_DATE_RANGE`. Tous les statuts apparaissent, y compris à 0, et `total` compte des souscriptions distinctes. |

@@ -4,7 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Port d'entrée : la suppression des clients et la conservation de leurs données (ADR-0023). Ces
+ * Port d'entrée : la suppression des clients et la conservation de leurs données (ADR-0013). Ces
  * règles évoluent avec la loi et la configuration, pas avec la gestion des clients : elles ont leur
  * propre port, distinct de {@link ClientUseCases} (ADR-0001).
  */
@@ -12,13 +12,13 @@ public interface ClientDeletionUseCases {
 
 	/**
 	 * Un client qui n'a jamais souscrit est supprimé définitivement ; un client qui a un historique
-	 * est supprimé logiquement ou définitivement, selon la politique de suppression (ADR-0023).
+	 * est supprimé logiquement ou définitivement, selon la politique de suppression (ADR-0013).
 	 */
 	void delete(Long id);
 
 	/**
 	 * Supprime définitivement un client, ses souscriptions, leur historique et leurs notifications,
-	 * dans la limite du délai de conservation (ADR-0023).
+	 * dans la limite du délai de conservation (ADR-0013).
 	 */
 	void purge(Long id);
 

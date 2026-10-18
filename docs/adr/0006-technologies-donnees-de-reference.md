@@ -1,6 +1,6 @@
 # ADR-0006 — Les technologies sont des données de référence, pas un enum
 
-- **Statut** : Acceptée (14/10/2026) — remplace le choix initial d'un enum Java
+- **Statut** : Acceptée (14/10/2026), remplace le choix initial d'un enum Java. Le retrait d'une technologie du catalogue, ajouté au-delà de l'énoncé, est décrit dans l'[ADR-0013](0013-extensions.md#6-retrait-dune-technologie-du-catalogue).
 
 ## Contexte
 
@@ -12,7 +12,7 @@ Règle appliquée dans tout le projet : **un enum quand le code se comporte diff
 
 - Une table **`technology`** (migration V4), dont le code sert de clé primaire, initialisée avec les trois technologies de l'énoncé.
 - Une offre référence sa technologie **par son code**, garanti par une clé étrangère.
-- Un catalogue géré par l'API : `GET /api/technologies` et `POST /api/technologies` (réservé aux administrateurs une fois l'authentification en place).
+- Un catalogue géré par l'API : `GET /api/technologies` et `POST /api/technologies` (réservé aux administrateurs).
 
 ## Alternatives envisagées
 

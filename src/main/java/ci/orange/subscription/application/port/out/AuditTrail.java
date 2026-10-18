@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Journal d'audit (ADR-0024). L'auteur, l'heure et l'identifiant de la requête sont renseignés par
+ * Journal d'audit (ADR-0013). L'auteur, l'heure et l'identifiant de la requête sont renseignés par
  * l'adaptateur.
  */
 public interface AuditTrail {

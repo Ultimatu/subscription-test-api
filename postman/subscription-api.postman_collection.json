@@ -2563,7 +2563,7 @@
 		},
 		{
 			"name": "8 · Parcours complet de l'application",
-			"description": "Le scénario de l'énoncé (dossier 1) reste inchangé. Ce parcours enchaîne toutes les fonctionnalités, y\ncompris celles ajoutées au-delà de l'énoncé : technologie retirée puis remise au catalogue, prix figé à la\nsouscription, cycle de vie complet, attestation PDF, notifications par email, statistiques, exports CSV,\njournal d'audit, puis suppression, conservation et purge des données (ADR-0023). Il crée ses propres données à chaque\nexécution et peut être rejoué ; à exécuter dans l'ordre.",
+			"description": "Le scénario de l'énoncé (dossier 1) reste inchangé. Ce parcours enchaîne toutes les fonctionnalités, y\ncompris celles ajoutées au-delà de l'énoncé : technologie retirée puis remise au catalogue, prix figé à la\nsouscription, cycle de vie complet, attestation PDF, notifications par email, statistiques, exports CSV,\njournal d'audit, puis suppression, conservation et purge des données (ADR-0013). Il crée ses propres données à chaque\nexécution et peut être rejoué ; à exécuter dans l'ordre.",
 			"item": [
 				{
 					"name": "1. Créer une technologie (administrateur)",
@@ -2779,7 +2779,7 @@
 						"method": "GET",
 						"header": [],
 						"url": "{{baseUrl}}/api/subscriptions/{{journeySubscriptionId}}",
-						"description": "La hausse du catalogue ne s'applique qu'aux nouvelles souscriptions (ADR-0018).",
+						"description": "La hausse du catalogue ne s'applique qu'aux nouvelles souscriptions (ADR-0013).",
 						"auth": {
 							"type": "bearer",
 							"bearer": [
@@ -2873,7 +2873,7 @@
 							}
 						],
 						"url": "{{baseUrl}}/api/subscriptions",
-						"description": "Vérifiée juste après l'offre active, avant le blocage global et l'unicité par technologie (ADR-0022).",
+						"description": "Vérifiée juste après l'offre active, avant le blocage global et l'unicité par technologie (ADR-0013).",
 						"body": {
 							"mode": "raw",
 							"raw": "{ \"clientId\": {{journeyClientId}}, \"offerId\": {{journeyOfferId}}, \"startDate\": \"{{today}}\" }",
@@ -3297,7 +3297,7 @@
 						"method": "GET",
 						"header": [],
 						"url": "{{baseUrl}}/api/audit-events?resourceType=SUBSCRIPTION&resourceId={{journeySubscriptionId}}&sort=occurredAt,asc&sort=id,asc",
-						"description": "Chaque action métier est consignée : qui, quand, quoi, avec le motif et l'identifiant de la requête (ADR-0024)."
+						"description": "Chaque action métier est consignée : qui, quand, quoi, avec le motif et l'identifiant de la requête (ADR-0013)."
 					},
 					"event": [
 						{
@@ -3375,7 +3375,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": "{{baseUrl}}/api/clients/{{journeyClientId}}",
-						"description": "Le client a eu une ligne : il est supprimé logiquement, et conservé pendant le délai de conservation (ADR-0023)."
+						"description": "Le client a eu une ligne : il est supprimé logiquement, et conservé pendant le délai de conservation (ADR-0013)."
 					},
 					"event": [
 						{

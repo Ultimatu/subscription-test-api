@@ -54,7 +54,7 @@ public class SubscriptionEntity extends SoftDeletableEntity {
 	@Column(nullable = false, updatable = false, length = 20)
 	private String technology;
 
-	/** Prix de l'offre au moment de la souscription (ADR-0018). */
+	/** Prix de l'offre au moment de la souscription (ADR-0013). */
 	@Column(nullable = false, updatable = false, precision = 12, scale = 2)
 	private BigDecimal monthlyPrice;
 

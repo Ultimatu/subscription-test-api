@@ -15,7 +15,7 @@ public interface ClientUseCases {
 
 	Page<Client> search(ClientSearchCriteria criteria, Pageable pageable);
 
-	/** Tous les clients correspondant aux critères, lus par lots (ADR-0020). */
+	/** Tous les clients correspondant aux critères, lus par lots (ADR-0013). */
 	BatchedExport<Client> export(ClientSearchCriteria criteria);
 
 	Client get(Long id);

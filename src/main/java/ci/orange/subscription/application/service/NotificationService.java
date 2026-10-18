@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Envoie les notifications enregistrées dans l'outbox (ADR-0021). Aucune transaction ne reste ouverte
+ * Envoie les notifications enregistrées dans l'outbox (ADR-0013). Aucune transaction ne reste ouverte
  * pendant un envoi : la réservation d'un lot, puis le résultat de chaque envoi, sont enregistrés
  * chacun dans sa propre transaction, courte. Une notification peut être envoyée deux fois si
  * l'application s'arrête entre l'envoi et son enregistrement (livraison « au moins une fois »).

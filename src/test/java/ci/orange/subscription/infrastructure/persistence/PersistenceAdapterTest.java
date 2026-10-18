@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
  * Tranche JPA exécutée sur le vrai schéma PostgreSQL (migrations Flyway comprises), car les
  * adaptateurs s'appuient sur des contraintes propres à PostgreSQL, comme les index uniques
  * partiels. Chaque test est annulé à la fin. Comme tout test qui démarre la base, il porte
- * l'étiquette des tests d'intégration (ADR-0026).
+ * l'étiquette des tests d'intégration (ADR-0010).
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

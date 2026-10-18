@@ -5,7 +5,7 @@ import java.time.Period;
 import java.time.ZoneId;
 
 /**
- * Politique de suppression et de conservation des données (ADR-0023), fixée par la configuration
+ * Politique de suppression et de conservation des données (ADR-0013), fixée par la configuration
  * ({@code app.deletion.*}).
  *
  * @param softDelete un client qui a un historique de souscriptions est supprimé logiquement :

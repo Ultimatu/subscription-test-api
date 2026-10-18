@@ -4,7 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Journal d'audit des actions métier (ADR-0024).
+ * Journal d'audit des actions métier (ADR-0013).
  */
 public interface AuditUseCases {
 

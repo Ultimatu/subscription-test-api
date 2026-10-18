@@ -12,7 +12,7 @@ import lombok.Getter;
 /**
  * Une technologie d'accès du catalogue (FTTH, SATELLITE, 4G_BOX…). Donnée de référence : son code
  * l'identifie et ne change jamais. Retirée du catalogue, elle n'accepte plus de nouvelle offre ni de
- * nouvelle souscription, sans effet sur l'existant (ADR-0022), comme une offre désactivée (règle 11).
+ * nouvelle souscription, sans effet sur l'existant (ADR-0013), comme une offre désactivée (règle 11).
  */
 @Getter
 public class Technology {

@@ -104,9 +104,9 @@ Autres objets :
 
 - la **séquence `subscription_nd_seq`** (de 1 à 99 999 999), dont dérive le ND ([ADR-0014](adr/0014-souscriptions-numerotation-et-concurrence.md)) ;
 - la table **`subscription_reference_counter`**, un compteur par année pour la référence, incrémenté atomiquement ;
-- la table **`app_user`**, les comptes des utilisateurs de l'API, sans relation avec les autres tables ([ADR-0013](adr/0013-securite.md)) ;
-- la table **`audit_event`**, le journal des actions métier, sans clé étrangère pour survivre aux suppressions ; les événements d'un client sont effacés avec lui lors d'une purge ([ADR-0024](adr/0024-journal-d-audit.md)) ;
-- la table **`notification_outbox`**, les emails à envoyer aux clients, enregistrés avec chaque changement de statut puis envoyés par une tâche planifiée ([ADR-0021](adr/0021-notifications-par-email.md)) ;
+- la table **`app_user`**, les comptes des utilisateurs de l'API, sans relation avec les autres tables ([ADR-0013](adr/0013-extensions.md#1-authentification-jwt-et-rôles)) ;
+- la table **`audit_event`**, le journal des actions métier, sans clé étrangère pour survivre aux suppressions ; les événements d'un client sont effacés avec lui lors d'une purge ([ADR-0013](adr/0013-extensions.md#8-journal-daudit)) ;
+- la table **`notification_outbox`**, les emails à envoyer aux clients, enregistrés avec chaque changement de statut puis envoyés par une tâche planifiée ([ADR-0013](adr/0013-extensions.md#5-notifications-par-email)) ;
 - l'**extension `unaccent`**, pour la recherche insensible aux accents ([ADR-0017](adr/0017-recherche-insensible-aux-accents.md)).
 
 ## Règles métier garanties par la base
@@ -123,12 +123,12 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_subscription_client_technology_in_progress` (index unique partiel) | subscription | Une seule souscription PENDING ou ACTIVE par technologie et par client (règle 14) |
 | `uk_subscription_reference`, `ck_subscription_reference` | subscription | Référence unique au format `SUB-AAAA-NNNNNN` (règle 16) |
 | `uk_subscription_nd`, `ck_subscription_nd` | subscription | ND unique au format `27XXXXXXXX` (règle 17) |
-| `ck_subscription_monthly_price` | subscription | Prix souscrit strictement positif ([ADR-0018](adr/0018-prix-fige-a-la-souscription.md)) |
+| `ck_subscription_monthly_price` | subscription | Prix souscrit strictement positif ([ADR-0013](adr/0013-extensions.md#2-prix-figé-à-la-souscription)) |
 | `ck_*_status` | client, subscription, historique | Seuls les statuts prévus sont acceptés |
 | `fk_subscription_client`, `fk_subscription_offer`, `fk_subscription_technology` | subscription | Références existantes |
 | `fk_status_history_subscription` (`on delete cascade`) | historique | Historique rattaché à une souscription existante |
 | `uk_app_user_username`, `ck_app_user_role` | app_user | Nom d'utilisateur unique, rôle ADMIN ou CONSEILLER |
-| `fk_notification_subscription`, `ck_notification_transition`, `ck_notification_status` | notification_outbox | Notification rattachée à une souscription existante, opération et état prévus ([ADR-0021](adr/0021-notifications-par-email.md)) |
+| `fk_notification_subscription`, `ck_notification_transition`, `ck_notification_status` | notification_outbox | Notification rattachée à une souscription existante, opération et état prévus ([ADR-0013](adr/0013-extensions.md#5-notifications-par-email)) |
 
 ## Index et requêtes servies
 
@@ -175,14 +175,6 @@ Une migration déjà appliquée n'est jamais modifiée, même pour un commentair
 
 ## Configuration
 
-- **Application** : base `subscription_db`, schéma `public`, utilisateur `subscription_user` (`src/main/resources/application.yml`). Les identifiants peuvent être remplacés par les variables d'environnement `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` et `SPRING_DATASOURCE_PASSWORD` ([ADR-0003](adr/0003-configuration.md)).
+- **Application** : base `subscription_db`, schéma `public`, utilisateur `subscription_user` (`src/main/resources/application.yml`). Les identifiants peuvent être remplacés par les variables d'environnement `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` et `SPRING_DATASOURCE_PASSWORD` (voir la section « Configuration de la base PostgreSQL » du [README](../README.md#4-configuration-de-la-base-postgresql)).
 - **Tests** : même base, schéma `test`, que Flyway crée et migre automatiquement ([ADR-0010](adr/0010-strategie-de-tests.md)).
 - **Prérequis** : PostgreSQL 13 ou plus récent, avec le module *contrib* (pour `unaccent`) ; l'utilisateur doit être propriétaire de la base.
-
-## Pour de plus gros volumes
-
-Le schéma est dimensionné pour quelques dizaines de milliers de clients. Au-delà :
-
-- un **index d'expression** sur `lower(unaccent(city))`, via une fonction intermédiaire déclarée `IMMUTABLE` (`unaccent` est `STABLE` et ne peut pas servir directement dans un index) ;
-- l'extension **`pg_trgm`** et des index trigrammes pour les recherches partielles (`LIKE '%…%'`), qui parcourent aujourd'hui toute la table ;
-- un index sur `subscription_status_history.changed_at` pour les statistiques par changement de statut.

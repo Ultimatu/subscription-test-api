@@ -14,7 +14,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Classement des tests (ADR-0026) : un test qui démarre la base de données doit porter l'étiquette
+ * Classement des tests (ADR-0010) : un test qui démarre la base de données doit porter l'étiquette
  * des tests d'intégration. Sans elle, il serait compté parmi les tests unitaires et fausserait leur
  * mesure de couverture, sans aucune alerte.
  */

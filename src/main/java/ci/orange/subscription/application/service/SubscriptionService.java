@@ -213,7 +213,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 	 * Le domaine accepte ou refuse la transition, appliquée à l'état le plus récent de la souscription
 	 * (voir {@link #lockClientThenRead}). Le client est prévenu par email : la notification est
 	 * enregistrée dans la même transaction que le changement de statut, et n'existe donc que s'il est
-	 * validé (ADR-0021).
+	 * validé (ADR-0013).
 	 */
 	private Subscription transition(Long id, SubscriptionTransition transition, String reason,
 			Consumer<Subscription> operation) {
@@ -233,7 +233,7 @@ public class SubscriptionService implements SubscriptionUseCases {
 
 	/**
 	 * Toute écriture sur les souscriptions d'un client commence par verrouiller la ligne du client
-	 * (ADR-0025), et la souscription n'est lue qu'ensuite. Une requête simultanée sur la même
+	 * (ADR-0014), et la souscription n'est lue qu'ensuite. Une requête simultanée sur la même
 	 * souscription attend donc que la première soit validée, puis lit son résultat : une transition
 	 * devenue impossible est refusée par le domaine (409 INVALID_STATUS_TRANSITION), comme si les deux
 	 * requêtes s'étaient suivies. Lue avant le verrou, la souscription serait périmée, et seul le

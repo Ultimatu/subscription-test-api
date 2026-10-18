@@ -20,7 +20,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 
 /**
- * Écrit un export au format CSV, au fil de la lecture des lots (ADR-0020). Le format vise Excel en
+ * Écrit un export au format CSV, au fil de la lecture des lots (ADR-0013). Le format vise Excel en
  * français : séparateur point-virgule (la virgule y est le séparateur décimal), UTF-8 précédé d'une
  * marque d'ordre des octets (sans elle, Excel affiche mal les accents), fins de ligne CRLF.
  */

@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Journal d'audit des actions métier (ADR-0024), réservé aux administrateurs.
+ * Journal d'audit des actions métier (ADR-0013), réservé aux administrateurs.
  */
 @Tag(name = "Journal d'audit", description = "Qui a fait quoi, et quand (hors énoncé)")
 @ApiErrors.Unauthorized

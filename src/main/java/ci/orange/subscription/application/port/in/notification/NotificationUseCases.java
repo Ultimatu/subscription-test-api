@@ -3,7 +3,7 @@ package ci.orange.subscription.application.port.in.notification;
 import java.util.List;
 
 /**
- * Notifications par email au client (ADR-0021).
+ * Notifications par email au client (ADR-0013).
  */
 public interface NotificationUseCases {
 

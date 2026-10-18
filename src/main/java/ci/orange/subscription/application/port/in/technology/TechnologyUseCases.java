@@ -16,7 +16,7 @@ public interface TechnologyUseCases {
 
 	Technology create(CreateTechnologyCommand command);
 
-	/** Retire la technologie du catalogue : plus de nouvelle offre ni de souscription (ADR-0022). */
+	/** Retire la technologie du catalogue : plus de nouvelle offre ni de souscription (ADR-0013). */
 	Technology deactivate(String code);
 
 	/** Remet la technologie au catalogue. */

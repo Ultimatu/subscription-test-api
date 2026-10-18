@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Purge chaque nuit les clients dont le délai de conservation est écoulé (ADR-0023) : sans cette
+ * Purge chaque nuit les clients dont le délai de conservation est écoulé (ADR-0013) : sans cette
  * routine, des données seraient conservées au-delà du nécessaire (loi n° 2013-450, art. 16). Active
  * seulement avec la rétention ; sans rétention, la purge est manuelle.
  */

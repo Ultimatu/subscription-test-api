@@ -21,7 +21,7 @@ public interface ClientRepository {
 	/**
 	 * Comme {@link #findById(Long)}, mais verrouille le client jusqu'à la fin de la transaction :
 	 * les opérations sur les souscriptions d'un même client s'exécutent alors l'une après l'autre
-	 * (ADR-0014, ADR-0025).
+	 * (ADR-0014).
 	 */
 	Optional<Client> findByIdForUpdate(Long id);
 

@@ -1,6 +1,6 @@
 # ADR-0005 — Suppression logique des clients et des souscriptions
 
-- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0023](0023-suppression-et-conservation.md) : suppression définitive, durée de conservation et purge.
+- **Statut** : Acceptée (14/10/2026). La suppression définitive, la purge et la durée de conservation, ajoutées au-delà de l'énoncé, sont décrites dans l'[ADR-0013](0013-extensions.md#7-suppression-définitive-et-durée-de-conservation).
 
 ## Contexte
 
@@ -23,4 +23,4 @@ La règle 6 autorise la suppression d'un client dont toutes les souscriptions so
 ## Conséquences
 
 - Tout reste traçable, et l'API se comporte comme si les données avaient disparu.
-- Des données personnelles sont conservées après suppression. En production, il faudrait une durée de conservation suivie d'une anonymisation, conformément à la réglementation ivoirienne sur les données personnelles (ARTCI).
+- Des données personnelles restent en base après la suppression : leur durée de conservation et leur purge font l'objet d'une extension ([ADR-0013](0013-extensions.md#7-suppression-définitive-et-durée-de-conservation)).

@@ -10,7 +10,7 @@ import ci.orange.subscription.domain.technology.Technology;
  * Indique si un client peut souscrire à une offre. Les règles sont vérifiées dans l'ordre imposé
  * par la règle 15, et seule la première enfreinte est signalée : un client ayant une souscription
  * suspendue qui demande une technologie qu'il détient déjà reçoit l'erreur de suspension, pas celle
- * de doublon. La technologie retirée du catalogue (ADR-0022) est vérifiée avec l'offre, dont elle
+ * de doublon. La technologie retirée du catalogue (ADR-0013) est vérifiée avec l'offre, dont elle
  * partage la nature : un produit qui n'est plus commercialisé.
  */
 public final class SubscriptionEligibility {

@@ -19,7 +19,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * Un événement du journal d'audit (ADR-0024). Table en ajout seul : aucune colonne n'est modifiable.
+ * Un événement du journal d'audit (ADR-0013). Table en ajout seul : aucune colonne n'est modifiable.
  */
 @Getter
 @Setter

@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 /**
  * Résultat d'un export, lu par lots au moment où on le parcourt : jamais plus d'un lot en mémoire,
- * quel que soit le nombre de lignes (ADR-0020). Les critères sont vérifiés avant que l'export soit
+ * quel que soit le nombre de lignes (ADR-0013). Les critères sont vérifiés avant que l'export soit
  * renvoyé, pour qu'une erreur de saisie donne une 400 avant que la réponse commence.
  */
 @FunctionalInterface

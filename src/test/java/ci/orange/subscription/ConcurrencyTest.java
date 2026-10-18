@@ -52,7 +52,7 @@ import org.springframework.web.client.RestClient.RequestHeadersSpec.ConvertibleC
  * Deux familles de cas :
  * <ul>
  * <li>les écritures sur les souscriptions d'un même client, que le verrou du client met l'une après
- * l'autre (ADR-0025) : elles reçoivent les erreurs métier de requêtes successives ;</li>
+ * l'autre (ADR-0014) : elles reçoivent les erreurs métier de requêtes successives ;</li>
  * <li>les écritures que ce verrou ne couvre pas : l'index unique de l'email, le compteur de
  * références partagé par tous les clients, le verrou optimiste d'une modification, et la réservation
  * des notifications par plusieurs instances de l'application.</li>
@@ -236,7 +236,7 @@ class ConcurrencyTest {
 	/**
 	 * Modifier un client ne prend pas son verrou : les deux requêtes lisent la même version, puis
 	 * attendent sur l'UPDATE que le test bloque. La seconde trouve une version qui a changé et échoue,
-	 * au lieu d'écraser la première sans le savoir (ADR-0025).
+	 * au lieu d'écraser la première sans le savoir (ADR-0014).
 	 */
 	@Test
 	void twoSimultaneousUpdatesOfAClientGiveOneUpdateAndOneConcurrentModification() throws Exception {
@@ -251,7 +251,7 @@ class ConcurrencyTest {
 	}
 
 	/**
-	 * Plusieurs instances de l'application réservent les notifications dues en même temps (ADR-0021).
+	 * Plusieurs instances de l'application réservent les notifications dues en même temps (ADR-0013).
 	 * Le test joue l'instance A, qui tient une notification le temps de sa réservation ; celle de
 	 * l'instance B, dans un autre thread, doit la sauter sans l'attendre et prendre la suivante. Sans
 	 * {@code SKIP LOCKED}, elle resterait bloquée et le délai ferait échouer le test.

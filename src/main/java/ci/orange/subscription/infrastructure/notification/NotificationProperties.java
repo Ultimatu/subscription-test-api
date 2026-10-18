@@ -4,7 +4,7 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Propriétés {@code app.notifications.*} (ADR-0021).
+ * Propriétés {@code app.notifications.*} (ADR-0013).
  *
  * @param enabled envoi planifié des emails ; les notifications sont enregistrées dans tous les cas
  * @param from expéditeur des emails

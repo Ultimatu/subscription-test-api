@@ -1,7 +1,7 @@
 package ci.orange.subscription.application.port.in.audit;
 
 /**
- * Les actions métier consignées dans le journal d'audit (ADR-0024). Ne jamais renommer une constante :
+ * Les actions métier consignées dans le journal d'audit (ADR-0013). Ne jamais renommer une constante :
  * elle est stockée en base et exposée par l'API.
  */
 public enum AuditAction {

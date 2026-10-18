@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Notifications en attente d'envoi, conservées en base (modèle « outbox », ADR-0021).
+ * Notifications en attente d'envoi, conservées en base (modèle « outbox », ADR-0013).
  */
 public interface NotificationOutbox {
 

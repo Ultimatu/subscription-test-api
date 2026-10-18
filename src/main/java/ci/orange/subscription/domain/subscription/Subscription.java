@@ -19,7 +19,7 @@ import lombok.Getter;
  * Une souscription ne référence son client et son offre que par leur identifiant : c'est la couche
  * application qui les charge et les vérifie. La référence et le ND ne changent jamais une fois
  * attribués (règles 16 à 18). Le prix mensuel est celui de l'offre au moment de la souscription :
- * une modification ultérieure du prix de l'offre ne le change pas (ADR-0018).
+ * une modification ultérieure du prix de l'offre ne le change pas (ADR-0013).
  */
 @Getter
 public class Subscription {

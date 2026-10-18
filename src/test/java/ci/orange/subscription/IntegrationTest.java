@@ -13,7 +13,7 @@ import org.springframework.core.annotation.AliasFor;
 /**
  * Test sur l'application complète et la vraie base : {@code @SpringBootTest}, avec l'étiquette
  * {@value #TAG} qui le distingue des tests unitaires. {@code mvn test -DexcludedGroups=integration}
- * n'exécute ainsi que les tests unitaires, pour en mesurer la couverture (ADR-0026).
+ * n'exécute ainsi que les tests unitaires, pour en mesurer la couverture (ADR-0010).
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

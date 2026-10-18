@@ -16,7 +16,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Une notification de l'outbox (ADR-0021). La souscription n'est référencée que par son identifiant :
+ * Une notification de l'outbox (ADR-0013). La souscription n'est référencée que par son identifiant :
  * l'envoi n'a besoin d'aucune jointure.
  */
 @Getter

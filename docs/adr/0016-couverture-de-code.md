@@ -1,6 +1,6 @@
 # ADR-0016 — Mesure et seuil de couverture de code
 
-- **Statut** : Acceptée (14/10/2026), complétée par l'[ADR-0026](0026-classement-des-tests-par-etiquette.md) : les tests unitaires sont isolés par une étiquette, et non plus par une liste de noms.
+- **Statut** : Acceptée (14/10/2026). Les tests unitaires sont distingués par une étiquette depuis le 15/10/2026 ([ADR-0010](0010-strategie-de-tests.md)).
 
 ## Contexte
 
@@ -10,14 +10,7 @@ L'énoncé exige « 60 % de couverture de tests unitaires ». Les tests du proje
 
 - **JaCoCo** mesure la couverture à chaque exécution des tests : `mvn test` produit le rapport `target/site/jacoco/index.html`. Seule la classe de démarrage `SubscriptionApiApplication` est exclue de la mesure.
 - La phase **`verify`** fait échouer le build sous **90 % des lignes** ou **75 % des branches**, pour l'ensemble des tests. Ce seuil, bien supérieur aux 60 % de l'énoncé, est placé juste sous le niveau atteint, afin qu'aucune régression ne passe inaperçue. La vérification n'a pas lieu pendant `mvn test`, pour qu'exécuter un seul test en développement n'échoue pas pour couverture insuffisante.
-- Mesure relevée le 14/10/2026 :
-
-  | Périmètre | Lignes | Branches |
-  |---|---|---|
-  | Tous les tests (268) | 98,9 % | 81,0 % |
-  | Tests unitaires seuls (225, sans base de données) | 69,5 % | 51,2 % |
-
-  L'exigence de l'énoncé est donc respectée même au sens strict des seuls tests unitaires. La persistance n'est couverte que par les tests d'intégration, ce qui est voulu : la tester sans PostgreSQL n'aurait pas de sens.
+- L'exigence de l'énoncé est respectée même au sens strict des seuls tests unitaires (mesures à jour dans le README). La persistance n'est couverte que par les tests d'intégration, ce qui est voulu : la tester sans PostgreSQL n'aurait pas de sens.
 
 ## Alternatives envisagées
 
@@ -28,4 +21,4 @@ L'énoncé exige « 60 % de couverture de tests unitaires ». Les tests du proje
 
 - La couverture fait partie des critères de réussite du build, et non d'un simple rapport.
 - Tout nouveau code sans test fait baisser la couverture et peut faire échouer `mvn verify` : c'est voulu.
-- Pour remesurer les seuls tests unitaires : `mvn test -DexcludedGroups=integration` ([ADR-0026](0026-classement-des-tests-par-etiquette.md)), après avoir supprimé `target/jacoco.exec`, car JaCoCo cumule les mesures d'une exécution à l'autre. Les mesures à jour figurent dans le README.
+- Pour remesurer les seuls tests unitaires : `mvn test -DexcludedGroups=integration` ([ADR-0010](0010-strategie-de-tests.md)), après avoir supprimé `target/jacoco.exec`, car JaCoCo cumule les mesures d'une exécution à l'autre. Les mesures à jour figurent dans le README.

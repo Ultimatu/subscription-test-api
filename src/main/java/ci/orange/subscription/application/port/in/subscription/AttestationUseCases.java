@@ -1,7 +1,7 @@
 package ci.orange.subscription.application.port.in.subscription;
 
 /**
- * Attestation de souscription au format PDF (ADR-0019).
+ * Attestation de souscription au format PDF (ADR-0013).
  */
 public interface AttestationUseCases {
 

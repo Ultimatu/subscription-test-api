@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Politique de suppression et de conservation (ADR-0023), lue dans {@code app.deletion.*}.
+ * Politique de suppression et de conservation (ADR-0013), lue dans {@code app.deletion.*}.
  */
 @Configuration
 @EnableConfigurationProperties(DeletionConfig.DeletionProperties.class)
