@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -30,6 +31,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,9 +57,7 @@ class NotificationServiceTest {
 
 	private NotificationService notificationService;
 
-	private final SubscriptionView view = new SubscriptionView(10L, "SUB-2026-000001", "2700000001",
-			SubscriptionStatus.ACTIVE, "FTTH", new BigDecimal("25000.00"), LocalDate.of(2026, 10, 15), null, null,
-			null, null);
+	private final SubscriptionView view = viewIn(SubscriptionStatus.ACTIVE);
 
 	@BeforeEach
 	void createService() {
@@ -78,19 +79,21 @@ class NotificationServiceTest {
 		verifyNoInteractions(attestationUseCases);
 	}
 
-	@Test
-	void attachesTheAttestationToTheActivationWhileTheLineIsActive() {
+	/** La ligne est toujours dans l'état annoncé : seule la transition décide de joindre l'attestation. */
+	@ParameterizedTest
+	@CsvSource({ "ACTIVATE, true", "SUSPEND, false", "REACTIVATE, false", "TERMINATE, true" })
+	void attachesTheAttestationOnlyToTheActivationAndTheTermination(SubscriptionTransition transition,
+			boolean attached) {
 		Attestation attestation = new Attestation("attestation-SUB-2026-000001.pdf", new byte[] { 1 });
-		when(outbox.claimDue(any(), any(), anyInt()))
-				.thenReturn(List.of(pending(1L, SubscriptionTransition.ACTIVATE, null, 0)));
-		when(subscriptionQueries.findById(10L)).thenReturn(Optional.of(view));
-		when(attestationUseCases.generate(10L)).thenReturn(attestation);
+		when(outbox.claimDue(any(), any(), anyInt())).thenReturn(List.of(pending(1L, transition, null, 0)));
+		when(subscriptionQueries.findById(10L)).thenReturn(Optional.of(viewIn(transition.target())));
+		lenient().when(attestationUseCases.generate(10L)).thenReturn(attestation);
 
 		notificationService.dispatchDue();
 
 		ArgumentCaptor<NotificationSender.Message> message = ArgumentCaptor.forClass(NotificationSender.Message.class);
 		verify(sender).send(message.capture());
-		assertThat(message.getValue().attachment()).isEqualTo(attestation);
+		assertThat(message.getValue().attachment()).isEqualTo(attached ? attestation : null);
 	}
 
 	@Test
@@ -168,6 +171,11 @@ class NotificationServiceTest {
 	private static NotificationOutbox.Pending pending(Long id, SubscriptionTransition transition, String reason,
 			int attempts) {
 		return new NotificationOutbox.Pending(id, 10L, transition, "awa@mail.ci", reason, attempts);
+	}
+
+	private static SubscriptionView viewIn(SubscriptionStatus status) {
+		return new SubscriptionView(10L, "SUB-2026-000001", "2700000001", status, "FTTH", new BigDecimal("25000.00"),
+				LocalDate.of(2026, 10, 15), null, null, null, null);
 	}
 
 }

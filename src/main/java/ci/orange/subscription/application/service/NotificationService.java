@@ -102,8 +102,12 @@ public class NotificationService implements NotificationUseCases {
 				.orElseThrow(() -> new ResourceNotFoundException(DomainErrorCode.SUBSCRIPTION_NOT_FOUND,
 						"Souscription", notification.subscriptionId()));
 		SubscriptionTransition transition = notification.transition();
-		boolean attestationExpected = transition == SubscriptionTransition.ACTIVATE
-				|| transition == SubscriptionTransition.TERMINATE;
+		// Sans cas par défaut : une nouvelle transition ne compile pas tant qu'on n'a pas décidé si elle
+		// joint l'attestation
+		boolean attestationExpected = switch (transition) {
+			case ACTIVATE, TERMINATE -> true;
+			case SUSPEND, REACTIVATE -> false;
+		};
 		Attestation attachment = attestationExpected && subscription.status() == transition.target()
 				? attestationUseCases.generate(notification.subscriptionId())
 				: null;

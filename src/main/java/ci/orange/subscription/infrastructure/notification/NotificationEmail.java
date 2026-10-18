@@ -2,7 +2,7 @@ package ci.orange.subscription.infrastructure.notification;
 
 import ci.orange.subscription.application.port.in.subscription.SubscriptionView;
 import ci.orange.subscription.application.port.out.NotificationSender;
-import ci.orange.subscription.domain.subscription.SubscriptionTransition;
+import ci.orange.subscription.domain.subscription.SubscriptionStatus;
 import ci.orange.subscription.infrastructure.document.DocumentFormats;
 
 /**
@@ -44,7 +44,8 @@ record NotificationEmail(
 					"Votre souscription à l'offre " + offer + " est résiliée. Merci de nous avoir fait confiance.",
 					"Votre attestation de résiliation est jointe à ce message.", null);
 		};
-		boolean terminated = message.transition() == SubscriptionTransition.TERMINATE;
+		// Seule une souscription résiliée a une date de fin (règle 21), quelle que soit la transition qui l'y mène
+		boolean terminated = message.transition().target() == SubscriptionStatus.TERMINATED;
 		return new NotificationEmail(wording.subject(), wording.title(),
 				"Bonjour " + subscription.client().firstName() + ",", wording.message(), nd, offer,
 				DocumentFormats.price(subscription.monthlyPrice()),
