@@ -72,6 +72,10 @@ mvn spring-boot:run
 
 Si un PostgreSQL local occupe déjà le port 5432 : `POSTGRES_PORT=5433 docker compose up -d`, puis `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db mvn spring-boot:run`. De même, le port SMTP de Mailpit se change par `MAILPIT_SMTP_PORT`, et celui qu'utilise l'application par `SPRING_MAIL_PORT`.
 
+**Ou tout en conteneurs**, sans JDK ni Maven : `docker compose --profile app up --build` construit l'image de l'application (`Dockerfile`) et la lance avec PostgreSQL et Mailpit.
+
+**Déploiement sur Render** : `render.yaml` décrit le service web (l'image du `Dockerfile`) et sa base PostgreSQL. *New > Blueprint* les crée, les relie et génère la clé des jetons. Le script `docker/entrypoint.sh` traduit les variables de l'hébergeur (`PORT`, `DATABASE_URL`) en propriétés Spring Boot.
+
 L'application écoute sur `http://localhost:8080` :
 
 | Adresse                                   | Contenu                                                                 |
@@ -124,11 +128,11 @@ spring:
   | `APP_NOTIFICATIONS_ENABLED`                                                                  | `false` pour ne plus envoyer les emails (ils sont tout de même enregistrés)                                                                                                                                                  |
   | `APP_DELETION_SOFT_DELETE`, `APP_DELETION_HARD_DELETE`                                     | Suppression logique des clients qui ont un historique ; purge par un administrateur                                                                                                                                              |
   | `APP_DELETION_RETENTION_ENABLED`, `APP_DELETION_RETENTION_PERIOD`                          | Délai de conservation avant la purge, et purge automatique : **à activer en production**, avec la durée fixée par l'ARTCI ([ADR-0013](docs/adr/0013-extensions.md#7-suppression-définitive-et-durée-de-conservation)) |
+  | `APP_CORS_ALLOWED_ORIGINS` | Origines autorisées à appeler l'API depuis un navigateur (un back-office publié sur un autre domaine), séparées par des virgules ; aucune par défaut |
   | `SERVER_PORT`                                                                                | Port HTTP (8080 par défaut)                                                                                                                                                                                                     |
 - **Tests** : ils utilisent la même base, dans un schéma séparé `test` que Flyway crée et migre automatiquement (`src/test/resources/config/application.yml`). Les données saisies via l'application ne perturbent pas les tests, et il n'y a pas de seconde base à créer.
 
 ## 5. Lancement et tests
-  | `APP_CORS_ALLOWED_ORIGINS` | Origines autorisées à appeler l'API depuis un navigateur (un back-office publié sur un autre domaine), séparées par des virgules ; aucune par défaut |
 
 PostgreSQL doit être démarré, pour l'application comme pour les tests.
 
@@ -525,7 +529,6 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 - **Testcontainers** : chaque exécution des tests aurait sa propre base PostgreSQL jetable. Écarté parce qu'il exige Docker, que l'énoncé ne prévoit pas ([ADR-0010](docs/adr/0010-strategie-de-tests.md)).
 - **Exiger un seuil de couverture propre aux tests unitaires** : ils sont isolés par une étiquette et mesurés à part ([ADR-0010](docs/adr/0010-strategie-de-tests.md)), mais le build ne vérifie que la couverture de l'ensemble des tests ([ADR-0016](docs/adr/0016-couverture-de-code.md)).
 - **Tests de contrat** de l'API générés depuis la spécification OpenAPI.
-- **Image Docker de l'application**, pour la lancer avec sa base en une seule commande (le `compose.yaml` ne fournit aujourd'hui que PostgreSQL).
 - **Observabilité** : métriques Prometheus (Micrometer), logs au format JSON, traces distribuées avec OpenTelemetry, en plus de l'identifiant de requête actuel.
 
 ## 14. Documentation complémentaire

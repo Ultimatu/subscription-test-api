@@ -1,0 +1,7 @@
+# Seuls pom.xml, le Maven wrapper, src et docker servent à construire l'image
+*
+!pom.xml
+!mvnw
+!.mvn
+!src
+!docker

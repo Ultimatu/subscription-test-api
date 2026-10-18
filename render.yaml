@@ -1,0 +1,30 @@
+databases:
+  - name: subscription-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "16"
+    databaseName: subscription_db
+    user: subscription_user
+
+services:
+  - type: web
+    name: subscription-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /actuator/health
+    envVars:
+      # postgresql://…, traduite pour Spring par docker/entrypoint.sh
+      - key: DATABASE_URL
+        fromDatabase:
+          name: subscription-db
+          property: connectionString
+      # Clé de signature des jetons : 256 bits aléatoires en Base64
+      - key: APP_SECURITY_JWT_SECRET
+        generateValue: true
+      # Pas de serveur de messagerie : les notifications restent enregistrées, sans être envoyées
+      - key: APP_NOTIFICATIONS_ENABLED
+        value: "false"
+      # URL du back-office publié à part (https://….onrender.com), demandée à la création
+      - key: APP_CORS_ALLOWED_ORIGINS
+        sync: false
