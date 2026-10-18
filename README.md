@@ -49,7 +49,7 @@ Au-delà de l'énoncé, sans en modifier le contrat d'API (mêmes URLs, mêmes c
 | Exports CSV | Les administrateurs sortent clients et souscriptions vers Excel, sans limite de taille, avec les filtres de la recherche | [ADR-0020](docs/adr/0020-exports-csv.md) |
 | Notifications par email | Le client est prévenu de chaque changement de statut, sans qu'aucun email soit perdu si le serveur de messagerie est indisponible | [ADR-0021](docs/adr/0021-notifications-par-email.md) |
 | Prix figé à la souscription | Une hausse du catalogue ne change ni le prix des souscriptions existantes ni le revenu calculé | [ADR-0018](docs/adr/0018-prix-fige-a-la-souscription.md) |
-| Accès concurrents maîtrisés | Deux requêtes simultanées sur un même client s'exécutent l'une après l'autre et reçoivent les mêmes erreurs que si elles s'étaient suivies (deux souscriptions FTTH, deux résiliations), ce que prouve un test d'intégration | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md), [ADR-0025](docs/adr/0025-verrou-du-client-et-verrou-optimiste.md) |
+| Accès concurrents maîtrisés | Deux requêtes simultanées sur un même client s'exécutent l'une après l'autre et reçoivent les mêmes erreurs que si elles s'étaient suivies (deux souscriptions FTTH, deux résiliations). Hors de ce verrou, l'unicité de l'email, la numérotation, les modifications simultanées et la réservation des notifications par plusieurs instances tiennent aussi. Des tests d'intégration le prouvent avec des requêtes réellement concurrentes | [ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md), [ADR-0021](docs/adr/0021-notifications-par-email.md), [ADR-0025](docs/adr/0025-verrou-du-client-et-verrou-optimiste.md) |
 | Documentation OpenAPI (Swagger UI) | Tester l'API depuis le navigateur | `/swagger-ui.html` |
 | Schéma versionné (Flyway), contraintes doublées en base | Les règles tiennent même en cas d'accès concurrent ou d'écriture directe en base | [ADR-0002](docs/adr/0002-schema-versionne-flyway.md) |
 | Couverture mesurée (JaCoCo), architecture vérifiée (ArchUnit) | Le build échoue si la couverture baisse ou si une dépendance va dans le mauvais sens | [ADR-0016](docs/adr/0016-couverture-de-code.md) |
@@ -153,7 +153,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande | Effet |
 |---|---|
 | `mvn spring-boot:run` | Lance l'application sur le port 8080 |
-| `mvn test` | Exécute les 394 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
+| `mvn test` | Exécute les 398 tests et produit le rapport de couverture `target/site/jacoco/index.html` |
 | `mvn test -DexcludedGroups=integration` | N'exécute que les tests unitaires, sans base de données ([ADR-0026](docs/adr/0026-classement-des-tests-par-etiquette.md)) |
 | `mvn verify` | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes |
 
@@ -165,7 +165,7 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre | Tests | Lignes | Branches |
 |---|---|---|---|
-| Tous les tests (`mvn test`) | 394 | 98,2 % | 86,1 % |
+| Tous les tests (`mvn test`) | 398 | 98,3 % | 86,1 % |
 | Tests unitaires seuls (`-DexcludedGroups=integration`) | 316 | 71,8 % | 63,4 % |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) :
@@ -177,7 +177,7 @@ Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls
 | Web | Slice `@WebMvcTest` | Codes HTTP, validation, format des erreurs |
 | Persistance | Intégration sur PostgreSQL, annulée en fin de test | Index uniques partiels, recherche, statistiques |
 | Sécurité | Contexte complet, vrais jetons | Matrice des droits, jetons expirés ou falsifiés |
-| Concurrence | Application démarrée, deux requêtes HTTP en parallèle | Deux souscriptions FTTH simultanées : 201 et 409 ; deux résiliations simultanées : 200 et 409 `INVALID_STATUS_TRANSITION` ; suppression d'un client pendant une souscription : 201 et 409 |
+| Concurrence | Application démarrée, une requête HTTP par thread ; le test tient lui-même le verrou qu'elles vont rencontrer, pour qu'elles se croisent à coup sûr | Sur un même client : deux souscriptions FTTH, 201 et 409 ; deux résiliations, 200 et 409 `INVALID_STATUS_TRANSITION` ; suppression du client pendant une souscription, 201 et 409. Hors du verrou du client : deux créations avec le même email, 201 et 409 `CLIENT_EMAIL_ALREADY_USED` ; deux clients qui souscrivent en même temps, références consécutives ; deux modifications d'un client, 200 et 409 `CONCURRENT_MODIFICATION` ; notification réservée par une autre instance, sautée sans être attendue (`SKIP LOCKED`). Chaque cas échoue si l'on retire la protection qu'il vérifie |
 | Documents et emails | Rendu réel, relu par PDFBox ; serveur SMTP en mémoire (GreenMail) | Contenu du PDF ; email HTML et texte avec l'attestation jointe ; parcours complet du changement de statut à l'email reçu |
 | Architecture | ArchUnit | Le domaine ne dépend d'aucun framework ; tout test qui démarre la base porte l'étiquette des tests d'intégration |
 
