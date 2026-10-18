@@ -74,8 +74,6 @@ Si un PostgreSQL local occupe déjà le port 5432 : `POSTGRES_PORT=5433 docker c
 
 **Ou tout en conteneurs**, sans JDK ni Maven : `docker compose --profile app up --build` construit l'image de l'application (`Dockerfile`) et la lance avec PostgreSQL et Mailpit.
 
-**Déploiement sur Render** : `render.yaml` décrit le service web (l'image du `Dockerfile`) et sa base PostgreSQL. *New > Blueprint* les crée, les relie et génère la clé des jetons. Le script `docker/entrypoint.sh` traduit les variables de l'hébergeur (`PORT`, `DATABASE_URL`) en propriétés Spring Boot.
-
 L'application écoute sur `http://localhost:8080` :
 
 | Adresse                                   | Contenu                                                                 |
