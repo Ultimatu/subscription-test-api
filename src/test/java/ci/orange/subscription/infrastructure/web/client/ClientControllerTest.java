@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ci.orange.subscription.application.port.in.client.ClientDeletionUseCases;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientSummary;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
@@ -86,14 +87,14 @@ class ClientControllerTest {
 	void purgesAClient() throws Exception {
 		mockMvc.perform(delete("/api/clients/1/purge")).andExpect(status().isNoContent());
 
-		verify(clientUseCases).purge(1L);
+		verify(clientDeletionUseCases).purge(1L);
 	}
 
 	@Test
 	void refusesAPurgeBeforeTheEndOfTheRetentionPeriod() throws Exception {
 		doThrow(new BusinessRuleViolationException(DomainErrorCode.RETENTION_PERIOD_NOT_ELAPSED,
 				"Délai de conservation non écoulé : le client pourra être purgé à partir du 10/01/2028"))
-				.when(clientUseCases).purge(1L);
+				.when(clientDeletionUseCases).purge(1L);
 
 		mockMvc.perform(delete("/api/clients/1/purge"))
 				.andExpect(status().isConflict())
@@ -103,7 +104,7 @@ class ClientControllerTest {
 
 	@Test
 	void listsTheDeletedClientsAwaitingPurge() throws Exception {
-		when(clientUseCases.listDeleted(any())).thenReturn(new PageImpl<>(List.of(new DeletedClient(1L, "Awa", "Koné",
+		when(clientDeletionUseCases.listDeleted(any())).thenReturn(new PageImpl<>(List.of(new DeletedClient(1L, "Awa", "Koné",
 				"awa@mail.ci", Instant.parse("2026-10-01T08:00:00Z"), "admin", Instant.parse("2029-10-01T08:00:00Z")))));
 
 		mockMvc.perform(get("/api/clients/deleted"))
@@ -135,6 +136,9 @@ class ClientControllerTest {
 
 	@MockitoBean
 	private ClientUseCases clientUseCases;
+
+	@MockitoBean
+	private ClientDeletionUseCases clientDeletionUseCases;
 
 	@Test
 	void createsAClient() throws Exception {
@@ -336,12 +340,12 @@ class ClientControllerTest {
 	void deletesAClient() throws Exception {
 		mockMvc.perform(delete("/api/clients/1")).andExpect(status().isNoContent());
 
-		verify(clientUseCases).delete(1L);
+		verify(clientDeletionUseCases).delete(1L);
 	}
 
 	@Test
 	void refusesToDeleteAClientWithActiveSubscriptions() throws Exception {
-		doThrow(new BusinessRuleViolationException(DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS, "souscriptions en cours")).when(clientUseCases).delete(1L);
+		doThrow(new BusinessRuleViolationException(DomainErrorCode.CLIENT_HAS_ONGOING_SUBSCRIPTIONS, "souscriptions en cours")).when(clientDeletionUseCases).delete(1L);
 
 		mockMvc.perform(delete("/api/clients/1"))
 				.andExpect(status().isConflict())

@@ -1,6 +1,7 @@
 package ci.orange.subscription.infrastructure.web.client;
 
 import ci.orange.subscription.application.port.in.BatchedExport;
+import ci.orange.subscription.application.port.in.client.ClientDeletionUseCases;
 import ci.orange.subscription.application.port.in.client.ClientSearchCriteria;
 import ci.orange.subscription.application.port.in.client.ClientUseCases;
 import ci.orange.subscription.domain.client.Client;
@@ -56,10 +57,12 @@ class ClientController {
 			"Ville", "Statut", "Créé le", "Créé par");
 
 	private final ClientUseCases clientUseCases;
+	private final ClientDeletionUseCases clientDeletionUseCases;
 	private final Clock clock;
 
-	ClientController(ClientUseCases clientUseCases, Clock clock) {
+	ClientController(ClientUseCases clientUseCases, ClientDeletionUseCases clientDeletionUseCases, Clock clock) {
 		this.clientUseCases = clientUseCases;
+		this.clientDeletionUseCases = clientDeletionUseCases;
 		this.clock = clock;
 	}
 
@@ -142,7 +145,7 @@ class ClientController {
 	@ApiErrors.Conflict
 	@DeleteMapping("/{id}")
 	ResponseEntity<Void> delete(@PathVariable Long id) {
-		clientUseCases.delete(id);
+		clientDeletionUseCases.delete(id);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -155,7 +158,7 @@ class ClientController {
 	@ApiErrors.Conflict
 	@DeleteMapping("/{id}/purge")
 	ResponseEntity<Void> purge(@PathVariable Long id) {
-		clientUseCases.purge(id);
+		clientDeletionUseCases.purge(id);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -164,7 +167,7 @@ class ClientController {
 	@ApiResponse(responseCode = "200", description = "Page de clients supprimés, du plus récent au plus ancien")
 	@GetMapping("/deleted")
 	PageResponse<DeletedClientResponse> deleted(@ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-		return PageResponse.from(clientUseCases.listDeleted(pageable), DeletedClientResponse::from);
+		return PageResponse.from(clientDeletionUseCases.listDeleted(pageable), DeletedClientResponse::from);
 	}
 
 	@Operation(summary = "Synthèse d'un client",

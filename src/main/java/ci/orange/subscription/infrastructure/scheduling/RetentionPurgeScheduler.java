@@ -1,6 +1,6 @@
 package ci.orange.subscription.infrastructure.scheduling;
 
-import ci.orange.subscription.application.port.in.client.ClientUseCases;
+import ci.orange.subscription.application.port.in.client.ClientDeletionUseCases;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,15 +16,15 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.deletion.retention", name = "enabled", havingValue = "true")
 class RetentionPurgeScheduler {
 
-	private final ClientUseCases clientUseCases;
+	private final ClientDeletionUseCases clientDeletionUseCases;
 
-	RetentionPurgeScheduler(ClientUseCases clientUseCases) {
-		this.clientUseCases = clientUseCases;
+	RetentionPurgeScheduler(ClientDeletionUseCases clientDeletionUseCases) {
+		this.clientDeletionUseCases = clientDeletionUseCases;
 	}
 
 	@Scheduled(cron = "${app.deletion.retention.purge-cron}", zone = "Africa/Abidjan")
 	void purgeExpired() {
-		int purged = clientUseCases.purgeExpired();
+		int purged = clientDeletionUseCases.purgeExpired();
 		if (purged > 0) {
 			log.info("Retention purge: {} client(s) permanently deleted", purged);
 		}

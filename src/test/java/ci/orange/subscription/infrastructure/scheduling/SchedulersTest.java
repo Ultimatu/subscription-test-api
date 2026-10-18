@@ -5,7 +5,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import ci.orange.subscription.application.port.in.client.ClientUseCases;
+import ci.orange.subscription.application.port.in.client.ClientDeletionUseCases;
 import ci.orange.subscription.application.port.in.notification.NotificationUseCases;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class SchedulersTest {
 
 	@Test
 	void purgesTheClientsWhoseRetentionPeriodIsOver() {
-		ClientUseCases clients = mock(ClientUseCases.class);
+		ClientDeletionUseCases clients = mock(ClientDeletionUseCases.class);
 		when(clients.purgeExpired()).thenReturn(2);
 
 		new RetentionPurgeScheduler(clients).purgeExpired();
