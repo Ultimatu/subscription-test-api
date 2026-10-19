@@ -11,9 +11,9 @@ import java.util.Optional;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
-@Component
+@Repository
 class TechnologyPersistenceAdapter implements TechnologyRepository {
 
 	private static final String CODE_PRIMARY_KEY = "technology_pkey";

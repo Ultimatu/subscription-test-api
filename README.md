@@ -137,7 +137,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande                                  | Effet                                                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `mvn spring-boot:run`                   | Lance l'application sur le port 8080                                                                       |
-| `mvn test`                              | Exécute les 411 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
+| `mvn test`                              | Exécute les 413 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
 | `mvn test -DexcludedGroups=integration` | N'exécute que les tests unitaires, sans base de données ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) |
 | `mvn verify`                            | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes                        |
 
@@ -149,8 +149,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre                                              | Tests | Lignes | Branches |
 | -------------------------------------------------------- | ----- | ------ | -------- |
-| Tous les tests (`mvn test`)                            | 411   | 98,1 % | 85,7 %   |
-| Tests unitaires seuls (`-DexcludedGroups=integration`) | 327   | 72,1 % | 62,9 %   |
+| Tous les tests (`mvn test`)                            | 413   | 98,1 % | 85,7 %   |
+| Tests unitaires seuls (`-DexcludedGroups=integration`) | 328   | 71,8 % | 62,9 %   |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond, du domaine en Java pur jusqu'à l'application démarrée ([ADR-0010](docs/adr/0010-strategie-de-tests.md)). Parmi les tests notables : les 16 combinaisons statut × opération confrontées au tableau de l'énoncé, l'ordre de vérification de la règle 15, la matrice des droits avec de vrais jetons, le contenu réel du PDF et des emails, et des requêtes HTTP réellement concurrentes, dont chaque cas échoue si l'on retire la protection qu'il vérifie ([ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md)).
 

@@ -2,14 +2,14 @@ package ci.orange.subscription.infrastructure.persistence.subscription;
 
 import ci.orange.subscription.application.port.out.SubscriptionNumberSequences;
 import jakarta.persistence.EntityManager;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 /**
  * S'appuie sur PostgreSQL pour l'unicité : une séquence pour le ND, et un compteur par année mis à
  * jour atomiquement pour la référence. Deux requêtes simultanées n'obtiennent donc jamais la même
  * valeur.
  */
-@Component
+@Repository
 class SubscriptionNumberSequencesAdapter implements SubscriptionNumberSequences {
 
 	private final EntityManager entityManager;

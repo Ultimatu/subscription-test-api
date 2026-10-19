@@ -12,9 +12,9 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
-@Component
+@Repository
 class OfferPersistenceAdapter implements OfferRepository {
 
 	private static final String CODE_UNIQUE_CONSTRAINT = "uk_offer_code";

@@ -1,6 +1,6 @@
 # ADR-0001 — Architecture hexagonale, appliquée de façon pragmatique
 
-- **Statut** : Acceptée (14/10/2026). Découpage des ports par responsabilité ajouté le 18/10/2026.
+- **Statut** : Acceptée (14/10/2026). Découpage des ports par responsabilité ajouté le 18/10/2026, annotation des adaptateurs de persistance le 19/10/2026.
 
 ## Contexte
 
@@ -12,7 +12,7 @@ Trois couches, dont les dépendances pointent toujours vers le centre :
 
 - **`domain`** : Java pur, sans aucun import Spring, JPA ou Jackson. Les modèles portent les règles (`Client.create` force le statut ACTIVE, `subscription.suspend(reason)` refuse une transition interdite), ainsi que les exceptions métier et leurs codes.
 - **`application`** : les cas d'usage. Les **ports d'entrée** (`ClientUseCases`…) décrivent ce que l'application sait faire, les **ports de sortie** (`ClientRepository`…) ce dont elle a besoin. Les services orchestrent les règles dans le bon ordre et portent les transactions.
-- **`infrastructure`** : les adaptateurs. Les controllers REST et la gestion des erreurs dans `web`, les entités JPA et l'implémentation des ports de sortie dans `persistence`, la configuration dans `config`.
+- **`infrastructure`** : les adaptateurs. Les controllers REST et la gestion des erreurs dans `web`, les entités JPA et l'implémentation des ports de sortie dans `persistence`, la configuration dans `config`. Les adaptateurs de persistance portent `@Repository`.
 
 Choix pragmatiques, pour ne pas alourdir un projet de cette taille :
 

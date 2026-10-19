@@ -25,9 +25,9 @@ import java.util.Set;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.AuditorAware;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
-@Component
+@Repository
 class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 
 	private static final String ONGOING_TECHNOLOGY_UNIQUE_INDEX = "uk_subscription_client_technology_in_progress";

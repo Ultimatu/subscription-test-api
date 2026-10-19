@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
@@ -83,6 +84,21 @@ class ClientPersistenceAdapterTest {
 				subscription.getId())).isZero();
 		assertThat(count("select count(*) from notification_outbox where subscription_id = :id",
 				subscription.getId())).isZero();
+	}
+
+	@Test
+	void translatesTheErrorsOfItsNativeQueriesIntoSpringExceptions() {
+		Client awa = clientRepository.save(newClient("Awa", "Koné", "awa@mail.ci", "Abidjan"));
+		// Une table inconnue de la purge référence le client : le supprimer viole une clé étrangère. Le
+		// DDL de PostgreSQL est transactionnel : la table disparaît avec l'annulation du test.
+		entityManager.createNativeQuery("create table purge_blocker (client_id bigint references client (id))")
+				.executeUpdate();
+		entityManager.createNativeQuery("insert into purge_blocker values (:id)").setParameter("id", awa.getId())
+				.executeUpdate();
+
+		// Sans @Repository, l'exception de Hibernate sortirait telle quelle et finirait en erreur 500
+		assertThatThrownBy(() -> clientRepository.deletePermanently(awa.getId()))
+				.isInstanceOf(DataIntegrityViolationException.class);
 	}
 
 	@Test

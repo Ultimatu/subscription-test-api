@@ -7,11 +7,11 @@ import ci.orange.subscription.infrastructure.persistence.entity.NotificationEnti
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Component
+@Repository
 class NotificationOutboxAdapter implements NotificationOutbox {
 
 	private final NotificationJpaRepository jpaRepository;

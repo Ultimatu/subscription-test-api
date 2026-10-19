@@ -12,13 +12,13 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 /**
  * Les agrégations sont calculées par PostgreSQL, jamais en chargeant les souscriptions en mémoire.
  * Les bornes facultatives n'ajoutent leur condition que lorsqu'elles sont présentes.
  */
-@Component
+@Repository
 class StatisticsQueryAdapter implements StatisticsQueries {
 
 	private final EntityManager entityManager;
