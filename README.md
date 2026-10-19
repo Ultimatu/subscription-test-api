@@ -393,7 +393,7 @@ Le détail (matrice des droits, mots de passe, exports, purge, journal d'audit) 
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
 3. Cliquer sur *Run collection* : les 101 requêtes s'exécutent dans l'ordre et vérifient 198 assertions (codes HTTP, statuts, codes d'erreur).
 
-La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
+La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution, avec des clients aux noms ivoiriens tirés au hasard : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
 En ligne de commande, avec Node.js :
 

@@ -196,7 +196,7 @@
 		},
 		{
 			"name": "1 · Scénario de bout en bout",
-			"description": "Le scénario demandé par l'énoncé : création client → offre → souscription → activation → suspension\n→ réactivation → résiliation. À exécuter dans l'ordre : chaque étape réutilise les identifiants de la\nprécédente. Chaque exécution crée un nouveau client et une nouvelle offre, elle peut donc être rejouée.\nLe conseiller gère le client et la souscription, l'administrateur crée l'offre.",
+			"description": "Le scénario demandé par l'énoncé : création client → offre → souscription → activation → suspension\n→ réactivation → résiliation. À exécuter dans l'ordre : chaque étape réutilise les identifiants de la\nprécédente. Chaque exécution crée un nouveau client, au nom tiré au hasard, et une nouvelle offre : elle\npeut donc être rejouée.\nLe conseiller gère le client et la souscription, l'administrateur crée l'offre.",
 			"item": [
 				{
 					"name": "1. Créer un client (conseiller)",
@@ -212,7 +212,7 @@
 						"description": "Le client est créé au statut ACTIVE (règle 3).",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Awa\",\n  \"lastName\": \"Koné\",\n  \"email\": \"awa.{{scenarioRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
+							"raw": "{\n  \"firstName\": \"{{scenarioFirstName}}\",\n  \"lastName\": \"{{scenarioLastName}}\",\n  \"email\": \"{{scenarioEmail}}\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -236,7 +236,20 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"pm.collectionVariables.set('scenarioRun', Date.now().toString().slice(-8));"
+									"pm.collectionVariables.set('scenarioRun', Date.now().toString().slice(-8));",
+									"const firstNames = ['Awa', 'Aminata', 'Mariam', 'Fatou', 'Aya', 'Adjoua', 'Akissi', 'Aïcha', 'Clémentine',",
+									"    'Moussa', 'Ibrahim', 'Seydou', 'Drissa', 'Koffi', 'Kouassi', 'Konan', 'Séraphin', 'Désiré', 'Hervé'];",
+									"const lastNames = ['Koné', 'Traoré', 'Coulibaly', 'Bamba', 'Diabaté', 'Touré', 'Sangaré', 'Kouamé', 'Kouadio',",
+									"    \"N'Guessan\", 'Doumbia', 'Fofana', 'Cissé', 'Diomandé', 'Dosso', 'Yao'];",
+									"const pick = names => names[Math.floor(Math.random() * names.length)];",
+									"// Décomposé (NFD), « é » devient « e » suivi d'un accent combinant, que le filtre retire avec l'apostrophe",
+									"const ascii = text => text.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase();",
+									"const firstName = pick(firstNames);",
+									"const lastName = pick(lastNames);",
+									"pm.collectionVariables.set('scenarioFirstName', firstName);",
+									"pm.collectionVariables.set('scenarioLastName', lastName);",
+									"pm.collectionVariables.set('scenarioEmail', ascii(firstName) + '.' + ascii(lastName) + '.'",
+									"    + pm.collectionVariables.get('scenarioRun') + '@exemple.ci');"
 								]
 							}
 						},
@@ -626,7 +639,7 @@
 									"pm.test('un email par changement de statut', () => pm.expect(notifications.map(n => n.transition))",
 									"    .to.eql(['ACTIVATE', 'SUSPEND', 'REACTIVATE', 'TERMINATE']));",
 									"pm.test('adressés au client', () => notifications.forEach(n =>",
-									"    pm.expect(n.recipient).to.eql('awa.' + pm.collectionVariables.get('scenarioRun') + '@exemple.ci')));"
+									"    pm.expect(n.recipient).to.eql(pm.collectionVariables.get('scenarioEmail'))));"
 								]
 							}
 						}
@@ -696,7 +709,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Moussa\",\n  \"lastName\": \"Traoré\",\n  \"email\": \"moussa.{{rulesRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\"\n}",
+							"raw": "{\n  \"firstName\": \"{{rulesFirstName}}\",\n  \"lastName\": \"{{rulesLastName}}\",\n  \"email\": \"{{rulesEmail}}\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -715,6 +728,27 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const firstNames = ['Awa', 'Aminata', 'Mariam', 'Fatou', 'Aya', 'Adjoua', 'Akissi', 'Aïcha', 'Clémentine',",
+									"    'Moussa', 'Ibrahim', 'Seydou', 'Drissa', 'Koffi', 'Kouassi', 'Konan', 'Séraphin', 'Désiré', 'Hervé'];",
+									"const lastNames = ['Koné', 'Traoré', 'Coulibaly', 'Bamba', 'Diabaté', 'Touré', 'Sangaré', 'Kouamé', 'Kouadio',",
+									"    \"N'Guessan\", 'Doumbia', 'Fofana', 'Cissé', 'Diomandé', 'Dosso', 'Yao'];",
+									"const pick = names => names[Math.floor(Math.random() * names.length)];",
+									"// Décomposé (NFD), « é » devient « e » suivi d'un accent combinant, que le filtre retire avec l'apostrophe",
+									"const ascii = text => text.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase();",
+									"const firstName = pick(firstNames);",
+									"const lastName = pick(lastNames);",
+									"pm.collectionVariables.set('rulesFirstName', firstName);",
+									"pm.collectionVariables.set('rulesLastName', lastName);",
+									"pm.collectionVariables.set('rulesEmail', ascii(firstName) + '.' + ascii(lastName) + '.'",
+									"    + pm.collectionVariables.get('rulesRun') + '@exemple.ci');"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -741,7 +775,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Autre\",\n  \"lastName\": \"Client\",\n  \"email\": \"MOUSSA.{{rulesRun}}@EXEMPLE.CI\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
+							"raw": "{\n  \"firstName\": \"Autre\",\n  \"lastName\": \"Client\",\n  \"email\": \"{{rulesEmailUpperCase}}\",\n  \"phoneNumberClient\": \"0701020304\",\n  \"city\": \"Abidjan\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -760,6 +794,15 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('rulesEmailUpperCase', pm.collectionVariables.get('rulesEmail').toUpperCase());"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -786,7 +829,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Moussa\",\n  \"lastName\": \"Traoré\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"ACTIVE\",\n  \"email\": \"nouveau.{{rulesRun}}@exemple.ci\"\n}",
+							"raw": "{\n  \"firstName\": \"{{rulesFirstName}}\",\n  \"lastName\": \"{{rulesLastName}}\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"ACTIVE\",\n  \"email\": \"nouveau.{{rulesRun}}@exemple.ci\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -833,7 +876,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Awa\",\n  \"lastName\": \"Koné\",\n  \"email\": \"telephone.{{rulesRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0201020304\",\n  \"city\": \"Abidjan\"\n}",
+							"raw": "{\n  \"firstName\": \"{{rulesFirstName}}\",\n  \"lastName\": \"{{rulesLastName}}\",\n  \"email\": \"telephone.{{rulesRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0201020304\",\n  \"city\": \"Abidjan\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1657,7 +1700,7 @@
 						"description": "Le statut fourni est ignoré : un nouveau client est toujours ACTIVE (règle 3).",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Séraphin\",\n  \"lastName\": \"Koné\",\n  \"email\": \"seraphin.{{clientsRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0101020304\",\n  \"city\": \"Abidjan\",\n  \"status\": \"INACTIVE\"\n}",
+							"raw": "{\n  \"firstName\": \"{{clientsFirstName}}\",\n  \"lastName\": \"{{clientsLastName}}\",\n  \"email\": \"{{clientsEmail}}\",\n  \"phoneNumberClient\": \"0101020304\",\n  \"city\": \"Abidjan\",\n  \"status\": \"INACTIVE\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1681,7 +1724,20 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"pm.collectionVariables.set('clientsRun', Date.now().toString().slice(-8));"
+									"pm.collectionVariables.set('clientsRun', Date.now().toString().slice(-8));",
+									"const firstNames = ['Awa', 'Aminata', 'Mariam', 'Fatou', 'Aya', 'Adjoua', 'Akissi', 'Aïcha', 'Clémentine',",
+									"    'Moussa', 'Ibrahim', 'Seydou', 'Drissa', 'Koffi', 'Kouassi', 'Konan', 'Séraphin', 'Désiré', 'Hervé'];",
+									"const lastNames = ['Koné', 'Traoré', 'Coulibaly', 'Bamba', 'Diabaté', 'Touré', 'Sangaré', 'Kouamé', 'Kouadio',",
+									"    \"N'Guessan\", 'Doumbia', 'Fofana', 'Cissé', 'Diomandé', 'Dosso', 'Yao'];",
+									"const pick = names => names[Math.floor(Math.random() * names.length)];",
+									"// Décomposé (NFD), « é » devient « e » suivi d'un accent combinant, que le filtre retire avec l'apostrophe",
+									"const ascii = text => text.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase();",
+									"const firstName = pick(firstNames);",
+									"const lastName = pick(lastNames);",
+									"pm.collectionVariables.set('clientsFirstName', firstName);",
+									"pm.collectionVariables.set('clientsLastName', lastName);",
+									"pm.collectionVariables.set('clientsEmail', ascii(firstName) + '.' + ascii(lastName) + '.'",
+									"    + pm.collectionVariables.get('clientsRun') + '@exemple.ci');"
 								]
 							}
 						},
@@ -1776,7 +1832,7 @@
 						"description": "Le statut est modifiable dans les deux sens (règle 4) ; l'email ne l'est pas (règle 1).",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Séraphin\",\n  \"lastName\": \"Koné\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"INACTIVE\"\n}",
+							"raw": "{\n  \"firstName\": \"{{clientsFirstName}}\",\n  \"lastName\": \"{{clientsLastName}}\",\n  \"phoneNumberClient\": \"0501020304\",\n  \"city\": \"Bouaké\",\n  \"status\": \"INACTIVE\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1848,15 +1904,6 @@
 						"description": "Mêmes filtres que la liste, sans pagination. Séparateur « ; » et UTF-8, pour Excel. Réservé aux administrateurs (données personnelles). « Send and Download » enregistre le fichier."
 					},
 					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.collectionVariables.set('clientsEmail', 'seraphin.' + pm.collectionVariables.get('clientsRun') + '@exemple.ci');"
-								]
-							}
-						},
 						{
 							"listen": "test",
 							"script": {
@@ -2696,7 +2743,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Fatou\",\n  \"lastName\": \"Bamba\",\n  \"email\": \"fatou.{{journeyRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0708091011\",\n  \"city\": \"Yamoussoukro\"\n}",
+							"raw": "{\n  \"firstName\": \"{{journeyFirstName}}\",\n  \"lastName\": \"{{journeyLastName}}\",\n  \"email\": \"{{journeyEmail}}\",\n  \"phoneNumberClient\": \"0708091011\",\n  \"city\": \"Yamoussoukro\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2715,6 +2762,27 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const firstNames = ['Awa', 'Aminata', 'Mariam', 'Fatou', 'Aya', 'Adjoua', 'Akissi', 'Aïcha', 'Clémentine',",
+									"    'Moussa', 'Ibrahim', 'Seydou', 'Drissa', 'Koffi', 'Kouassi', 'Konan', 'Séraphin', 'Désiré', 'Hervé'];",
+									"const lastNames = ['Koné', 'Traoré', 'Coulibaly', 'Bamba', 'Diabaté', 'Touré', 'Sangaré', 'Kouamé', 'Kouadio',",
+									"    \"N'Guessan\", 'Doumbia', 'Fofana', 'Cissé', 'Diomandé', 'Dosso', 'Yao'];",
+									"const pick = names => names[Math.floor(Math.random() * names.length)];",
+									"// Décomposé (NFD), « é » devient « e » suivi d'un accent combinant, que le filtre retire avec l'apostrophe",
+									"const ascii = text => text.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase();",
+									"const firstName = pick(firstNames);",
+									"const lastName = pick(lastNames);",
+									"pm.collectionVariables.set('journeyFirstName', firstName);",
+									"pm.collectionVariables.set('journeyLastName', lastName);",
+									"pm.collectionVariables.set('journeyEmail', ascii(firstName) + '.' + ascii(lastName) + '.'",
+									"    + pm.collectionVariables.get('journeyRun') + '@exemple.ci');"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -3587,7 +3655,7 @@
 									"pm.test('une seule trace, sans nom', () => {",
 									"    if (purged) {",
 									"        pm.expect(events.map(e => e.action)).to.eql(['CLIENT_PURGED']);",
-									"        pm.expect(events[0].summary).to.not.include('Fatou');",
+									"        pm.expect(events[0].summary).to.not.include(pm.collectionVariables.get('journeyLastName'));",
 									"    }",
 									"});"
 								]
@@ -3609,7 +3677,7 @@
 						"description": "",
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Koffi\",\n  \"lastName\": \"Yao\",\n  \"email\": \"koffi.{{journeyRun}}@exemple.ci\",\n  \"phoneNumberClient\": \"0102030405\",\n  \"city\": \"Korhogo\"\n}",
+							"raw": "{\n  \"firstName\": \"{{journeyProspectFirstName}}\",\n  \"lastName\": \"{{journeyProspectLastName}}\",\n  \"email\": \"{{journeyProspectEmail}}\",\n  \"phoneNumberClient\": \"0102030405\",\n  \"city\": \"Korhogo\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3628,6 +3696,27 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const firstNames = ['Awa', 'Aminata', 'Mariam', 'Fatou', 'Aya', 'Adjoua', 'Akissi', 'Aïcha', 'Clémentine',",
+									"    'Moussa', 'Ibrahim', 'Seydou', 'Drissa', 'Koffi', 'Kouassi', 'Konan', 'Séraphin', 'Désiré', 'Hervé'];",
+									"const lastNames = ['Koné', 'Traoré', 'Coulibaly', 'Bamba', 'Diabaté', 'Touré', 'Sangaré', 'Kouamé', 'Kouadio',",
+									"    \"N'Guessan\", 'Doumbia', 'Fofana', 'Cissé', 'Diomandé', 'Dosso', 'Yao'];",
+									"const pick = names => names[Math.floor(Math.random() * names.length)];",
+									"// Décomposé (NFD), « é » devient « e » suivi d'un accent combinant, que le filtre retire avec l'apostrophe",
+									"const ascii = text => text.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase();",
+									"const firstName = pick(firstNames);",
+									"const lastName = pick(lastNames);",
+									"pm.collectionVariables.set('journeyProspectFirstName', firstName);",
+									"pm.collectionVariables.set('journeyProspectLastName', lastName);",
+									"pm.collectionVariables.set('journeyProspectEmail', ascii(firstName) + '.' + ascii(lastName) + '.'",
+									"    + pm.collectionVariables.get('journeyRun') + '.2@exemple.ci');"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
