@@ -392,7 +392,7 @@ Le détail (matrice des droits, mots de passe, exports, purge, journal d'audit) 
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 101 requêtes s'exécutent dans l'ordre et vérifient 198 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 132 requêtes s'exécutent dans l'ordre et vérifient 267 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution, avec des clients aux noms ivoiriens tirés au hasard : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 
@@ -406,13 +406,14 @@ npx newman run postman/subscription-api.postman_collection.json
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0 · Authentification                  | Connexion en administrateur et en conseiller                                                                                                                                                                                                               |
 | 1 · Scénario de bout en bout         | Les 7 étapes de l'énoncé, puis la vérification de l'historique, l'attestation de résiliation et les notifications envoyées au client                                                                                                                 |
-| 2 · Règles métier                   | Les règles démontrées par leurs cas d'erreur, et les contrôles de droits (401, 403, export refusé au conseiller)                                                                                                                                      |
+| 2 · Règles métier                   | Chaque règle de l'énoncé démontrée par son cas d'erreur, à partir d'un client, d'une offre et d'une souscription préparés puis réutilisés ; contrôles de droits (401, 403)                                                                          |
 | 3 · Clients                           | Tous les endpoints des clients, export CSV compris                                                                                                                                                                                                         |
 | 4 · Offres                            | Tous les endpoints des offres                                                                                                                                                                                                                              |
 | 5 · Technologies                      | Catalogue des technologies                                                                                                                                                                                                                                 |
 | 6 · Souscriptions                     | Détail, recherche par ND, recherche globale, export CSV, liste par client, attestation, suppression                                                                                                                                                       |
 | 7 · Statistiques                      | Les trois indicateurs                                                                                                                                                                                                                                      |
 | 8 · Parcours complet de l'application | Toutes les fonctionnalités enchaînées, y compris les extensions : technologie retirée puis remise au catalogue, prix figé, cycle de vie, attestations, notifications, statistiques, exports, journal d'audit, puis suppression, conservation et purge |
+| 9 · Erreurs techniques                | Valeurs inconnues (avec les valeurs possibles), JSON mal formé, tri et période invalides, ressources et routes inconnues (404), 405, 415, jeton falsifié pour s'attribuer le rôle ADMIN (401)                                                       |
 
 Le dossier 1 reproduit à l'identique le scénario demandé par l'énoncé ; le dossier 8 est un parcours complémentaire, qui montre l'ensemble de l'application sans modifier ce scénario.
 
@@ -486,7 +487,7 @@ La résiliation renvoie la souscription avec sa date de fin et tout son historiq
 
 <p align="center"><img src="docs/images/email-resiliation.png" alt="Email de résiliation reçu par le client" width="480"></p>
 
-Le dossier « 2 · Règles métier » de la collection démontre ensuite les cas d'erreur : doublon d'email, souscription bloquée par une suspension (règles 13 et 15), unicité par technologie (règle 14), transition interdite, suppression refusée, droits insuffisants.
+Le dossier « 2 · Règles métier » de la collection démontre ensuite chaque règle par son cas d'erreur : doublons d'email et de code d'offre, prix invalides, champs non modifiables, client inactif et offre désactivée (avec l'ordre de la règle 15), souscription bloquée par une suspension (règles 13 et 15), unicité par technologie (règle 14), motif obligatoire, transitions interdites, suppression refusée, droits insuffisants. Le dossier « 9 · Erreurs techniques » couvre les erreurs qui ne relèvent pas d'une règle métier.
 
 ## 13. Limites et améliorations
 
