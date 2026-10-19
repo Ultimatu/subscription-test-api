@@ -1,6 +1,7 @@
 package ci.orange.subscription.infrastructure.web.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -244,7 +245,9 @@ class ClientControllerTest {
 		mockMvc.perform(get("/api/clients").param("status", "DELETED"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
-				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le paramètre status : DELETED"));
+				.andExpect(jsonPath("$.detail").value(
+						"Valeur invalide pour le paramètre status : DELETED (valeurs possibles : ACTIVE, INACTIVE)"))
+				.andExpect(jsonPath("$.allowedValues", contains("ACTIVE", "INACTIVE")));
 	}
 
 	@Test
@@ -289,7 +292,8 @@ class ClientControllerTest {
 		mockMvc.perform(get("/api/clients/abc"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
-				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le paramètre id : abc"));
+				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le paramètre id : abc"))
+				.andExpect(jsonPath("$.allowedValues").doesNotExist());
 	}
 
 	@Test
@@ -323,7 +327,9 @@ class ClientControllerTest {
 				.content(VALID_UPDATE.replace("INACTIVE", "DELETED")))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INVALID_FIELD_VALUE"))
-				.andExpect(jsonPath("$.detail").value("Valeur invalide pour le champ status : DELETED"));
+				.andExpect(jsonPath("$.detail").value(
+						"Valeur invalide pour le champ status : DELETED (valeurs possibles : ACTIVE, INACTIVE)"))
+				.andExpect(jsonPath("$.allowedValues", contains("ACTIVE", "INACTIVE")));
 	}
 
 	@Test

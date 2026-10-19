@@ -7,6 +7,8 @@ import ci.orange.subscription.domain.exception.ResourceNotFoundException;
 import ci.orange.subscription.domain.subscription.InvalidStatusTransitionException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.TypeMismatchException;
@@ -127,13 +129,41 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
 				"Le corps de la requête est illisible ou mal formé", TechnicalErrorCode.MALFORMED_REQUEST.name());
 		if (exception.getCause() instanceof JsonMappingException mapping && !mapping.getPath().isEmpty()) {
-			problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
-					mapping instanceof InvalidFormatException invalid
-							? "Valeur invalide pour le champ %s : %s".formatted(fieldPath(mapping), invalid.getValue())
-							: "Valeur invalide pour le champ " + fieldPath(mapping),
-					TechnicalErrorCode.INVALID_FIELD_VALUE.name());
+			problem = mapping instanceof InvalidFormatException invalid
+					? invalidValue("Valeur invalide pour le champ %s : %s".formatted(fieldPath(mapping),
+							invalid.getValue()), invalid.getTargetType(), TechnicalErrorCode.INVALID_FIELD_VALUE)
+					: problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, "Valeur invalide pour le champ " + fieldPath(mapping),
+							TechnicalErrorCode.INVALID_FIELD_VALUE.name());
 		}
 		return handleExceptionInternal(exception, problem, headers, status, request);
+	}
+
+	/**
+	 * Quand le type attendu n'admet que quelques valeurs (énumération, booléen), la réponse les donne,
+	 * dans le message et dans la propriété {@code allowedValues} : l'appelant peut se corriger seul.
+	 */
+	private ProblemDetail invalidValue(String detail, Class<?> expectedType, TechnicalErrorCode code) {
+		List<String> allowedValues = allowedValues(expectedType);
+		if (allowedValues.isEmpty()) {
+			return problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST, detail, code.name());
+		}
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
+				"%s (valeurs possibles : %s)".formatted(detail, String.join(", ", allowedValues)), code.name());
+		problem.setProperty("allowedValues", allowedValues);
+		return problem;
+	}
+
+	private static List<String> allowedValues(Class<?> type) {
+		if (type == null) {
+			return List.of();
+		}
+		if (type.isEnum()) {
+			return Arrays.stream(type.getEnumConstants()).map(constant -> ((Enum<?>) constant).name()).toList();
+		}
+		if (type == Boolean.class || type == boolean.class) {
+			return List.of("true", "false");
+		}
+		return List.of();
 	}
 
 	@Override
@@ -141,9 +171,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpStatusCode status, WebRequest request) {
 		String name = exception instanceof MethodArgumentTypeMismatchException argument ? argument.getName()
 				: exception.getPropertyName();
-		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, INVALID_REQUEST,
-				"Valeur invalide pour le paramètre %s : %s".formatted(name, exception.getValue()),
-				TechnicalErrorCode.INVALID_PARAMETER.name());
+		ProblemDetail problem = invalidValue("Valeur invalide pour le paramètre %s : %s".formatted(name,
+				exception.getValue()), exception.getRequiredType(), TechnicalErrorCode.INVALID_PARAMETER);
 		return handleExceptionInternal(exception, problem, headers, status, request);
 	}
 

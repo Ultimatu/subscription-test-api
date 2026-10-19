@@ -22,5 +22,7 @@ public record ApiProblem(
 		@Schema(example = "2026-10-14T14:30:00Z") Instant timestamp,
 		@Schema(description = "Identifiant de la requête (en-tête X-Request-Id), à communiquer au support",
 				example = "eeffa598-b1f6-419e-9629-433e2b2c71cf") String requestId,
-		@Schema(description = "Champs invalides, pour les erreurs de validation uniquement") List<InvalidField> errors) {
+		@Schema(description = "Champs invalides, pour les erreurs de validation uniquement") List<InvalidField> errors,
+		@Schema(description = "Valeurs acceptées, quand un paramètre ou un champ à valeurs fixes (énumération, "
+				+ "booléen) reçoit une valeur inconnue", example = "[\"ACTIVE\", \"INACTIVE\"]") List<String> allowedValues) {
 }

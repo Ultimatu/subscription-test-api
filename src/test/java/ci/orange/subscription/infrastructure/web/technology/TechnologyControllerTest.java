@@ -1,5 +1,6 @@
 package ci.orange.subscription.infrastructure.web.technology;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -56,6 +57,17 @@ class TechnologyControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].code").value("SATELLITE"))
 				.andExpect(jsonPath("$[0].active").value(false));
+	}
+
+	@Test
+	void listsTheAcceptedValuesOfAnInvalidAvailabilityFilter() throws Exception {
+		mockMvc.perform(get("/api/technologies").param("active", "maybe"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
+				.andExpect(jsonPath("$.detail")
+						.value("Valeur invalide pour le paramètre active : maybe (valeurs possibles : true, false)"))
+				.andExpect(jsonPath("$.allowedValues", contains("true", "false")));
+		verifyNoInteractions(technologyUseCases);
 	}
 
 	@Test

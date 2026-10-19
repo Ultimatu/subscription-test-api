@@ -1,6 +1,6 @@
 # ADR-0007 — Erreurs au format Problem Details avec un code stable
 
-- **Statut** : Acceptée (14/10/2026). Traduction des erreurs produites par Spring ajoutée le 18/10/2026.
+- **Statut** : Acceptée (14/10/2026). Traduction des erreurs produites par Spring ajoutée le 18/10/2026, valeurs acceptées (`allowedValues`) le 19/10/2026.
 
 ## Contexte
 
@@ -12,7 +12,7 @@ Les clients de l'API doivent pouvoir distinguer précisément les cas d'erreur (
   - **`code`** : identifiant stable en majuscules, par exemple `CLIENT_EMAIL_ALREADY_USED` ;
   - **`timestamp`** ;
   - **`requestId`** : identifiant de la requête, voir [ADR-0008](0008-tracabilite-des-requetes.md).
-- Les erreurs de validation ajoutent la liste des champs invalides (`errors`). Les transitions refusées ajoutent le statut courant et les statuts requis, comme l'exige l'énoncé.
+- Les erreurs de validation ajoutent la liste des champs invalides (`errors`). Les transitions refusées ajoutent le statut courant et les statuts requis, comme l'exige l'énoncé. Une valeur inconnue pour un paramètre ou un champ à valeurs fixes (énumération, booléen) ajoute les valeurs acceptées (`allowedValues`), aussi citées dans le message : l'appelant se corrige sans consulter la documentation.
 - **Le domaine ne connaît pas HTTP.** Chaque exception métier porte un code de l'enum `DomainErrorCode`, et c'est l'adaptateur web (`GlobalExceptionHandler`) qui fait la correspondance avec le statut HTTP :
 
   | Exception du domaine | Statut HTTP |

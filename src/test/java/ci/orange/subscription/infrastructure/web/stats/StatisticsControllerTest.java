@@ -1,5 +1,6 @@
 package ci.orange.subscription.infrastructure.web.stats;
 
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -97,7 +98,8 @@ class StatisticsControllerTest {
 	void rejectsAnUnknownBasis() throws Exception {
 		mockMvc.perform(get("/api/stats/subscriptions-by-status").param("basedOn", "END_DATE"))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
+				.andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
+				.andExpect(jsonPath("$.allowedValues", contains("CREATION_DATE", "START_DATE", "STATUS_CHANGE")));
 	}
 
 	@Test
