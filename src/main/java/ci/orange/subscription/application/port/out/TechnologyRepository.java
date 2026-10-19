@@ -12,6 +12,9 @@ public interface TechnologyRepository {
 
 	boolean existsByCode(String code);
 
+	/** Le libellé est comparé sans tenir compte de la casse ni des accents. */
+	Optional<Technology> findByLabel(String label);
+
 	Technology save(Technology technology);
 
 }

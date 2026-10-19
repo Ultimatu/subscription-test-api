@@ -15,7 +15,7 @@ erDiagram
 
     technology {
         varchar code PK "ex. 4G_BOX"
-        varchar label
+        varchar label "unique, sans casse ni accents"
         boolean active "retirée du catalogue si faux"
     }
     offer {
@@ -107,7 +107,7 @@ Autres objets :
 - la table **`app_user`**, les comptes des utilisateurs de l'API, sans relation avec les autres tables ([ADR-0013](adr/0013-extensions.md#1-authentification-jwt-et-rôles)) ;
 - la table **`audit_event`**, le journal des actions métier, sans clé étrangère pour survivre aux suppressions ; les événements d'un client sont effacés avec lui lors d'une purge ([ADR-0013](adr/0013-extensions.md#8-journal-daudit)) ;
 - la table **`notification_outbox`**, les emails à envoyer aux clients, enregistrés avec chaque changement de statut puis envoyés par une tâche planifiée ([ADR-0013](adr/0013-extensions.md#5-notifications-par-email)) ;
-- l'**extension `unaccent`**, pour la recherche insensible aux accents ([ADR-0017](adr/0017-recherche-insensible-aux-accents.md)).
+- l'**extension `unaccent`**, pour la recherche insensible aux accents ([ADR-0017](adr/0017-recherche-insensible-aux-accents.md)), et la fonction **`immutable_unaccent`**, qui l'enrobe pour qu'elle puisse servir dans un index ([ADR-0006](adr/0006-technologies-donnees-de-reference.md)).
 
 ## Règles métier garanties par la base
 
@@ -120,6 +120,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_offer_code`, `ck_offer_code_uppercase` | offer | Code unique et en majuscules (règle 7) |
 | `ck_offer_monthly_price` | offer | Prix strictement positif (règle 8) |
 | `fk_offer_technology` | offer | Technologie présente dans le catalogue |
+| `uk_technology_label` (index unique sur `lower(immutable_unaccent(label))`) | technology | Libellé unique, sans tenir compte de la casse ni des accents ([ADR-0006](adr/0006-technologies-donnees-de-reference.md)) |
 | `uk_subscription_client_technology_in_progress` (index unique partiel) | subscription | Une seule souscription PENDING ou ACTIVE par technologie et par client (règle 14) |
 | `uk_subscription_reference`, `ck_subscription_reference` | subscription | Référence unique au format `SUB-AAAA-NNNNNN` (règle 16) |
 | `uk_subscription_nd`, `ck_subscription_nd` | subscription | ND unique au format `27XXXXXXXX` (règle 17) |
@@ -137,6 +138,7 @@ Ces contraintes doublent les vérifications faites en Java : elles tiennent mêm
 | `uk_client_email` | Vérification de doublon d'email à la création d'un client (`lower(email) = lower(?)`) |
 | `uk_offer_code` | Vérification de doublon de code d'offre |
 | `ix_offer_technology` | Filtre des offres par technologie |
+| `uk_technology_label` | Unicité du libellé des technologies. La vérification Java compare `lower(unaccent(label))` et parcourt la table, qui ne compte que quelques lignes : l'index ne sert que de garantie |
 | `ix_subscription_client` | Souscriptions d'un client : liste, synthèse, règles 6 et 13, suppression du client |
 | `uk_subscription_client_technology_in_progress` | Vérification de la règle 14 |
 | `ix_subscription_offer` | Clé étrangère vers l'offre (vérifications d'intégrité) |
@@ -170,6 +172,7 @@ Chaque index a été vérifié avec `EXPLAIN`. Un index sur la ville des clients
 | V10 | Outbox des notifications par email |
 | V11 | Retrait possible d'une technologie du catalogue |
 | V12 | Journal d'audit des actions métier |
+| V13 | Libellé des technologies unique, sans tenir compte de la casse ni des accents ; doublons existants départagés par leur code |
 
 Une migration déjà appliquée n'est jamais modifiée, même pour un commentaire : Flyway vérifie son empreinte au démarrage.
 

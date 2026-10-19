@@ -114,7 +114,7 @@ spring:
     open-in-view: false
 ```
 
-- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V12). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
+- **Schéma** : il est créé et mis à jour par **Flyway** au démarrage, à partir des migrations de `src/main/resources/db/migration` (V1 à V13). La migration V2 charge les 11 offres de l'énoncé, avec leurs libellés sans accents ; la migration V8 crée les deux comptes de démonstration. Le schéma, ses contraintes et ses index sont décrits dans [docs/base-de-donnees.md](docs/base-de-donnees.md).
 - **Droits nécessaires** : l'utilisateur doit être propriétaire de la base, pour que Flyway puisse créer les tables, le schéma des tests et l'extension `unaccent` (extension de confiance, qui ne demande pas de droits de super-utilisateur).
 - **Autre environnement** : les valeurs se remplacent par variables d'environnement, que Spring Boot associe automatiquement aux propriétés, sans modifier le fichier. Il n'y a pas de fichier `.env` : ce n'est pas la convention de Spring, et l'énoncé demande un simple `mvn spring-boot:run`. Le mot de passe de la base locale figure donc en clair, ce qui n'est acceptable que pour le développement :
   | Variable                                                                                       | Rôle                                                                                                                                                                                                                            |
@@ -137,7 +137,7 @@ PostgreSQL doit être démarré, pour l'application comme pour les tests.
 | Commande                                  | Effet                                                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `mvn spring-boot:run`                   | Lance l'application sur le port 8080                                                                       |
-| `mvn test`                              | Exécute les 403 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
+| `mvn test`                              | Exécute les 410 tests et produit le rapport de couverture `target/site/jacoco/index.html`               |
 | `mvn test -DexcludedGroups=integration` | N'exécute que les tests unitaires, sans base de données ([ADR-0010](docs/adr/0010-strategie-de-tests.md)) |
 | `mvn verify`                            | Idem, puis fait échouer le build sous 90 % de lignes ou 75 % de branches couvertes                        |
 
@@ -149,8 +149,8 @@ Sans Maven installé, remplacer `mvn` par `./mvnw` (`mvnw.cmd` sous Windows).
 
 | Périmètre                                              | Tests | Lignes | Branches |
 | -------------------------------------------------------- | ----- | ------ | -------- |
-| Tous les tests (`mvn test`)                            | 403   | 98,3 % | 86,0 %   |
-| Tests unitaires seuls (`-DexcludedGroups=integration`) | 321   | 72,0 % | 63,5 %   |
+| Tous les tests (`mvn test`)                            | 410   | 98,1 % | 85,9 %   |
+| Tests unitaires seuls (`-DexcludedGroups=integration`) | 326   | 71,8 % | 62,5 %   |
 
 Les 60 % de couverture demandés par l'énoncé sont donc atteints par les seuls tests unitaires. Chaque couche est testée au niveau qui lui correspond, du domaine en Java pur jusqu'à l'application démarrée ([ADR-0010](docs/adr/0010-strategie-de-tests.md)). Parmi les tests notables : les 16 combinaisons statut × opération confrontées au tableau de l'énoncé, l'ordre de vérification de la règle 15, la matrice des droits avec de vrais jetons, le contenu réel du PDF et des emails, et des requêtes HTTP réellement concurrentes, dont chaque cas échoue si l'on retire la protection qu'il vérifie ([ADR-0014](docs/adr/0014-souscriptions-numerotation-et-concurrence.md)).
 
@@ -194,7 +194,7 @@ subscription-api/
 │       └── config/                 horloge, préfixe /api, OpenAPI
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── db/migration/               migrations Flyway V1 à V12
+│   ├── db/migration/               migrations Flyway V1 à V13
 │   └── templates/                  gabarits de l'attestation (documents/) et des emails (notifications/)
 └── src/test/java/                  tests, dans la même arborescence
 ```
@@ -357,6 +357,7 @@ Chaque règle est appliquée dans le domaine ou dans les services ; les règles 
 | 21     | Résiliation définitive, date de fin à la date du jour                                                                                           | 409 `INVALID_STATUS_TRANSITION` sur toute opération ultérieure                                           |
 | 22     | Seule une souscription PENDING peut être supprimée                                                                                               | 409 `SUBSCRIPTION_NOT_DELETABLE`                                                                           |
 | —     | Hors énoncé : une technologie retirée du catalogue n'accepte plus de nouvelle offre ni de souscription ; vérifiée juste après l'offre active | 409 `TECHNOLOGY_INACTIVE` ([ADR-0013](docs/adr/0013-extensions.md#6-retrait-dune-technologie-du-catalogue)) |
+| —     | Hors énoncé : code et libellé d'une technologie uniques, le libellé sans tenir compte de la casse ni des accents                          | 409 `TECHNOLOGY_ALREADY_EXISTS`, `TECHNOLOGY_LABEL_ALREADY_USED` ([ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md)) |
 
 Les points sur lesquels l'énoncé laisse une marge d'interprétation (casse de l'email, fuseau de « la date du jour », décimales des montants, sort des souscriptions d'un client supprimé, revenu pris en compte…) sont recensés, avec le choix retenu, dans [docs/interpretations.md](docs/interpretations.md).
 
@@ -390,7 +391,7 @@ Le détail (matrice des droits, mots de passe, exports, purge, journal d'audit) 
 
 1. Lancer l'application (`mvn spring-boot:run`).
 2. Dans Postman, importer `postman/subscription-api.postman_collection.json`.
-3. Cliquer sur *Run collection* : les 100 requêtes s'exécutent dans l'ordre et vérifient 195 assertions (codes HTTP, statuts, codes d'erreur).
+3. Cliquer sur *Run collection* : les 101 requêtes s'exécutent dans l'ordre et vérifient 198 assertions (codes HTTP, statuts, codes d'erreur).
 
 La collection **se connecte toute seule** : avant chaque requête, elle obtient ou renouvelle les jetons de l'administrateur et du conseiller. Chaque requête utilise le jeton du rôle indiqué dans son nom (administrateur par défaut). Les données sont générées à chaque exécution : la collection peut être rejouée autant de fois que nécessaire. La variable de collection `baseUrl` vaut `http://localhost:8080`.
 

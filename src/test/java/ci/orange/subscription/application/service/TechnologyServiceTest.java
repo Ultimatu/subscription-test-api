@@ -110,4 +110,27 @@ class TechnologyServiceTest {
 		verify(technologyRepository, never()).save(any());
 	}
 
+	@Test
+	void refusesALabelAlreadyUsedByAnotherTechnology() {
+		when(technologyRepository.existsByCode("FIBRE")).thenReturn(false);
+		when(technologyRepository.findByLabel("FIBRE OPTIQUE"))
+				.thenReturn(Optional.of(Technology.restore("FTTH", "Fibre optique", true, null)));
+
+		assertThatThrownBy(() -> technologyService.create(new CreateTechnologyCommand("FIBRE", "FIBRE OPTIQUE")))
+				.isInstanceOf(BusinessRuleViolationException.class)
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_LABEL_ALREADY_USED)
+				.hasMessageContaining("FTTH");
+		verify(technologyRepository, never()).save(any());
+		verifyNoInteractions(auditTrail);
+	}
+
+	@Test
+	void checksTheCodeBeforeTheLabel() {
+		when(technologyRepository.existsByCode("FTTH")).thenReturn(true);
+
+		assertThatThrownBy(() -> technologyService.create(new CreateTechnologyCommand("FTTH", "Fibre optique")))
+				.hasFieldOrPropertyWithValue("errorCode", DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS);
+		verify(technologyRepository, never()).findByLabel(any());
+	}
+
 }

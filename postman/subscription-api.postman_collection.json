@@ -2202,6 +2202,44 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "Ajouter une technologie (libellé déjà utilisé → 409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "{{baseUrl}}/api/technologies",
+						"description": "Le libellé de FTTH, « Fibre optique », écrit autrement : la comparaison ne tient compte ni de la casse ni des accents (ADR-0006).",
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"code\": \"FIBRE\", \"label\": \"FIBRE OPTIQUE\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+									"pm.test('code TECHNOLOGY_LABEL_ALREADY_USED', () => pm.expect(pm.response.json().code).to.eql('TECHNOLOGY_LABEL_ALREADY_USED'));",
+									"",
+									"        pm.test('désigne la technologie qui porte déjà ce libellé', () =>",
+									"            pm.expect(pm.response.json().detail).to.include('FTTH'));"
+								]
+							}
+						}
+					]
 				}
 			]
 		},
@@ -2576,10 +2614,10 @@
 							}
 						],
 						"url": "{{baseUrl}}/api/technologies",
-						"description": "Ajouter une technologie ne demande aucune modification du code (ADR-0006).",
+						"description": "Ajouter une technologie ne demande aucune modification du code (ADR-0006). Le code et le libellé sont uniques : ils changent à chaque exécution.",
 						"body": {
 							"mode": "raw",
-							"raw": "{ \"code\": \"LAB_{{journeyRun}}\", \"label\": \"Technologie de démonstration\" }",
+							"raw": "{ \"code\": \"LAB_{{journeyRun}}\", \"label\": \"Technologie de démonstration {{journeyRun}}\" }",
 							"options": {
 								"raw": {
 									"language": "json"

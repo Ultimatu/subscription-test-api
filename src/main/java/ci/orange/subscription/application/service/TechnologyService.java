@@ -77,6 +77,12 @@ public class TechnologyService implements TechnologyUseCases {
 			throw new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_ALREADY_EXISTS,
 					"La technologie " + technology.getCode() + " existe déjà");
 		}
+		// Retirée ou non, une technologie garde son libellé : elle peut revenir au catalogue.
+		technologyRepository.findByLabel(technology.getLabel()).ifPresent(existing -> {
+			throw new BusinessRuleViolationException(DomainErrorCode.TECHNOLOGY_LABEL_ALREADY_USED,
+					"Le libellé « " + technology.getLabel() + " » est déjà utilisé par la technologie "
+							+ existing.getCode());
+		});
 		Technology saved = technologyRepository.save(technology);
 		auditTrail.record(new AuditTrail.Entry(AuditAction.TECHNOLOGY_CREATED, AuditResource.TECHNOLOGY,
 				saved.getCode(), null, "Technologie " + saved.getCode() + " ajoutée au catalogue",

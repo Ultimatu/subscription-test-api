@@ -56,7 +56,9 @@ class TechnologyController {
 	}
 
 	@Operation(summary = "Ajouter une technologie",
-			description = "Permet de lancer une nouvelle technologie sans modification du code.")
+			description = "Permet de lancer une nouvelle technologie sans modification du code. Le code et le "
+					+ "libellé doivent être uniques ; le libellé est comparé sans tenir compte de la casse ni des "
+					+ "accents.")
 	@ApiResponse(responseCode = "201", description = "Technologie créée")
 	@ApiErrors.BadRequest
 	@ApiErrors.Conflict
