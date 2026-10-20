@@ -1172,10 +1172,10 @@
 							}
 						],
 						"url": "{{baseUrl}}/api/offers",
-						"description": "",
+						"description": "Code de technologie propre à l'exécution : il ne peut pas exister, même si une technologie a été ajoutée au catalogue (par exemple 5G_BOX).",
 						"body": {
 							"mode": "raw",
-							"raw": "{ \"code\": \"T5G-{{rulesRun}}\", \"label\": \"Box 5G\", \"technology\": \"5G_BOX\", \"monthlyPrice\": 30000 }",
+							"raw": "{ \"code\": \"T5G-{{rulesRun}}\", \"label\": \"Box 5G\", \"technology\": \"ABSENTE_{{rulesRun}}\", \"monthlyPrice\": 30000 }",
 							"options": {
 								"raw": {
 									"language": "json"
