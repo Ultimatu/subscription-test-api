@@ -19,9 +19,16 @@ public interface NotificationOutbox {
 	 */
 	List<Pending> claimDue(Instant now, Instant leaseUntil, int limit);
 
+	/**
+	 * Sans effet si la notification n'existe plus : la suppression définitive de son client l'efface,
+	 * même pendant son envoi.
+	 */
 	void markSent(Long id, Instant sentAt);
 
-	/** Nouvelle tentative à {@code retryAt}, ou abandon définitif si {@code retryAt} est nul. */
+	/**
+	 * Nouvelle tentative à {@code retryAt}, ou abandon définitif si {@code retryAt} est nul. Sans effet
+	 * si la notification n'existe plus, comme {@link #markSent}.
+	 */
 	void markFailed(Long id, String error, Instant retryAt);
 
 	List<NotificationView> findBySubscription(Long subscriptionId);

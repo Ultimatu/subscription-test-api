@@ -1,6 +1,7 @@
 package ci.orange.subscription.infrastructure.persistence.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import ci.orange.subscription.application.port.in.notification.NotificationStatus;
@@ -40,11 +41,13 @@ class NotificationOutboxAdapterTest {
 	@Autowired
 	private EntityManager entityManager;
 
+	private Long clientId;
+
 	private Long subscriptionId;
 
 	@BeforeEach
 	void createSubscription() {
-		Long clientId = clientRepository.save(Client.create("Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan"))
+		clientId = clientRepository.save(Client.create("Awa", "Koné", "awa@mail.ci", "0701020304", "Abidjan"))
 				.getId();
 		Long offerId = entityManager.createQuery("select o.id from OfferEntity o where o.code = 'FTTH-100'", Long.class)
 				.getSingleResult();
@@ -113,6 +116,26 @@ class NotificationOutboxAdapterTest {
 		assertThat(outbox.findBySubscription(subscriptionId)).singleElement()
 				.extracting(NotificationView::status).isEqualTo(NotificationStatus.FAILED);
 		assertThat(outbox.claimDue(now.plus(1, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS), 10)).isEmpty();
+	}
+
+	/** Une fois le bail posé, aucun verrou ne protège la notification : une purge peut l'effacer pendant l'envoi. */
+	@Test
+	void ignoresTheOutcomeOfANotificationErasedDuringItsDispatch() {
+		outbox.enqueue(new NotificationOutbox.Request(subscriptionId, SubscriptionTransition.ACTIVATE, "awa@mail.ci",
+				null));
+		outbox.enqueue(new NotificationOutbox.Request(subscriptionId, SubscriptionTransition.SUSPEND, "awa@mail.ci",
+				"Impayé"));
+		Instant now = Instant.now().plus(1, ChronoUnit.SECONDS);
+		List<NotificationOutbox.Pending> claimed = outbox.claimDue(now, now.plus(5, ChronoUnit.MINUTES), 10);
+
+		clientRepository.deletePermanently(clientId);
+
+		assertThatCode(() -> {
+			outbox.markSent(claimed.get(0).id(), now);
+			outbox.markFailed(claimed.get(1).id(), "Connection refused", now.plus(1, ChronoUnit.HOURS));
+			entityManager.flush();
+		}).doesNotThrowAnyException();
+		assertThat(outbox.findBySubscription(subscriptionId)).isEmpty();
 	}
 
 }

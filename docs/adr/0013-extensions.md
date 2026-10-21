@@ -96,7 +96,7 @@ Ces fonctionnalités ne sont pas demandées par l'énoncé. Elles ont été réa
 
 **Écarté.** Envoi direct dans la requête (lent, et un email peut partir pour une transaction annulée). Événement après validation (`@TransactionalEventListener` + `@Async`) : l'email est perdu si l'application s'arrête au mauvais moment. Broker de messages : un service de plus, et le même problème de cohérence, que l'on résout… par une outbox. Spring Modulith : une outbox toute faite, au prix de conventions supplémentaires.
 
-**Limites.** Les notifications envoyées s'accumulent (purge à prévoir). Le contenu est construit à l'envoi : une souscription supprimée entre-temps n'est pas notifiée.
+**Limites.** Les notifications envoyées s'accumulent (purge à prévoir). Le contenu est construit à l'envoi : une souscription supprimée entre-temps n'est pas notifiée. Si la purge du client efface la notification pendant son envoi, le résultat n'est simplement pas enregistré, et le reste du lot est envoyé (ajouté le 21/10/2026).
 
 ## 6. Retrait d'une technologie du catalogue
 

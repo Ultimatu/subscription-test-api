@@ -52,25 +52,27 @@ class NotificationOutboxAdapter implements NotificationOutbox {
 	@Override
 	@Transactional
 	public void markSent(Long id, Instant sentAt) {
-		NotificationEntity entity = jpaRepository.findById(id).orElseThrow();
-		entity.setStatus(NotificationStatus.SENT);
-		entity.setAttempts(entity.getAttempts() + 1);
-		entity.setSentAt(sentAt);
-		entity.setLastError(null);
+		jpaRepository.findById(id).ifPresent(entity -> {
+			entity.setStatus(NotificationStatus.SENT);
+			entity.setAttempts(entity.getAttempts() + 1);
+			entity.setSentAt(sentAt);
+			entity.setLastError(null);
+		});
 	}
 
 	@Override
 	@Transactional
 	public void markFailed(Long id, String error, Instant retryAt) {
-		NotificationEntity entity = jpaRepository.findById(id).orElseThrow();
-		entity.setAttempts(entity.getAttempts() + 1);
-		entity.setLastError(error);
-		if (retryAt == null) {
-			entity.setStatus(NotificationStatus.FAILED);
-		}
-		else {
-			entity.setNextAttemptAt(retryAt);
-		}
+		jpaRepository.findById(id).ifPresent(entity -> {
+			entity.setAttempts(entity.getAttempts() + 1);
+			entity.setLastError(error);
+			if (retryAt == null) {
+				entity.setStatus(NotificationStatus.FAILED);
+			}
+			else {
+				entity.setNextAttemptAt(retryAt);
+			}
+		});
 	}
 
 	@Override
