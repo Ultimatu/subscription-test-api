@@ -98,6 +98,17 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 La [collection Postman](#12-collection-postman-et-scénario-de-bout-en-bout) se connecte toute seule. Pour tester l'API sans jeton, la sécurité peut être désactivée : `APP_SECURITY_ENABLED=false mvn spring-boot:run`.
 
+**Démonstration en ligne**
+
+L'application est aussi déployée sur Render, en complément de l'exécution locale demandée par l'énoncé :
+
+| Adresse | Contenu |
+| ------- | ------- |
+| [sub-test-front.onrender.com](https://sub-test-front.onrender.com) | Prototype de back-office (Vue 3, hors livrable) qui utilise l'API déployée : connexion avec les comptes ci-dessus |
+| [subscription-api-5xs2.onrender.com/swagger-ui.html](https://subscription-api-5xs2.onrender.com/swagger-ui.html) | Documentation interactive de l'API déployée |
+
+**Latence** : l'API utilise l'offre gratuite de Render, qui met le service en veille après 15 minutes sans requête. La requête suivante le réveille et attend que le conteneur puis Spring Boot aient démarré, soit **environ 1 min 30**. Ensuite, les requêtes répondent. Le back-office, un site statique, s'affiche tout de suite : c'est la connexion qui attend le réveil de l'API. Pour ne pas attendre devant l'écran de connexion, ouvrir d'abord le lien Swagger, qui réveille l'API.
+
 ## 4. Configuration de la base PostgreSQL
 
 La configuration se trouve dans `src/main/resources/application.yml` :
