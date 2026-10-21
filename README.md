@@ -137,7 +137,7 @@ spring:
   | `APP_NOTIFICATIONS_ENABLED`                                                                  | `false` pour ne plus envoyer les emails (ils sont tout de même enregistrés)                                                                                                                                                  |
   | `APP_DELETION_SOFT_DELETE`, `APP_DELETION_HARD_DELETE`                                     | Suppression logique des clients qui ont un historique ; purge par un administrateur                                                                                                                                              |
   | `APP_DELETION_RETENTION_ENABLED`, `APP_DELETION_RETENTION_PERIOD`                          | Délai de conservation avant la purge, et purge automatique : **à activer en production**, avec la durée fixée par l'ARTCI ([ADR-0013](docs/adr/0013-extensions.md#7-suppression-définitive-et-durée-de-conservation)) |
-  | `APP_CORS_ALLOWED_ORIGINS` | Origines autorisées à appeler l'API depuis un navigateur (un back-office publié sur un autre domaine), séparées par des virgules ; aucune par défaut |
+  | `APP_CORS_ALLOWED_ORIGINS`                                                                   | Origines autorisées à appeler l'API depuis un navigateur (un back-office publié sur un autre domaine), séparées par des virgules ; aucune par défaut                                                                       |
   | `SERVER_PORT`                                                                                | Port HTTP (8080 par défaut)                                                                                                                                                                                                     |
 - **Tests** : ils utilisent la même base, dans un schéma séparé `test` que Flyway crée et migre automatiquement (`src/test/resources/config/application.yml`). Les données saisies via l'application ne perturbent pas les tests, et il n'y a pas de seconde base à créer.
 
@@ -244,67 +244,67 @@ Toutes les routes métier sont préfixées par `/api`, déclaré une seule fois 
 
 ### Clients
 
-| Méthode | URL                                     | Description                                                | Succès | Rôle       |
-| ------- | --------------------------------------- | ---------------------------------------------------------- | ------ | ---------- |
-| POST    | `/api/clients`                          | Créer un client                                            | 201    | Conseiller |
-| GET     | `/api/clients`                          | Lister les clients                                         | 200    | Conseiller |
-| GET     | `/api/clients/{id}`                     | Détail d'un client                                         | 200    | Conseiller |
-| PUT     | `/api/clients/{id}`                     | Modifier un client                                         | 200    | Conseiller |
-| DELETE  | `/api/clients/{id}`                     | Supprimer un client                                        | 204    | Admin      |
-| GET     | `/api/clients/{id}/summary`             | Nombre de souscriptions par statut et revenu mensuel total | 200    | Conseiller |
-| GET     | `/api/clients/{clientId}/subscriptions` | Souscriptions d'un client                                  | 200    | Conseiller |
+| Méthode | URL                                       | Description                                                | Succès | Rôle      |
+| -------- | ----------------------------------------- | ---------------------------------------------------------- | ------- | ---------- |
+| POST     | `/api/clients`                          | Créer un client                                           | 201     | Conseiller |
+| GET      | `/api/clients`                          | Lister les clients                                         | 200     | Conseiller |
+| GET      | `/api/clients/{id}`                     | Détail d'un client                                        | 200     | Conseiller |
+| PUT      | `/api/clients/{id}`                     | Modifier un client                                         | 200     | Conseiller |
+| DELETE   | `/api/clients/{id}`                     | Supprimer un client                                        | 204     | Admin      |
+| GET      | `/api/clients/{id}/summary`             | Nombre de souscriptions par statut et revenu mensuel total | 200     | Conseiller |
+| GET      | `/api/clients/{clientId}/subscriptions` | Souscriptions d'un client                                  | 200     | Conseiller |
 
 ### Offres
 
-| Méthode | URL                           | Description                    | Succès | Rôle       |
-| ------- | ----------------------------- | ------------------------------ | ------ | ---------- |
-| POST    | `/api/offers`                 | Créer une offre                | 201    | Admin      |
-| GET     | `/api/offers`                 | Lister les offres              | 200    | Conseiller |
-| GET     | `/api/offers/{id}`            | Détail d'une offre             | 200    | Conseiller |
-| PUT     | `/api/offers/{id}`            | Modifier une offre             | 200    | Admin      |
-| PATCH   | `/api/offers/{id}/deactivate` | Retirer une offre du catalogue | 200    | Admin      |
+| Méthode | URL                             | Description                    | Succès | Rôle      |
+| -------- | ------------------------------- | ------------------------------ | ------- | ---------- |
+| POST     | `/api/offers`                 | Créer une offre               | 201     | Admin      |
+| GET      | `/api/offers`                 | Lister les offres              | 200     | Conseiller |
+| GET      | `/api/offers/{id}`            | Détail d'une offre            | 200     | Conseiller |
+| PUT      | `/api/offers/{id}`            | Modifier une offre             | 200     | Admin      |
+| PATCH    | `/api/offers/{id}/deactivate` | Retirer une offre du catalogue | 200     | Admin      |
 
 ### Souscriptions
 
-| Méthode | URL                             | Description                                                 | Succès | Rôle       |
-| ------- | ------------------------------- | ----------------------------------------------------------- | ------ | ---------- |
-| POST    | `/api/subscriptions`            | Souscrire à une offre                                       | 201    | Conseiller |
-| GET     | `/api/subscriptions`            | Recherche globale                                           | 200    | Conseiller |
-| GET     | `/api/subscriptions/{id}`       | Détail, avec le client, l'offre et l'historique des statuts | 200    | Conseiller |
-| GET     | `/api/subscriptions/by-nd/{nd}` | Retrouver une souscription par son ND                       | 200    | Conseiller |
-| POST    | `/api/subscriptions/activate`   | PENDING → ACTIVE                                            | 200    | Conseiller |
-| POST    | `/api/subscriptions/suspend`    | ACTIVE → SUSPENDED                                          | 200    | Conseiller |
-| POST    | `/api/subscriptions/reactivate` | SUSPENDED → ACTIVE                                          | 200    | Conseiller |
-| POST    | `/api/subscriptions/terminate`  | → TERMINATED                                                | 200    | Conseiller |
-| DELETE  | `/api/subscriptions/{id}`       | Supprimer une souscription PENDING                          | 204    | Admin      |
+| Méthode | URL                               | Description                                                  | Succès | Rôle      |
+| -------- | --------------------------------- | ------------------------------------------------------------ | ------- | ---------- |
+| POST     | `/api/subscriptions`            | Souscrire à une offre                                       | 201     | Conseiller |
+| GET      | `/api/subscriptions`            | Recherche globale                                            | 200     | Conseiller |
+| GET      | `/api/subscriptions/{id}`       | Détail, avec le client, l'offre et l'historique des statuts | 200     | Conseiller |
+| GET      | `/api/subscriptions/by-nd/{nd}` | Retrouver une souscription par son ND                        | 200     | Conseiller |
+| POST     | `/api/subscriptions/activate`   | PENDING → ACTIVE                                            | 200     | Conseiller |
+| POST     | `/api/subscriptions/suspend`    | ACTIVE → SUSPENDED                                          | 200     | Conseiller |
+| POST     | `/api/subscriptions/reactivate` | SUSPENDED → ACTIVE                                          | 200     | Conseiller |
+| POST     | `/api/subscriptions/terminate`  | → TERMINATED                                                | 200     | Conseiller |
+| DELETE   | `/api/subscriptions/{id}`       | Supprimer une souscription PENDING                           | 204     | Admin      |
 
 ### Statistiques
 
-| Méthode | URL                                      | Description                                           | Succès | Rôle  |
-| ------- | ---------------------------------------- | ----------------------------------------------------- | ------ | ----- |
-| GET     | `/api/stats/subscriptions-by-city`       | Souscriptions actives et revenu mensuel par ville     | 200    | Admin |
-| GET     | `/api/stats/subscriptions-by-technology` | Répartition des souscriptions actives par technologie | 200    | Admin |
-| GET     | `/api/stats/subscriptions-by-status`     | Nombre de souscriptions par statut sur une période    | 200    | Admin |
+| Méthode | URL                                        | Description                                            | Succès | Rôle |
+| -------- | ------------------------------------------ | ------------------------------------------------------ | ------- | ----- |
+| GET      | `/api/stats/subscriptions-by-city`       | Souscriptions actives et revenu mensuel par ville      | 200     | Admin |
+| GET      | `/api/stats/subscriptions-by-technology` | Répartition des souscriptions actives par technologie | 200     | Admin |
+| GET      | `/api/stats/subscriptions-by-status`     | Nombre de souscriptions par statut sur une période    | 200     | Admin |
 
 Le paramètre facultatif `basedOn`, ajouté à `subscriptions-by-status`, précise quelle date doit tomber dans la période : `CREATION_DATE` (par défaut), `START_DATE` ou `STATUS_CHANGE` (changements de statut survenus pendant la période, d'après l'historique).
 
 ### Hors énoncé
 
-| Méthode | URL                                     | Description                                                                                           | Succès | Rôle       |
-| ------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------ | ---------- |
-| POST    | `/api/auth/login`                       | Obtenir un jeton (`username`, `password`)                                                             | 200    | Public     |
-| GET     | `/api/technologies`                     | Lister les technologies (`active` pour filtrer)                                                       | 200    | Conseiller |
-| GET     | `/api/technologies/{code}`              | Détail d'une technologie                                                                              | 200    | Conseiller |
-| GET     | `/api/subscriptions/{id}/attestation`   | Télécharger l'attestation de souscription ou de résiliation (PDF)                                     | 200    | Conseiller |
-| GET     | `/api/clients/export`                   | Exporter les clients en CSV (filtres de la liste)                                                     | 200    | Admin      |
-| GET     | `/api/subscriptions/export`             | Exporter les souscriptions en CSV (filtres de la recherche globale)                                   | 200    | Admin      |
-| GET     | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi                                                      | 200    | Conseiller |
-| POST    | `/api/technologies`                     | Ajouter une technologie (`code`, `label`)                                                             | 201    | Admin      |
-| PATCH   | `/api/technologies/{code}/deactivate`   | Retirer une technologie du catalogue                                                                  | 200    | Admin      |
-| PATCH   | `/api/technologies/{code}/activate`     | Remettre une technologie au catalogue                                                                 | 200    | Admin      |
-| GET     | `/api/audit-events`                     | Journal d'audit, filtrable par ressource, auteur, action et période                                   | 200    | Admin      |
-| GET     | `/api/clients/deleted`                  | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être          | 200    | Admin      |
-| DELETE  | `/api/clients/{id}/purge`               | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204    | Admin      |
+| Méthode | URL                                       | Description                                                                                             | Succès | Rôle      |
+| -------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------- | ---------- |
+| POST     | `/api/auth/login`                       | Obtenir un jeton (`username`, `password`)                                                           | 200     | Public     |
+| GET      | `/api/technologies`                     | Lister les technologies (`active` pour filtrer)                                                       | 200     | Conseiller |
+| GET      | `/api/technologies/{code}`              | Détail d'une technologie                                                                               | 200     | Conseiller |
+| GET      | `/api/subscriptions/{id}/attestation`   | Télécharger l'attestation de souscription ou de résiliation (PDF)                                    | 200     | Conseiller |
+| GET      | `/api/clients/export`                   | Exporter les clients en CSV (filtres de la liste)                                                       | 200     | Admin      |
+| GET      | `/api/subscriptions/export`             | Exporter les souscriptions en CSV (filtres de la recherche globale)                                     | 200     | Admin      |
+| GET      | `/api/subscriptions/{id}/notifications` | Emails envoyés au client, avec leur état d'envoi                                                      | 200     | Conseiller |
+| POST     | `/api/technologies`                     | Ajouter une technologie (`code`, `label`)                                                           | 201     | Admin      |
+| PATCH    | `/api/technologies/{code}/deactivate`   | Retirer une technologie du catalogue                                                                    | 200     | Admin      |
+| PATCH    | `/api/technologies/{code}/activate`     | Remettre une technologie au catalogue                                                                   | 200     | Admin      |
+| GET      | `/api/audit-events`                     | Journal d'audit, filtrable par ressource, auteur, action et période                                    | 200     | Admin      |
+| GET      | `/api/clients/deleted`                  | Clients supprimés en attente de purge, avec la date à partir de laquelle ils pourront l'être         | 200     | Admin      |
+| DELETE   | `/api/clients/{id}/purge`               | Suppression définitive d'un client et de tout son historique, dans la limite du délai de conservation | 204     | Admin      |
 
 ## 8. Transitions de statut d'une souscription
 
@@ -343,32 +343,32 @@ Dans le code, les transitions sont décrites par l'enum `SubscriptionTransition`
 
 Chaque règle est appliquée dans le domaine ou dans les services ; les règles d'unicité et de format sont en plus garanties par des contraintes en base.
 
-| Règle | Résumé                                                                                                                                           | En cas de violation                                                                                          |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 1      | Email unique, non modifiable                                                                                                                       | 409 `CLIENT_EMAIL_ALREADY_USED` ; 400 si `email` est envoyé dans le `PUT`                             |
-| 2      | Téléphone : dix chiffres commençant par 01, 05 ou 07                                                                                            | 400 `VALIDATION_ERROR`                                                                                     |
-| 3      | Client créé ACTIVE, `status` ignoré à la création                                                                                           | —                                                                                                           |
-| 4      | Statut du client modifiable par le `PUT`, dans les deux sens                                                                                     | —                                                                                                           |
-| 5      | Pas de nouvelle souscription pour un client INACTIVE                                                                                               | 409 `CLIENT_INACTIVE`                                                                                      |
-| 6      | Suppression refusée si une souscription est PENDING, ACTIVE ou SUSPENDED                                                                          | 409 `CLIENT_HAS_ONGOING_SUBSCRIPTIONS`                                                                     |
-| 7      | Code d'offre unique et en majuscules                                                                                                               | 409 `OFFER_CODE_ALREADY_USED` ; 400 `VALIDATION_ERROR`                                                   |
-| 8      | Prix mensuel strictement positif, deux décimales au plus                                                                                          | 400 `VALIDATION_ERROR`                                                                                     |
-| 9      | Offre créée active ; désactivation uniquement par `PATCH`                                                                                     | 400 si `active` est envoyé dans le `PUT`                                                                |
-| 10     | Code et technologie non modifiables                                                                                                                | 400 si `code` ou `technology` sont envoyés dans le `PUT`                                              |
-| 11     | Une offre désactivée n'accepte plus de souscription                                                                                              | 409 `OFFER_INACTIVE`                                                                                       |
-| 12     | Souscription pour un client ACTIVE et une offre active                                                                                             | 409 `CLIENT_INACTIVE`, `OFFER_INACTIVE`                                                                  |
-| 13     | Une souscription SUSPENDED bloque toute nouvelle souscription                                                                                      | 409 `CLIENT_HAS_SUSPENDED_SUBSCRIPTION`                                                                    |
-| 14     | Une seule souscription PENDING ou ACTIVE par technologie                                                                                           | 409 `TECHNOLOGY_ALREADY_SUBSCRIBED`                                                                        |
-| 15     | Ordre : client actif → offre active → blocage global → unicité par technologie                                                                 | La première règle enfreinte, dans cet ordre                                                                |
-| 16     | Référence `SUB-{ANNÉE}-{6 chiffres}` générée par le serveur                                                                                | 400 si `reference` est envoyée                                                                            |
-| 17     | ND `27XXXXXXXX` unique, attribué par le serveur                                                                                                 | —                                                                                                           |
-| 18     | ND jamais modifiable                                                                                                                               | 400 si `nd` est envoyé dans un corps                                                                      |
-| 19     | Date de début aujourd'hui ou plus tard                                                                                                            | 400 `START_DATE_IN_PAST`                                                                                   |
-| 20     | Motif obligatoire pour la suspension et la résiliation, conservé                                                                                 | 400 `VALIDATION_ERROR`                                                                                     |
-| 21     | Résiliation définitive, date de fin à la date du jour                                                                                           | 409 `INVALID_STATUS_TRANSITION` sur toute opération ultérieure                                           |
-| 22     | Seule une souscription PENDING peut être supprimée                                                                                               | 409 `SUBSCRIPTION_NOT_DELETABLE`                                                                           |
-| —     | Hors énoncé : une technologie retirée du catalogue n'accepte plus de nouvelle offre ni de souscription ; vérifiée juste après l'offre active | 409 `TECHNOLOGY_INACTIVE` ([ADR-0013](docs/adr/0013-extensions.md#6-retrait-dune-technologie-du-catalogue)) |
-| —     | Hors énoncé : code et libellé d'une technologie uniques, le libellé sans tenir compte de la casse ni des accents                          | 409 `TECHNOLOGY_ALREADY_EXISTS`, `TECHNOLOGY_LABEL_ALREADY_USED` ([ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md)) |
+| Règle | Résumé                                                                                                                                           | En cas de violation                                                                                                                  |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1      | Email unique, non modifiable                                                                                                                       | 409 `CLIENT_EMAIL_ALREADY_USED` ; 400 si `email` est envoyé dans le `PUT`                                                     |
+| 2      | Téléphone : dix chiffres commençant par 01, 05 ou 07                                                                                            | 400 `VALIDATION_ERROR`                                                                                                             |
+| 3      | Client créé ACTIVE, `status` ignoré à la création                                                                                           | —                                                                                                                                   |
+| 4      | Statut du client modifiable par le `PUT`, dans les deux sens                                                                                     | —                                                                                                                                   |
+| 5      | Pas de nouvelle souscription pour un client INACTIVE                                                                                               | 409 `CLIENT_INACTIVE`                                                                                                              |
+| 6      | Suppression refusée si une souscription est PENDING, ACTIVE ou SUSPENDED                                                                          | 409 `CLIENT_HAS_ONGOING_SUBSCRIPTIONS`                                                                                             |
+| 7      | Code d'offre unique et en majuscules                                                                                                               | 409 `OFFER_CODE_ALREADY_USED` ; 400 `VALIDATION_ERROR`                                                                           |
+| 8      | Prix mensuel strictement positif, deux décimales au plus                                                                                          | 400 `VALIDATION_ERROR`                                                                                                             |
+| 9      | Offre créée active ; désactivation uniquement par `PATCH`                                                                                     | 400 si `active` est envoyé dans le `PUT`                                                                                        |
+| 10     | Code et technologie non modifiables                                                                                                                | 400 si `code` ou `technology` sont envoyés dans le `PUT`                                                                      |
+| 11     | Une offre désactivée n'accepte plus de souscription                                                                                              | 409 `OFFER_INACTIVE`                                                                                                               |
+| 12     | Souscription pour un client ACTIVE et une offre active                                                                                             | 409 `CLIENT_INACTIVE`, `OFFER_INACTIVE`                                                                                          |
+| 13     | Une souscription SUSPENDED bloque toute nouvelle souscription                                                                                      | 409 `CLIENT_HAS_SUSPENDED_SUBSCRIPTION`                                                                                            |
+| 14     | Une seule souscription PENDING ou ACTIVE par technologie                                                                                           | 409 `TECHNOLOGY_ALREADY_SUBSCRIBED`                                                                                                |
+| 15     | Ordre : client actif → offre active → blocage global → unicité par technologie                                                                 | La première règle enfreinte, dans cet ordre                                                                                        |
+| 16     | Référence `SUB-{ANNÉE}-{6 chiffres}` générée par le serveur                                                                                | 400 si `reference` est envoyée                                                                                                    |
+| 17     | ND `27XXXXXXXX` unique, attribué par le serveur                                                                                                 | —                                                                                                                                   |
+| 18     | ND jamais modifiable                                                                                                                               | 400 si `nd` est envoyé dans un corps                                                                                              |
+| 19     | Date de début aujourd'hui ou plus tard                                                                                                            | 400 `START_DATE_IN_PAST`                                                                                                           |
+| 20     | Motif obligatoire pour la suspension et la résiliation, conservé                                                                                 | 400 `VALIDATION_ERROR`                                                                                                             |
+| 21     | Résiliation définitive, date de fin à la date du jour                                                                                           | 409 `INVALID_STATUS_TRANSITION` sur toute opération ultérieure                                                                   |
+| 22     | Seule une souscription PENDING peut être supprimée                                                                                               | 409 `SUBSCRIPTION_NOT_DELETABLE`                                                                                                   |
+| —     | Hors énoncé : une technologie retirée du catalogue n'accepte plus de nouvelle offre ni de souscription ; vérifiée juste après l'offre active | 409 `TECHNOLOGY_INACTIVE` ([ADR-0013](docs/adr/0013-extensions.md#6-retrait-dune-technologie-du-catalogue))                         |
+| —     | Hors énoncé : code et libellé d'une technologie uniques, le libellé sans tenir compte de la casse ni des accents                               | 409 `TECHNOLOGY_ALREADY_EXISTS`, `TECHNOLOGY_LABEL_ALREADY_USED` ([ADR-0006](docs/adr/0006-technologies-donnees-de-reference.md)) |
 
 Les points sur lesquels l'énoncé laisse une marge d'interprétation (casse de l'email, fuseau de « la date du jour », décimales des montants, sort des souscriptions d'un client supprimé, revenu pris en compte…) sont recensés, avec le choix retenu, dans [docs/interpretations.md](docs/interpretations.md).
 
@@ -417,14 +417,14 @@ npx newman run postman/subscription-api.postman_collection.json
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0 · Authentification                  | Connexion en administrateur et en conseiller                                                                                                                                                                                                               |
 | 1 · Scénario de bout en bout         | Les 7 étapes de l'énoncé, puis la vérification de l'historique, l'attestation de résiliation et les notifications envoyées au client                                                                                                                 |
-| 2 · Règles métier                   | Chaque règle de l'énoncé démontrée par son cas d'erreur, à partir d'un client, d'une offre et d'une souscription préparés puis réutilisés ; contrôles de droits (401, 403)                                                                          |
+| 2 · Règles métier                   | Chaque règle de l'énoncé démontrée par son cas d'erreur, à partir d'un client, d'une offre et d'une souscription préparés puis réutilisés ; contrôles de droits (401, 403)                                                                      |
 | 3 · Clients                           | Tous les endpoints des clients, export CSV compris                                                                                                                                                                                                         |
 | 4 · Offres                            | Tous les endpoints des offres                                                                                                                                                                                                                              |
 | 5 · Technologies                      | Catalogue des technologies                                                                                                                                                                                                                                 |
 | 6 · Souscriptions                     | Détail, recherche par ND, recherche globale, export CSV, liste par client, attestation, suppression                                                                                                                                                       |
 | 7 · Statistiques                      | Les trois indicateurs                                                                                                                                                                                                                                      |
 | 8 · Parcours complet de l'application | Toutes les fonctionnalités enchaînées, y compris les extensions : technologie retirée puis remise au catalogue, prix figé, cycle de vie, attestations, notifications, statistiques, exports, journal d'audit, puis suppression, conservation et purge |
-| 9 · Erreurs techniques                | Valeurs inconnues (avec les valeurs possibles), JSON mal formé, tri et période invalides, ressources et routes inconnues (404), 405, 415, jeton falsifié pour s'attribuer le rôle ADMIN (401)                                                       |
+| 9 · Erreurs techniques                | Valeurs inconnues (avec les valeurs possibles), JSON mal formé, tri et période invalides, ressources et routes inconnues (404), 405, 415, jeton falsifié pour s'attribuer le rôle ADMIN (401)                                                          |
 
 Le dossier 1 reproduit à l'identique le scénario demandé par l'énoncé ; le dossier 8 est un parcours complémentaire, qui montre l'ensemble de l'application sans modifier ce scénario.
 
