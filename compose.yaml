@@ -6,8 +6,6 @@
 # Si un PostgreSQL local occupe déjà le port 5432 : POSTGRES_PORT=5433 docker compose up -d,
 # puis lancer l'application avec SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/subscription_db.
 # De même pour Mailpit : MAILPIT_SMTP_PORT=2025 docker compose up -d, puis SPRING_MAIL_PORT=2025.
-# Le SMTP par défaut est 1026 : sur macOS, FinderSync occupe souvent 127.0.0.1:1025/1026
-# (IPv4) ; l'application se connecte donc à [::1] (voir application.yml).
 # Tout en conteneurs, application comprise (image du Dockerfile, sans JDK ni Maven sur la machine) :
 #   docker compose --profile app up --build      (APP_PORT=8083 si le port 8080 est déjà pris)
 services:
@@ -47,7 +45,7 @@ services:
       # peut bloquer l'accueil SMTP dans Docker Desktop
       MP_SMTP_DISABLE_RDNS: "true"
     ports:
-      - "${MAILPIT_SMTP_PORT:-1026}:1025"   # SMTP, utilisé par l'application (spring.mail.port)
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"   # SMTP, utilisé par l'application (spring.mail.port)
       - "8025:8025"   # interface web
 
 volumes:

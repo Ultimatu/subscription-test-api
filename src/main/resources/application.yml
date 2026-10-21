@@ -17,10 +17,8 @@ spring:
   mail:
     # Mailpit, fourni par compose.yaml : les emails s'affichent sur http://localhost:8025, rien ne part
     # vraiment. En production : SPRING_MAIL_HOST, SPRING_MAIL_PORT, SPRING_MAIL_USERNAME…
-    # [::1] plutôt que localhost : sur macOS, FinderSync écoute souvent en IPv4 sur le même port
-    # et les envois vers 127.0.0.1 timeoutent sans atteindre Mailpit (Compose, port 1026).
-    host: "[::1]"
-    port: 1026
+    host: localhost
+    port: 1025
     properties:
       # Sans délai maximal, un serveur de messagerie qui ne répond pas bloquerait l'envoi indéfiniment
       "[mail.smtp.connectiontimeout]": 5000
@@ -30,6 +28,7 @@ spring:
     # Messages de Bean Validation (« ne doit pas être vide »…) en français, quelle que soit la langue du client
     locale: fr
     locale-resolver: fixed
+
 
 app:
   # Suppression et conservation des données (ADR-0013). Un client qui n'a jamais souscrit est toujours
@@ -86,3 +85,6 @@ springdoc:
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: method
+    enabled: true
+  api-docs:
+    enabled: true
