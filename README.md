@@ -174,9 +174,6 @@ L'API ne gère que trois entités, mais sa complexité est surtout métier : 22 
 Elle a un coût : plus de classes qu'une architecture en couches classique, et une duplication assumée entre le modèle du domaine et l'entité JPA. Sur un simple CRUD, elle serait surdimensionnée. Elle est appliquée ici de façon pragmatique, sans tout découper : un port d'entrée par agrégat plutôt qu'un par cas d'usage (un agrégat n'en a plusieurs que lorsqu'une partie de ses cas d'usage évolue pour d'autres raisons, comme la suppression et la conservation des clients), et la pagination de Spring Data acceptée dans la couche application. Le détail et les alternatives sont dans l'[ADR-0001](docs/adr/0001-architecture-hexagonale.md).
 
 Les dépendances pointent toujours vers le centre : `infrastructure` → `application` → `domain`. Le test `ArchitectureTest` (ArchUnit) le vérifie à chaque build.
-
-Les constructeurs d'injection sont écrits à la main, sans `@RequiredArgsConstructor` : le compilateur Eclipse 4.42, embarqué dans les extensions Java de VS Code et d'Eclipse, compile mal en Java 17 les constructeurs générés par Lombok, et produit des classes qui échouent à l'exécution ([lombok#4086](https://github.com/projectlombok/lombok/issues/4086)). Lombok ne sert qu'à `@Getter`, `@Setter` et `@Slf4j`.
-
 ### Arborescence
 
 ```
