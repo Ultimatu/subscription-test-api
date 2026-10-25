@@ -524,24 +524,6 @@ Ce que j'aurais fait avec plus de temps, ou dans un contexte de production :
 - **Expiration des souscriptions oubliées** : aucune vérification automatique ne porte aujourd'hui sur les souscriptions. Une souscription PENDING jamais activée occupe sa technologie (règle 14), et une souscription SUSPENDED jamais régularisée bloque toute nouvelle souscription du client (règle 13), sans limite de temps. Une tâche quotidienne, sur le modèle de la purge, résilierait automatiquement une souscription PENDING non activée 30 jours après sa date de début et une souscription suspendue depuis plus de 90 jours (délais réglables). Elle passerait par le domaine comme une résiliation manuelle : transitions autorisées par l'énoncé, historique avec motif, email au client avec son attestation, journal d'audit signé « system ».
 - **Contrats à durée déterminée** (engagement de 12 mois, renouvellement tacite) : il faudrait une durée sur l'offre et une date de fin prévue sur la souscription. L'activation, elle, resterait manuelle : pour une ligne fibre ou satellite, elle suit une installation technique, pas une date du calendrier.
 
-**Sécurité**
-
-- **Fournisseur d'identité** (Keycloak, Azure AD…) : l'API ne ferait plus que vérifier les jetons, et la table des comptes disparaîtrait.
-- **Jeton de rafraîchissement** et **révocation** des jetons ; aujourd'hui, il faut se reconnecter au bout d'une heure, et un jeton reste valable jusqu'à son expiration.
-- **Limitation du débit** sur la connexion, contre les tentatives répétées de mots de passe.
-
-**Données et performance**
-
-- **Index trigrammes** (`pg_trgm`) pour les recherches partielles, qui parcourent aujourd'hui toute la table, un index d'expression sur la ville sans accents (par une fonction `IMMUTABLE` intermédiaire, `unaccent` étant `STABLE`) et un index sur la date des changements de statut pour les statistiques ; le schéma actuel est dimensionné pour quelques dizaines de milliers de clients.
-- **Cache** du catalogue d'offres et de technologies, qui change rarement.
-- **Documents en masse** (relevés mensuels de tous les clients, par exemple) : une file de traitements (JobRunr sur PostgreSQL, ou un broker de messages). Inutile pour une attestation unitaire, générée en quelques dizaines de millisecondes ([ADR-0013](docs/adr/0013-extensions.md#3-attestation-pdf)).
-
-**Tests et exploitation**
-
-- **Testcontainers** : chaque exécution des tests aurait sa propre base PostgreSQL jetable. Écarté parce qu'il exige Docker, que l'énoncé ne prévoit pas ([ADR-0010](docs/adr/0010-strategie-de-tests.md)).
-- **Exiger un seuil de couverture propre aux tests unitaires** : ils sont isolés par une étiquette et mesurés à part ([ADR-0010](docs/adr/0010-strategie-de-tests.md)), mais le build ne vérifie que la couverture de l'ensemble des tests ([ADR-0016](docs/adr/0016-couverture-de-code.md)).
-- **Tests de contrat** de l'API générés depuis la spécification OpenAPI.
-- **Observabilité** : métriques Prometheus (Micrometer), logs au format JSON, traces distribuées avec OpenTelemetry, en plus de l'identifiant de requête actuel.
 
 ## 14. Documentation complémentaire
 
